@@ -1,13 +1,18 @@
-// 1. Firebase Configuration
+// 1. Firebase Configuration (പഴയ Version 8 രീതി)
 const firebaseConfig = {
     apiKey: "AIzaSyDgWlTlsbkqIo2xQFf-UI6fE6X1KeyI9-U",
     authDomain: "madrasa-acf90.firebaseapp.com",
     projectId: "madrasa-acf90",
     storageBucket: "madrasa-acf90.firebasestorage.app",
     messagingSenderId: "128246256646",
-    appId: "1:128246256646:web:49e41f5f8d16340550df87"
+    appId: "1:128246256646:web:49e41f5f8d16340550df87",
+    measurementId: "G-3FHMCRGX0W"
 };
-firebase.initializeApp(firebaseConfig);
+
+// Initialize Firebase
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
 const auth = firebase.auth();
 const db = firebase.firestore();
 

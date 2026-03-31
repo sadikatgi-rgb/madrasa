@@ -18,23 +18,40 @@ const db = firebase.firestore();
 
 // 2. ലോഗിൻ ഫങ്ക്ഷൻ
 async function loginUser() {
-    let userID = document.getElementById('login-id').value.trim();
-    const pass = document.getElementById('login-pass').value.trim();
-    
-    let email;
-    if (userID.toLowerCase().startsWith('usthad')) {
-        email = userID.toLowerCase() + "@islahululoom.com";
-    } else {
-        email = userID + "@islahululoom.com";
+    // 1. ഫീൽഡുകൾ എടുക്കുന്നു
+    const idElement = document.getElementById('login-id');
+    const passElement = document.getElementById('login-pass');
+
+    // 2. ഫീൽഡുകൾ HTML-ൽ ഉണ്ടെന്ന് ഉറപ്പുവരുത്തുന്നു
+    if (!idElement || !passElement) {
+        alert("പിശക്: HTML-ൽ 'login-id' അല്ലെങ്കിൽ 'login-pass' എന്ന ഐഡികൾ കാണുന്നില്ല!");
+        return;
     }
 
+    let userID = idElement.value.trim();
+    const pass = passElement.value.trim();
+    
+    // 3. ഒന്നും ടൈപ്പ് ചെയ്തില്ലെങ്കിൽ അലേർട്ട് നൽകുന്നു
+    if (userID === "" || pass === "") {
+        alert("ദയവായി യൂസർ ഐഡിയും പാസ്‌വേഡും നൽകുക.");
+        return;
+    }
+
+    // 4. ഇമെയിൽ രൂപപ്പെടുത്തുന്നു
+    let email = userID.toLowerCase().startsWith('usthad') ? 
+                userID.toLowerCase() + "@islahululoom.com" : 
+                userID + "@islahululoom.com";
+
     try {
+        // 5. ഫയർബേസ് ലോഗിൻ ശ്രമിക്കുന്നു
         const res = await auth.signInWithEmailAndPassword(email, pass);
         checkUser(res.user.uid);
     } catch (e) {
-    alert("പിശക്: " + e.message); // ഇത് കൃത്യമായ എറർ പറയും
+        // 6. എന്തെങ്കിലും എറർ വന്നാൽ അത് കൃത്യമായി കാണിക്കും
+        alert("ലോഗിൻ പരാജയപ്പെട്ടു: " + e.message);
     }
 }
+
 
 // 3. യൂസർ റോൾ പരിശോധന
 async function checkUser(uid) {

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edusafa - Smart Madrasa</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="app-container">
+        <div id="login-page" class="page">
+            <div class="auth-header">
+                <i class="fas fa-mosque logo-icon"></i>
+                <h1>Islahul Uloom Madrasa</h1>
+                <p>സ്മാർട്ട് മദ്റസ പോർട്ടൽ</p>
+            </div>
+            <div class="form-container">
+    <input type="text" id="login-id" placeholder="User ID (eg: usthad1)">
+    <input type="password" id="login-pass" placeholder="Password">
+    <button onclick="loginUser()">Login</button>
+</div>
+  </div>
+
+        <div id="main-dashboard" class="page" style="display:none;">
+            <header class="main-header">
+                <div class="user-profile">
+                    <div class="avatar" id="user-avatar">U</div>
+                    <div>
+                        <h2 id="display-name">Loading...</h2>
+                        <p id="display-role">User</p>
+                    </div>
+                </div>
+                <button onclick="logout()" class="logout-btn"><i class="fas fa-power-off"></i></button>
+            </header>
+
+            <div id="usthad-view" style="display:none;">
+                <div class="stats-grid">
+                    <div class="stat-card" onclick="showSection('student-list')">
+                        <i class="fas fa-users"></i><span>കുട്ടികൾ</span>
+                    </div>
+                    <div class="stat-card" onclick="showSection('add-student')">
+                        <i class="fas fa-user-plus"></i><span>പുതിയ കുട്ടി</span>
+                    </div>
+                    <div class="stat-card" onclick="showSection('attendance')">
+                        <i class="fas fa-clipboard-list"></i><span>ഹാജർ</span>
+                    </div>
+                </div>
+
+                <div id="dynamic-content" class="content-area">
+                    </div>
+            </div>
+
+            <div id="student-view" style="display:none;" class="content-area">
+                <div class="info-card">
+                    <h3>എന്റെ പ്രൊഫൈൽ</h3>
+                    <div id="my-details-box"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

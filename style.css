@@ -1,0 +1,36 @@
+:root {
+    --primary: #1a73e8;
+    --secondary: #34a853;
+    --danger: #ea4335;
+    --bg: #f8f9fa;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+body { background: #ddd; display: flex; justify-content: center; }
+
+.app-container { width: 100%; max-width: 450px; min-height: 100vh; background: white; position: relative; overflow-x: hidden; }
+
+/* Auth Header */
+.auth-header { background: var(--primary); color: white; padding: 60px 20px; text-align: center; border-bottom-left-radius: 50px; border-bottom-right-radius: 50px; }
+.logo-icon { font-size: 50px; margin-bottom: 10px; }
+
+.form-container { padding: 30px 20px; }
+input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 8px; }
+button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+
+/* Main Header */
+.main-header { background: var(--primary); color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; }
+.avatar { width: 45px; height: 45px; background: white; color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 12px; }
+.user-profile { display: flex; align-items: center; }
+.logout-btn { background: none; width: auto; color: white; font-size: 20px; }
+
+/* Stats Grid */
+.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 15px; }
+.stat-card { background: white; padding: 15px; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer; }
+.stat-card i { font-size: 20px; color: var(--primary); display: block; margin-bottom: 5px; }
+.stat-card span { font-size: 11px; font-weight: bold; }
+
+/* Content Area */
+.content-area { padding: 15px; }
+.student-item { background: #fdfdfd; padding: 15px; border-radius: 10px; margin-bottom: 10px; border-left: 5px solid var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+.fee-btn { background: var(--secondary); margin-top: 8px; padding: 8px; font-size: 12px; }

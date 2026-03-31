@@ -32,7 +32,7 @@ async function loginUser() {
         const res = await auth.signInWithEmailAndPassword(email, pass);
         checkUser(res.user.uid);
     } catch (e) {
-        alert("പ്രവേശനം പരാജയപ്പെട്ടു! ഐഡിയോ പാസ്‌വേഡോ തെറ്റാണ്.");
+    alert("പിശക്: " + e.message); // ഇത് കൃത്യമായ എറർ പറയും
     }
 }
 

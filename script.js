@@ -1,4 +1,4 @@
-// 1. Firebase Configuration (പഴയ Version 8 രീതി)
+// 1. Firebase Configuration
 const firebaseConfig = {
     apiKey: "AIzaSyDgWlTlsbkqIo2xQFf-UI6fE6X1KeyI9-U",
     authDomain: "madrasa-acf90.firebaseapp.com",
@@ -18,40 +18,36 @@ const db = firebase.firestore();
 
 // 2. ലോഗിൻ ഫങ്ക്ഷൻ
 async function loginUser() {
-    // 1. ഫീൽഡുകൾ എടുക്കുന്നു
+    // പരിശോധനയ്ക്കായി: ബട്ടൺ അമർത്തിയാൽ ഉടൻ ഈ മെസ്സേജ് വരണം
+    console.log("Login ബട്ടൺ അമർത്തി"); 
+
     const idElement = document.getElementById('login-id');
     const passElement = document.getElementById('login-pass');
 
-    // 2. ഫീൽഡുകൾ HTML-ൽ ഉണ്ടെന്ന് ഉറപ്പുവരുത്തുന്നു
     if (!idElement || !passElement) {
-        alert("പിശക്: HTML-ൽ 'login-id' അല്ലെങ്കിൽ 'login-pass' എന്ന ഐഡികൾ കാണുന്നില്ല!");
+        alert("HTML-ൽ ഐഡികൾ തെറ്റാണ് (login-id, login-pass എന്നിവ ഉണ്ടെന്ന് ഉറപ്പാക്കുക)");
         return;
     }
 
     let userID = idElement.value.trim();
     const pass = passElement.value.trim();
     
-    // 3. ഒന്നും ടൈപ്പ് ചെയ്തില്ലെങ്കിൽ അലേർട്ട് നൽകുന്നു
     if (userID === "" || pass === "") {
         alert("ദയവായി യൂസർ ഐഡിയും പാസ്‌വേഡും നൽകുക.");
         return;
     }
 
-    // 4. ഇമെയിൽ രൂപപ്പെടുത്തുന്നു
     let email = userID.toLowerCase().startsWith('usthad') ? 
                 userID.toLowerCase() + "@islahululoom.com" : 
                 userID + "@islahululoom.com";
 
     try {
-        // 5. ഫയർബേസ് ലോഗിൻ ശ്രമിക്കുന്നു
         const res = await auth.signInWithEmailAndPassword(email, pass);
         checkUser(res.user.uid);
     } catch (e) {
-        // 6. എന്തെങ്കിലും എറർ വന്നാൽ അത് കൃത്യമായി കാണിക്കും
         alert("ലോഗിൻ പരാജയപ്പെട്ടു: " + e.message);
     }
 }
-
 
 // 3. യൂസർ റോൾ പരിശോധന
 async function checkUser(uid) {
@@ -125,10 +121,10 @@ async function loadStudents() {
     snap.forEach(doc => {
         const s = doc.data();
         content.innerHTML += `
-            <div class="student-item" style="border:1px solid #ddd; padding:10px; margin-bottom:5px;">
+            <div class="student-item" style="border:1px solid #ddd; padding:10px; margin-bottom:5px; border-radius:8px;">
                 <strong>${s.name} (Class: ${s.class})</strong><br>
                 ബാക്കി: ₹${s.balance}
-                <button onclick="updateFees('${doc.id}', '${s.parentPhone}', '${s.name}')">Pay Fee</button>
+                <button onclick="updateFees('${doc.id}', '${s.parentPhone}', '${s.name}')" style="margin-top:5px;">Pay Fee</button>
             </div>
         `;
     });
@@ -160,4 +156,3 @@ async function updateFees(id, phone, name) {
 
 function logout() { auth.signOut().then(() => location.reload()); }
 
-  

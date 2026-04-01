@@ -81,7 +81,8 @@ function showStudentProfile(s, docId) {
             <p><strong>വീട്:</strong> ${s.houseName}</p>
             <p><strong>ഐഡി:</strong> ${s.studentID}</p>
             <hr style="margin:10px 0;">
-            <p><strong>ആകെ വരിസംഖ്യ:</strong> ₹${s.totalAmount}</p>
+            <p><strong>പ്രതിമാസ വരിസംഖ്യ:</strong> ₹${s.monthlyFee || 0}</p>
+            <p><strong>ആകെ അടയ്ക്കാനുള്ളത്:</strong> ₹${s.totalAmount}</p>
             <p><strong>അടച്ചത്:</strong> ₹${s.paidAmount}</p>
             <p style="color:red; font-weight:bold;">ബാക്കി: ₹${s.balance}</p>
             <button onclick="viewHistory('${docId}', '${s.name}')" style="background:#6c757d; margin-top:15px;">എന്റെ പെയ്മെന്റ് ഹിസ്റ്ററി</button>
@@ -111,11 +112,14 @@ function showSection(section) {
             <button onclick="addSiblingField()" style="background:#28a745; margin-bottom:15px; font-size:12px; padding:5px;">+ മറ്റൊരാളെ കൂടി ചേർക്കുക</button>
             
             <input id="n-phone" placeholder="വാട്ട്സാപ്പ് നമ്പർ (91xxxx)">
-            <input id="n-fees" type="number" placeholder="ആകെ വരിസംഖ്യ">
+            <input id="n-monthly-fee" type="number" placeholder="പ്രതിമാസ വരിസംഖ്യ (Monthly Fee)">
+            <input id="n-fees" type="number" placeholder="ആകെ അടയ്ക്കാനുള്ള വരിസംഖ്യ (Total Balance)">
             <button onclick="saveStudent()">സേവ് ചെയ്യുക</button>
         `;
     }
 }
+
+// സഹോദരങ്ങളെ ചേർക്കാനുള്ള ഇൻപുട്ട് ഫീൽഡ് അധികമായി നൽകാൻ
 function addSiblingField() {
     const container = document.getElementById('sibling-container');
     const div = document.createElement('div');
@@ -137,15 +141,14 @@ async function saveStudent() {
     const father = document.getElementById('n-father').value;
     const house = document.getElementById('n-house').value;
     const phone = document.getElementById('n-phone').value;
+    const mFee = document.getElementById('n-monthly-fee').value;
     const fees = document.getElementById('n-fees').value;
 
-    // 1. ഒന്നിലധികം സഹോദരങ്ങളുടെ വിവരങ്ങൾ ലിസ്റ്റ് ആയി എടുക്കുന്നു
     const siblingNames = document.getElementsByClassName('s-name');
     const siblingClasses = document.getElementsByClassName('s-class');
     let siblingsList = [];
     
     for (let i = 0; i < siblingNames.length; i++) {
-        // പേര് നൽകിയവരെ മാത്രം ലിസ്റ്റിലേക്ക് മാറ്റുന്നു
         if (siblingNames[i].value.trim() !== "") {
             siblingsList.push({
                 name: siblingNames[i].value,
@@ -154,22 +157,21 @@ async function saveStudent() {
         }
     }
 
-    // 2. ഐഡിയും തീയതിയും സെറ്റ് ചെയ്യുന്നു
     const sid = name.toLowerCase().substring(0,3) + phone.slice(-4);
     const ഇപ്പോൾ = new Date();
     const തീയതി = ഇപ്പോൾ.toLocaleDateString('en-IN'); 
     const സമയം = ഇപ്പോൾ.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
 
     try {
-        // 3. "students" കളക്ഷനിലേക്ക് ഡാറ്റ സേവ് ചെയ്യുന്നു
         await db.collection("students").add({
             name: name,
             class: cls,
             fatherName: father,
             houseName: house,
-            siblings: siblingsList, // സഹോദരങ്ങളുടെ ലിസ്റ്റ് ഇവിടെ സേവ് ആകുന്നു
+            siblings: siblingsList,
             parentPhone: phone,
             studentID: sid,
+            monthlyFee: Number(mFee),
             totalAmount: Number(fees),
             paidAmount: 0,
             balance: Number(fees),
@@ -181,11 +183,9 @@ async function saveStudent() {
         alert(`വിജയകരമായി ചേർത്തു! \nID: ${sid}`);
         showSection('student-list');
     } catch(e) { 
-        console.error("Error saving student: ", e);
-        alert("വിവരങ്ങൾ സേവ് ചെയ്യുന്നതിൽ പിശക് സംഭവിച്ചു!"); 
+        alert("പിശക് സംഭവിച്ചു!"); 
     }
 }
-
 
 // 6. ലിസ്റ്റ് ലോഡ് ചെയ്യുക
 async function loadStudents(filterClass = 'all') {
@@ -193,18 +193,7 @@ async function loadStudents(filterClass = 'all') {
     content.innerHTML = `
         <select onchange="loadStudents(this.value)" style="margin-bottom:15px; width:100%; padding:10px;">
             <option value="all">എല്ലാ ക്ലാസ്സും</option>
-            <option value="1">ക്ലാസ്സ് 1</option>
-            <option value="2">ക്ലാസ്സ് 2</option>
-            <option value="3">ക്ലാസ്സ് 3</option>
-            <option value="4">ക്ലാസ്സ് 4</option>
-            <option value="5">ക്ലാസ്സ് 5</option>
-            <option value="6">ക്ലാസ്സ് 6</option>
-            <option value="7">ക്ലാസ്സ് 7</option>
-            <option value="8">ക്ലാസ്സ് 8</option>
-            <option value="9">ക്ലാസ്സ് 9</option>
-            <option value="10">ക്ലാസ്സ് 10</option>
-            <option value="11">ക്ലാസ്സ് 11</option>
-            <option value="12">ക്ലാസ്സ് 12</option>
+            ${[...Array(12).keys()].map(i => `<option value="${i+1}">ക്ലാസ്സ് ${i+1}</option>`).join('')}
         </select>
         <div id="list-area">ലോഡിംഗ്...</div>
     `;
@@ -218,6 +207,15 @@ async function loadStudents(filterClass = 'all') {
 
     snap.forEach(doc => {
         const s = doc.data();
+        
+        let siblingHTML = "";
+        if (s.siblings && s.siblings.length > 0) {
+            const sibDetails = s.siblings.map(sib => `${sib.name} (${sib.class})`).join(', ');
+            siblingHTML = `<small>സഹോദരങ്ങൾ: ${sibDetails}</small><br>`;
+        } else {
+            siblingHTML = `<small>സഹോദരങ്ങൾ: ഇല്ല (-)</small><br>`;
+        }
+
         listArea.innerHTML += `
             <div class="student-item" style="position:relative; border:1px solid #ddd; padding:15px; border-radius:10px; margin-bottom:10px;">
                 <div style="position:absolute; right:10px; top:10px;">
@@ -226,8 +224,9 @@ async function loadStudents(filterClass = 'all') {
                 </div>
                 <strong>${s.name} (ക്ലാസ്: ${s.class})</strong><br>
                 <small>വീട്: ${s.houseName || '-'} | ID: ${s.studentID}</small><br>
-                <small>സഹോദരങ്ങൾ: ${s.siblingName || 'ഇല്ല'} (${s.siblingClass || '-'})</small><br>
-                <small style="color:#666;">ചേർത്തത്: ${s.addedDate} | ${s.addedTime}</small><br>
+                ${siblingHTML}
+                <small>പ്രതിമാസ ഫീസ്: ₹${s.monthlyFee || 0}</small><br>
+                <small style="color:#666;">ചേർത്തത്: ${s.addedDate || '-'} | ${s.addedTime || '-'}</small><br>
                 <span style="color:red; font-weight:bold;">ബാക്കി: ₹${s.balance}</span>
                 <div style="display:flex; flex-wrap:wrap; gap:5px; margin-top:10px;">
                     <button class="fee-btn" onclick="updateFees('${doc.id}', '${s.parentPhone}', '${s.name}')" style="flex:1;">Pay Fee</button>
@@ -317,19 +316,22 @@ async function editStudent(id) {
     const s = doc.data();
     const newName = prompt("പേര് മാറ്റുക:", s.name);
     const newClass = prompt("ക്ലാസ്സ് മാറ്റുക:", s.class);
+    const newMFee = prompt("പ്രതിമാസ ഫീസ് മാറ്റുക:", s.monthlyFee || 0);
     const newTotal = prompt("ആകെ വരിസംഖ്യ മാറ്റുക:", s.totalAmount);
 
     if (newName && newClass) {
         const newBal = Number(newTotal) - Number(s.paidAmount);
         await db.collection("students").doc(id).update({
-            name: newName, class: newClass, totalAmount: Number(newTotal), balance: newBal
+            name: newName, class: newClass, 
+            monthlyFee: Number(newMFee),
+            totalAmount: Number(newTotal), balance: newBal
         });
         loadStudents();
     }
 }
 
 async function deleteStudent(id) {
-    if (confirm("ഒഴിവാക്കണോ?")) {
+    if (confirm("ഈ കുട്ടിയുടെ വിവരങ്ങൾ പൂർണ്ണമായും ഒഴിവാക്കണോ?")) {
         await db.collection("students").doc(id).delete();
         loadStudents();
     }
@@ -341,3 +343,4 @@ function sendCustomWA(phone, name) {
 }
 
 function logout() { auth.signOut().then(() => location.reload()); }
+

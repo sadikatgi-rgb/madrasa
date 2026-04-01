@@ -91,8 +91,9 @@ function showStudentProfile(s) {
         </div>
     `;
 }
+// ... (Firebase Config പഴയത് പോലെ തന്നെ വയ്ക്കുക)
 
-// 4. സെക്ഷൻ സ്വിച്ചർ
+// 4. സെക്ഷൻ സ്വിച്ചർ അപ്ഡേറ്റ് ചെയ്തത്
 function showSection(section) {
     const content = document.getElementById('dynamic-content');
     if (section === 'student-list') loadStudents();
@@ -103,8 +104,9 @@ function showSection(section) {
             <input id="n-class" placeholder="ക്ലാസ്സ് (eg: 1, 2..)">
             <input id="n-father" placeholder="പിതാവിന്റെ പേര്">
             <input id="n-house" placeholder="വീട്ടുപേര്">
-            <input id="n-sibling" placeholder="സഹോദരങ്ങൾ ഉള്ള ക്ലാസ്സ്">
-            <input id="n-phone" placeholder="വാട്ട്സാപ്പ് നമ്പർ">
+            <input id="n-sibling-name" placeholder="സഹോദരങ്ങളുടെ പേര്">
+            <input id="n-sibling-class" placeholder="സഹോദരങ്ങൾ പഠിക്കുന്ന ക്ലാസ്സ്">
+            <input id="n-phone" placeholder="വാട്ട്സാപ്പ് നമ്പർ (91xxxx)">
             <input id="n-fees" type="number" placeholder="ആകെ വരിസംഖ്യ">
             <button onclick="saveStudent()">സേവ് ചെയ്യുക</button>
         `;
@@ -117,27 +119,25 @@ async function saveStudent() {
     const cls = document.getElementById('n-class').value;
     const father = document.getElementById('n-father').value;
     const house = document.getElementById('n-house').value;
-    const sibling = document.getElementById('n-sibling').value;
+    const sName = document.getElementById('n-sibling-name').value;
+    const sClass = document.getElementById('n-sibling-class').value;
     const phone = document.getElementById('n-phone').value;
     const fees = document.getElementById('n-fees').value;
 
-    // ലളിതമായ ഒരു സ്റ്റുഡന്റ് ഐഡി ഉണ്ടാക്കുന്നു (പേരും ഫോണിന്റെ അവസാന 4 അക്കവും)
     const sid = name.toLowerCase().substring(0,3) + phone.slice(-4);
 
     try {
         await db.collection("students").add({
             name, class: cls, fatherName: father, houseName: house,
-            siblingInfo: sibling, parentPhone: phone, studentID: sid,
+            siblingName: sName, siblingClass: sClass, parentPhone: phone, studentID: sid,
             totalAmount: Number(fees), paidAmount: 0, balance: Number(fees)
         });
-        alert("വിജയകരമായി ചേർത്തു! കുട്ടിയുടെ ID: " + sid);
+        alert("വിജയകരമായി ചേർത്തു!");
         showSection('student-list');
-    } catch(e) {
-        alert("Error saving data!");
-    }
+    } catch(e) { alert("Error!"); }
 }
 
-// 6. ലിസ്റ്റ് ലോഡ് ചെയ്യുക (ക്ലാസ്സ് ഫിൽട്ടർ സഹിതം)
+// 6. ലിസ്റ്റ് ലോഡ് ചെയ്യുക (Edit/Delete ബട്ടണുകൾ സഹിതം)
 async function loadStudents(filterClass = 'all') {
     const content = document.getElementById('dynamic-content');
     content.innerHTML = `
@@ -146,7 +146,6 @@ async function loadStudents(filterClass = 'all') {
             <option value="1">ക്ലാസ്സ് 1</option>
             <option value="2">ക്ലാസ്സ് 2</option>
             <option value="3">ക്ലാസ്സ് 3</option>
-            <option value="4">ക്ലാസ്സ് 4</option>
         </select>
         <div id="list-area">ലോഡിംഗ്...</div>
     `;
@@ -161,18 +160,61 @@ async function loadStudents(filterClass = 'all') {
     snap.forEach(doc => {
         const s = doc.data();
         listArea.innerHTML += `
-            <div class="student-item">
+            <div class="student-item" style="position:relative;">
+                <div style="position:absolute; right:10px; top:10px;">
+                    <i class="fas fa-edit" onclick="editStudent('${doc.id}')" style="color:blue; cursor:pointer; margin-right:15px;"></i>
+                    <i class="fas fa-trash" onclick="deleteStudent('${doc.id}')" style="color:red; cursor:pointer;"></i>
+                </div>
                 <strong>${s.name} (ക്ലാസ്: ${s.class})</strong><br>
-                <small>വീട്: ${s.houseName} | ID: ${s.studentID}</small><br>
-                <span style="color:${s.balance > 0 ? 'red' : 'green'}">ബാക്കി: ₹${s.balance}</span>
+                <small>വീട്: ${s.houseName || 'N/A'} | ID: ${s.studentID}</small><br>
+                <small>സഹോദരങ്ങൾ: ${s.siblingName || 'ഇല്ല'} (${s.siblingClass || '-'})</small><br>
+                <span style="color:red; font-weight:bold;">ബാക്കി: ₹${s.balance}</span>
                 <div style="display:flex; gap:10px; margin-top:10px;">
                     <button class="fee-btn" onclick="updateFees('${doc.id}', '${s.parentPhone}', '${s.name}')">Pay Fee</button>
-                    <button class="wa-btn" onclick="window.open('https://wa.me/${s.parentPhone}', '_blank')"><i class="fab fa-whatsapp"></i> Chat</button>
+                    <button class="wa-btn" onclick="sendCustomWA('${s.parentPhone}', '${s.name}')"><i class="fab fa-whatsapp"></i> Chat</button>
                 </div>
             </div>
         `;
     });
 }
+
+// 8. എഡിറ്റ് ഫങ്ക്ഷൻ
+async function editStudent(id) {
+    const doc = await db.collection("students").doc(id).get();
+    const s = doc.data();
+    
+    const newName = prompt("പേര് മാറ്റുക:", s.name);
+    const newClass = prompt("ക്ലാസ്സ് മാറ്റുക:", s.class);
+    const newPhone = prompt("ഫോൺ നമ്പർ മാറ്റുക:", s.parentPhone);
+    const newTotal = prompt("ആകെ വരിസംഖ്യ മാറ്റുക:", s.totalAmount);
+
+    if (newName && newClass) {
+        const newBal = Number(newTotal) - Number(s.paidAmount);
+        await db.collection("students").doc(id).update({
+            name: newName, class: newClass, parentPhone: newPhone, 
+            totalAmount: Number(newTotal), balance: newBal
+        });
+        alert("വിവരങ്ങൾ പുതുക്കി!");
+        loadStudents();
+    }
+}
+
+// 9. ഡിലീറ്റ് ഫങ്ക്ഷൻ
+async function deleteStudent(id) {
+    if (confirm("ഈ കുട്ടിയുടെ വിവരങ്ങൾ പൂർണ്ണമായും ഒഴിവാക്കണോ?")) {
+        await db.collection("students").doc(id).delete();
+        alert("ഒഴിവാക്കി!");
+        loadStudents();
+    }
+}
+
+// 10. വാട്സാപ്പ് ചാറ്റ് (സാധാരണ മെസ്സേജ് അയക്കാൻ)
+function sendCustomWA(phone, name) {
+    const msg = `അസ്സലാമു അലൈക്കും, ഇസ്‌ലാഹുൽ ഉലൂം മദ്റസയിൽ നിന്ന് ${name}-ന്റെ കാര്യവുമായി ബന്ധപ്പെട്ട് ബന്ധപ്പെടുകയാണ്.`;
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+// ... (ബാക്കി updateFees, logout പഴയത് പോലെ തന്നെ വയ്ക്കുക)
 
 // 7. ഫീ അപ്‌ഡേറ്റ്
 async function updateFees(id, phone, name) {

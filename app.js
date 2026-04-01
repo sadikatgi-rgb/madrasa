@@ -17,7 +17,7 @@ const db = firebase.firestore();
 
 const allMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-// 2. ലോഗിൻ & സെക്ഷൻ സ്വിച്ചർ (മാറ്റമില്ലാതെ തുടരുന്നു)
+// 2. ലോഗിൻ & സെക്ഷൻ സ്വിച്ചർ
 async function loginUser() {
     const userID = document.getElementById('login-id').value.trim();
     const pass = document.getElementById('login-pass').value.trim();
@@ -80,7 +80,7 @@ function addSiblingField() {
     container.appendChild(div);
 }
 
-// 3. സേവ് ഫങ്ക്ഷൻ (പുതിയ വിവരങ്ങൾ കൂടി ഉൾപ്പെടുത്തി)
+// 3. സേവ് ഫങ്ക്ഷൻ
 async function saveStudent() {
     const name = document.getElementById('n-name').value;
     const cls = document.getElementById('n-class').value;
@@ -117,7 +117,7 @@ async function saveStudent() {
     } catch(e) { alert("പിശക് സംഭവിച്ചു!"); }
 }
 
-// 4. സ്റ്റുഡന്റ് ലിസ്റ്റ് (നിങ്ങൾ ആവശ്യപ്പെട്ട എല്ലാ വിവരങ്ങളും കാർഡ് രൂപത്തിൽ)
+// 4. സ്റ്റുഡന്റ് ലിസ്റ്റ്
 async function loadStudents(filterClass = 'all') {
     const content = document.getElementById('dynamic-content');
     content.innerHTML = `<select onchange="loadStudents(this.value)" style="margin-bottom:15px; width:100%; padding:10px;">
@@ -133,12 +133,9 @@ async function loadStudents(filterClass = 'all') {
 
     snap.forEach(doc => {
         const s = doc.data();
-        
-        // സഹോദരങ്ങളുടെ ലിസ്റ്റ്
         let sibHTML = s.siblings && s.siblings.length > 0 ? 
             s.siblings.map(sib => `${sib.name} (${sib.class})`).join(', ') : "ഇല്ല";
 
-        // മാസങ്ങളുടെ ടേബിൾ (മഞ്ഞ കാർഡ് മാതൃകയിൽ)
         let monthTableHTML = `<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin: 10px 0; font-size: 10px;">`;
         let unpaidCount = 0;
         allMonths.forEach(m => {
@@ -160,7 +157,6 @@ async function loadStudents(filterClass = 'all') {
                     <i class="fas fa-edit" onclick="editStudent('${doc.id}')" style="color:blue; cursor:pointer; margin-right:15px;"></i>
                     <i class="fas fa-trash" onclick="deleteStudent('${doc.id}')" style="color:red; cursor:pointer;"></i>
                 </div>
-                
                 <h4 style="margin:0 0 5px 0; color:#1a73e8;">${s.name} (ക്ലാസ്: ${s.class})</h4>
                 <div style="font-size:12px; line-height:1.6;">
                     <b>പിതാവ്:</b> ${s.fatherName || '-'}<br>
@@ -168,16 +164,13 @@ async function loadStudents(filterClass = 'all') {
                     <b>ID:</b> ${s.studentID}<br>
                     <b>സഹോദരങ്ങൾ:</b> ${sibHTML}
                 </div>
-
                 ${monthTableHTML}
-
                 <div style="background:#fff3f3; padding:8px; border-radius:5px; border:1px solid #ffebeb;">
                     <div style="display:flex; justify-content:space-between; font-size:12px;">
                         <span>മാസ ഫീസ്: <b>₹${s.monthlyFee}</b></span>
                         <span style="color:red; font-weight:bold;">ബാക്കി: ₹${pending}</span>
                     </div>
                 </div>
-                
                 <div style="display:flex; gap:5px; margin-top:10px;">
                     <button onclick="updateFees('${doc.id}', '${s.parentPhone}', '${s.name}')" style="flex:1; background:#28a745;">Pay Fee</button>
                     <button onclick="viewHistory('${doc.id}', '${s.name}')" style="background:#6c757d; flex:1;">History</button>
@@ -188,7 +181,7 @@ async function loadStudents(filterClass = 'all') {
     });
 }
 
-// 5. ഫീ അപ്‌ഡേറ്റ് (മാസങ്ങൾ തിരഞ്ഞെടുക്കാൻ)
+// 5. ഫീ അപ്‌ഡേറ്റ് & പ്രിന്റ് റെസീപ്റ്റ്
 async function updateFees(id, phone, name) {
     const monthsInput = prompt("അടയ്ക്കുന്ന മാസങ്ങൾ നൽകുക (eg: Jan, Feb):");
     if (!monthsInput) return;
@@ -218,14 +211,46 @@ async function updateFees(id, phone, name) {
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        alert("ഫീസ് സ്വീകരിച്ചു!");
+        // റെസീപ്റ്റ് പ്രിന്റ് ചെയ്യാനുള്ള ഓപ്ഷൻ
+        if (confirm("ഫീസ് സ്വീകരിച്ചു! റെസീപ്റ്റ് പ്രിന്റ് ചെയ്യണോ?")) {
+            printReceipt(name, total, paidNow, date);
+        }
+
         const msg = `അസ്സലാമു അലൈക്കും, \n${name}-ന്റെ ഫീസ് ₹${total} (${paidNow.join(', ')}) സ്വീകരിച്ചു. \nതീയതി: ${date}`;
         window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
         loadStudents();
     } catch(e) { alert("Error!"); }
 }
 
-// 6. ഹിസ്റ്ററി & ഡിലീറ്റ് (മാറ്റമില്ലാതെ തുടരുന്നു)
+// 6. പ്രിന്റ് ഫങ്ക്ഷൻ
+function printReceipt(name, amount, months, date) {
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <html>
+            <head><title>Receipt - Islahul Uloom</title></head>
+            <body style="font-family: 'Arial', sans-serif; padding: 20px; border: 1px dashed #000; width: 280px; margin: auto;">
+                <div style="text-align: center;">
+                    <h2 style="margin: 0; font-size: 18px;">ഇസ്‌ലാഹുൽ ഉലൂം മദ്റസ</h2>
+                    <p style="font-size: 10px; margin: 2px;">ഫീസ് രസീത്</p>
+                </div>
+                <hr style="border-top: 1px dashed #000;">
+                <div style="font-size: 12px; line-height: 1.6;">
+                    <p style="margin: 5px 0;">വിദ്യാർത്ഥി: <b>${name}</b></p>
+                    <p style="margin: 5px 0;">തീയതി: ${date}</p>
+                    <p style="margin: 5px 0;">മാസങ്ങൾ: ${months.join(', ')}</p>
+                    <hr style="border-top: 1px dashed #000;">
+                    <p style="text-align: center; font-size: 16px; margin: 10px 0;">ആകെ തുക: <b>₹${amount}</b></p>
+                </div>
+                <hr style="border-top: 1px dashed #000;">
+                <p style="text-align: center; font-size: 10px;">ഫിസബീലില്ലാഹ് - നന്ദി!</p>
+            </body>
+        </html>
+    `);
+    printWindow.document.close();
+    setTimeout(() => { printWindow.print(); }, 500);
+}
+
+// 7. ഹിസ്റ്ററി & ഡിലീറ്റ്
 async function viewHistory(studentId, studentName) {
     const content = document.getElementById('dynamic-content');
     content.innerHTML = `<h4>History: ${studentName}</h4><button onclick="loadStudents()">Back</button><div id="hist-list" style="margin-top:10px;"></div>`;
@@ -246,3 +271,23 @@ function sendCustomWA(phone, name) {
 
 async function deleteStudent(id) { if (confirm("ഒഴിവാക്കണോ?")) { await db.collection("students").doc(id).delete(); loadStudents(); } }
 function logout() { auth.signOut().then(() => location.reload()); }
+async function editStudent(id) {
+    const ref = db.collection("students").doc(id);
+    const s = (await ref.get()).data();
+    
+    const newName = prompt("പേര് മാറ്റണോ?", s.name);
+    const newClass = prompt("ക്ലാസ്സ് മാറ്റണോ?", s.class);
+    const newPhone = prompt("ഫോൺ നമ്പർ മാറ്റണോ?", s.parentPhone);
+    const newFee = prompt("മാസ ഫീസ് മാറ്റണോ?", s.monthlyFee);
+
+    if (newName && newClass) {
+        await ref.update({
+            name: newName,
+            class: newClass,
+            parentPhone: newPhone,
+            monthlyFee: Number(newFee)
+        });
+        alert("വിവരങ്ങൾ പുതുക്കി!");
+        loadStudents();
+    }
+}

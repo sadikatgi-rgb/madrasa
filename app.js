@@ -100,13 +100,34 @@ function showSection(section) {
             <input id="n-class" placeholder="ക്ലാസ്സ് (eg: 1, 2..)">
             <input id="n-father" placeholder="പിതാവിന്റെ പേര്">
             <input id="n-house" placeholder="വീട്ടുപേര്">
-            <input id="n-sibling-name" placeholder="സഹോദരങ്ങളുടെ പേര്">
-            <input id="n-sibling-class" placeholder="സഹോദരങ്ങൾ പഠിക്കുന്ന ക്ലാസ്സ്">
+            
+            <div id="sibling-container">
+                <p style="font-size:12px; color:blue; margin-bottom:5px;">സഹോദരങ്ങൾ (പേരും ക്ലാസ്സും):</p>
+                <div class="sibling-entry" style="display:flex; gap:5px; margin-bottom:5px;">
+                    <input class="s-name" placeholder="പേര്" style="flex:2;">
+                    <input class="s-class" placeholder="ക്ലാസ്സ്" style="flex:1;">
+                </div>
+            </div>
+            <button onclick="addSiblingField()" style="background:#28a745; margin-bottom:15px; font-size:12px; padding:5px;">+ മറ്റൊരാളെ കൂടി ചേർക്കുക</button>
+            
             <input id="n-phone" placeholder="വാട്ട്സാപ്പ് നമ്പർ (91xxxx)">
             <input id="n-fees" type="number" placeholder="ആകെ വരിസംഖ്യ">
             <button onclick="saveStudent()">സേവ് ചെയ്യുക</button>
         `;
     }
+}
+function addSiblingField() {
+    const container = document.getElementById('sibling-container');
+    const div = document.createElement('div');
+    div.className = 'sibling-entry';
+    div.style.display = 'flex';
+    div.style.gap = '5px';
+    div.style.marginBottom = '5px';
+    div.innerHTML = `
+        <input class="s-name" placeholder="പേര്" style="flex:2;">
+        <input class="s-class" placeholder="ക്ലാസ്സ്" style="flex:1;">
+    `;
+    container.appendChild(div);
 }
 
 // 5. കുട്ടി വിവരങ്ങൾ സേവ് ചെയ്യുക
@@ -115,28 +136,56 @@ async function saveStudent() {
     const cls = document.getElementById('n-class').value;
     const father = document.getElementById('n-father').value;
     const house = document.getElementById('n-house').value;
-    const sName = document.getElementById('n-sibling-name').value;
-    const sClass = document.getElementById('n-sibling-class').value;
     const phone = document.getElementById('n-phone').value;
     const fees = document.getElementById('n-fees').value;
 
+    // 1. ഒന്നിലധികം സഹോദരങ്ങളുടെ വിവരങ്ങൾ ലിസ്റ്റ് ആയി എടുക്കുന്നു
+    const siblingNames = document.getElementsByClassName('s-name');
+    const siblingClasses = document.getElementsByClassName('s-class');
+    let siblingsList = [];
+    
+    for (let i = 0; i < siblingNames.length; i++) {
+        // പേര് നൽകിയവരെ മാത്രം ലിസ്റ്റിലേക്ക് മാറ്റുന്നു
+        if (siblingNames[i].value.trim() !== "") {
+            siblingsList.push({
+                name: siblingNames[i].value,
+                class: siblingClasses[i].value
+            });
+        }
+    }
+
+    // 2. ഐഡിയും തീയതിയും സെറ്റ് ചെയ്യുന്നു
     const sid = name.toLowerCase().substring(0,3) + phone.slice(-4);
     const ഇപ്പോൾ = new Date();
-    const സമയം = ഇപ്പോൾ.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
     const തീയതി = ഇപ്പോൾ.toLocaleDateString('en-IN'); 
+    const സമയം = ഇപ്പോൾ.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
 
     try {
+        // 3. "students" കളക്ഷനിലേക്ക് ഡാറ്റ സേവ് ചെയ്യുന്നു
         await db.collection("students").add({
-            name, class: cls, fatherName: father, houseName: house,
-            siblingName: sName, siblingClass: sClass, parentPhone: phone, studentID: sid,
-            totalAmount: Number(fees), paidAmount: 0, balance: Number(fees),
-            addedDate: തീയതി, addedTime: സമയം,
+            name: name,
+            class: cls,
+            fatherName: father,
+            houseName: house,
+            siblings: siblingsList, // സഹോദരങ്ങളുടെ ലിസ്റ്റ് ഇവിടെ സേവ് ആകുന്നു
+            parentPhone: phone,
+            studentID: sid,
+            totalAmount: Number(fees),
+            paidAmount: 0,
+            balance: Number(fees),
+            addedDate: തീയതി,
+            addedTime: സമയം,
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
+        
         alert(`വിജയകരമായി ചേർത്തു! \nID: ${sid}`);
         showSection('student-list');
-    } catch(e) { alert("Error!"); }
+    } catch(e) { 
+        console.error("Error saving student: ", e);
+        alert("വിവരങ്ങൾ സേവ് ചെയ്യുന്നതിൽ പിശക് സംഭവിച്ചു!"); 
+    }
 }
+
 
 // 6. ലിസ്റ്റ് ലോഡ് ചെയ്യുക
 async function loadStudents(filterClass = 'all') {
@@ -147,6 +196,15 @@ async function loadStudents(filterClass = 'all') {
             <option value="1">ക്ലാസ്സ് 1</option>
             <option value="2">ക്ലാസ്സ് 2</option>
             <option value="3">ക്ലാസ്സ് 3</option>
+            <option value="4">ക്ലാസ്സ് 4</option>
+            <option value="5">ക്ലാസ്സ് 5</option>
+            <option value="6">ക്ലാസ്സ് 6</option>
+            <option value="7">ക്ലാസ്സ് 7</option>
+            <option value="8">ക്ലാസ്സ് 8</option>
+            <option value="9">ക്ലാസ്സ് 9</option>
+            <option value="10">ക്ലാസ്സ് 10</option>
+            <option value="11">ക്ലാസ്സ് 11</option>
+            <option value="12">ക്ലാസ്സ് 12</option>
         </select>
         <div id="list-area">ലോഡിംഗ്...</div>
     `;

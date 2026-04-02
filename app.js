@@ -79,6 +79,9 @@ function showSection(section) {
 else if (section === 'gurunidhi') {
         showGurunidhiSection(); 
     }
+    else if (section === 'report') {
+        showCollectionReport(); 
+    }
 }
 
 function addSiblingField() {

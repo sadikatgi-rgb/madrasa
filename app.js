@@ -152,7 +152,10 @@ async function loadStudents(filterClass = 'all') {
         });
         monthTableHTML += `</div>`;
 
-        const pending = (unpaidCount * s.monthlyFee) + (Number(s.balance) || 0);
+                // കുടിശ്ശികകൾ കണക്കാക്കുന്നു
+        const pendingMonthsFee = unpaidCount * s.monthlyFee;
+        const oldBalance = Number(s.balance) || 0;
+        const totalPending = pendingMonthsFee + oldBalance;
 
         listArea.innerHTML += `
             <div class="student-item" style="position:relative; border:1px solid #ddd; padding:15px; border-radius:12px; margin-bottom:15px; background: #fff; box-shadow: 0 4px 8px rgba(0,0,0,0.05);">
@@ -165,17 +168,29 @@ async function loadStudents(filterClass = 'all') {
                     <b>പിതാവ്:</b> ${s.fatherName || '-'}<br>
                     <b>ID:</b> ${s.studentID} | <b>സഹോദരങ്ങൾ:</b> ${sibHTML}
                 </div>
+                
                 ${monthTableHTML}
-                <div style="background:#fff3f3; padding:8px; border-radius:5px; border:1px solid #ffebeb;">
-                    <div style="display:flex; justify-content:space-between; font-size:12px;">
-                        <span>മാസ ഫീസ്: <b>₹${s.monthlyFee}</b></span>
-                        <span style="color:red; font-weight:bold;">ബാക്കി: ₹${pending}</span>
+                
+                <div style="background:#fff3f3; padding:10px; border-radius:8px; border:1px solid #ffebeb; margin-top:10px;">
+                    <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:5px;">
+                        <span>ഈ വർഷത്തെ മാസ ഫീസ് (₹${s.monthlyFee} x ${unpaidCount}):</span>
+                        <b style="color:#d32f2f;">₹${pendingMonthsFee}</b>
+                    </div>
+                    
+                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; padding-top:5px; border-top:1px dashed #ffdada;">
+                        <span>പഴയ കുടിശ്ശിക (Old Balance): <b style="color:#d32f2f;">₹${oldBalance}</b></span>
+                        ${oldBalance > 0 ? `<button onclick="payOldBalance('${doc.id}', '${s.parentPhone}', '${s.name}')" style="background:#d32f2f; color:white; border:none; padding:3px 8px; border-radius:4px; font-size:10px; cursor:pointer;">Pay Old</button>` : ''}
+                    </div>
+                    
+                    <div style="text-align:right; margin-top:8px; font-weight:bold; border-top:1px solid #ffdada; padding-top:5px; color:#000;">
+                        ആകെ കുടിശ്ശിക: ₹${totalPending}
                     </div>
                 </div>
+
                 <div style="display:flex; gap:5px; margin-top:10px;">
-                    <button onclick="updateFees('${doc.id}', '${s.parentPhone}', '${s.name}')" style="flex:1; background:#28a745; color:white; border:none; padding:8px; border-radius:5px;">Pay Fee</button>
-                    <button onclick="viewHistory('${doc.id}', '${s.name}')" style="background:#6c757d; flex:1; color:white; border:none; padding:8px; border-radius:5px;">History</button>
-                    <button onclick="sendCustomWA('${s.parentPhone}', '${s.name}')" style="background:#25d366; flex:1; color:white; border:none; padding:8px; border-radius:5px;">Chat</button>
+                    <button onclick="updateFees('${doc.id}', '${s.parentPhone}', '${s.name}')" style="flex:1; background:#28a745; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer;">Pay Month Fee</button>
+                    <button onclick="viewHistory('${doc.id}', '${s.name}')" style="background:#6c757d; flex:1; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer;">History</button>
+                    <button onclick="sendCustomWA('${s.parentPhone}', '${s.name}')" style="background:#25d366; flex:1; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer;">Chat</button>
                 </div>
             </div>
         `;
@@ -225,6 +240,53 @@ async function updateFees(id, phone, name) {
         window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
         loadStudents();
     } catch(e) { alert("Error!"); }
+}
+// പഴയ കുടിശ്ശിക (Old Balance) അടയ്ക്കാൻ
+async function payOldBalance(id, phone, name) {
+    const ref = db.collection("students").doc(id);
+    const snap = await ref.get();
+    const s = snap.data();
+    const currentBalance = Number(s.balance) || 0;
+
+    if (currentBalance <= 0) {
+        alert("പഴയ കുടിശ്ശിക നിലവിലില്ല.");
+        return;
+    }
+
+    const payAmount = prompt(`പഴയ കുടിശ്ശിക: ₹${currentBalance}\nഎത്ര രൂപയാണ് അടയ്ക്കുന്നത്?`);
+    if (!payAmount || isNaN(payAmount) || payAmount <= 0) return;
+    
+    if (Number(payAmount) > currentBalance) {
+        alert("അടയ്ക്കുന്ന തുക കുടിശ്ശികയേക്കാൾ കൂടുതലാണ്!");
+        return;
+    }
+
+    const rcptNo = prompt("റെസീപ്റ്റ് നമ്പർ (Receipt No) നൽകുക:");
+    if (!rcptNo) return;
+
+    const date = new Date().toLocaleDateString('en-IN');
+    const newBalance = currentBalance - Number(payAmount);
+
+    try {
+        // ബാലൻസ് അപ്‌ഡേറ്റ് ചെയ്യുന്നു
+        await ref.update({ balance: newBalance });
+
+        // പേയ്‌മെന്റ് ഹിസ്റ്ററിയിലേക്ക് ചേർക്കുന്നു
+        await db.collection("payments").add({
+            studentId: id, studentName: name, amountPaid: Number(payAmount),
+            date: date, time: new Date().toLocaleTimeString('en-IN'), 
+            months: "Old Balance Payment", // മാസത്തിന് പകരം ഇത് കാണിക്കും
+            receiptNo: rcptNo, studentID: s.studentID,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        alert(`വിജയകരമായി അടച്ചു! പുതിയ ബാക്കി: ₹${newBalance}`);
+        
+        if (confirm("റെസീപ്റ്റ് പ്രിന്റ് ചെയ്യണോ?")) {
+            printReceipt(name, payAmount, "Old Balance", date, rcptNo, s.studentID);
+        }
+        loadStudents();
+    } catch(e) { alert("Error updating balance!"); }
 }
 
 // 6. പ്രിന്റ് ഫങ്ക്ഷൻ (PDF)
@@ -469,3 +531,151 @@ function sendCustomWA(phone, name) {
 
 async function deleteStudent(id) { if (confirm("ഒഴിവാക്കണോ?")) { await db.collection("students").doc(id).delete(); loadStudents(); } }
 function logout() { auth.signOut().then(() => location.reload()); }
+// ഹാജർ മെയിൻ പേജ് കാണിക്കാൻ
+function showAttendanceSection() {
+    const content = document.getElementById('dynamic-content');
+    content.innerHTML = `
+        <div style="padding:15px; background:#fff; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+            <h3 style="color:#1a73e8;"><i class="fas fa-calendar-check"></i> ഹാജർ മാനേജ്‌മെന്റ്</h3>
+            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                <select id="att-class" onchange="loadAttendanceList(this.value)" style="flex:2; padding:10px; border-radius:8px; border:1px solid #ddd;">
+                    <option value="">ക്ലാസ്സ് തിരഞ്ഞെടുക്കുക</option>
+                    ${[...Array(12).keys()].map(i => `<option value="${i+1}">ക്ലാസ്സ് ${i+1}</option>`).join('')}
+                </select>
+                <input type="date" id="att-date" value="${new Date().toISOString().split('T')[0]}" onchange="loadAttendanceList(document.getElementById('att-class').value)" style="flex:1; padding:10px; border-radius:8px; border:1px solid #ddd;">
+            </div>
+            
+            <div id="attendance-list-area" style="margin-top:20px;">
+                <p style="text-align:center; color:#999;">ക്ലാസ്സ് തിരഞ്ഞെടുത്താൽ കുട്ടികളുടെ ലിസ്റ്റ് ഇവിടെ കാണാം.</p>
+            </div>
+            
+            <div id="att-action-btns" style="display:none; margin-top:20px; gap:10px;">
+                <button onclick="saveAttendance()" style="flex:2; background:#28a745; color:white; padding:12px; border-radius:8px; border:none; font-weight:600;">സേവ് ചെയ്യുക (Save)</button>
+                <button onclick="viewAttendanceHistory()" style="flex:1; background:#1a73e8; color:white; padding:12px; border-radius:8px; border:none;">History നോക്കുക</button>
+            </div>
+        </div>
+    `;
+}
+
+// കുട്ടികളുടെ ലിസ്റ്റ് ലോഡ് ചെയ്യാൻ (എഡിറ്റ് ഓപ്ഷൻ ഉൾപ്പെടെ)
+async function loadAttendanceList(cls) {
+    if (!cls) return;
+    const date = document.getElementById('att-date').value;
+    const listArea = document.getElementById('attendance-list-area');
+    listArea.innerHTML = "<p style='text-align:center;'>തിരയുന്നു...</p>";
+    
+    // ആദ്യം ഈ ദിവസത്തെ ഹാജർ നില നേരത്തെ സേവ് ചെയ്തിട്ടുണ്ടോ എന്ന് നോക്കുന്നു (Edit Option)
+    const formattedDate = date.split('-').reverse().join('-'); // DD-MM-YYYY
+    const docRef = db.collection("attendance").doc(`${cls}-${formattedDate}`);
+    const existingDoc = await docRef.get();
+    
+    const studentSnap = await db.collection("students").where("class", "==", cls).get();
+    listArea.innerHTML = "";
+    currentAttendanceData = {};
+
+    if (studentSnap.empty) {
+        listArea.innerHTML = "<p style='color:red;'>ഈ ക്ലാസ്സിൽ കുട്ടികളില്ല.</p>";
+        document.getElementById('att-action-btns').style.display = 'none';
+        return;
+    }
+
+    let savedRecords = existingDoc.exists ? existingDoc.data().records : null;
+
+    studentSnap.forEach(doc => {
+        const s = doc.data();
+        const studentId = doc.id;
+        // നേരത്തെ സേവ് ചെയ്ത ഹാജർ ഉണ്ടെങ്കിൽ അത് എടുക്കും, ഇല്ലെങ്കിൽ Default ആയി Present (true) നൽകും
+        const isPresent = savedRecords && savedRecords[studentId] ? savedRecords[studentId].present : true;
+        
+        currentAttendanceData[studentId] = { name: s.name, present: isPresent };
+
+        listArea.innerHTML += `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; border-bottom:1px solid #f0f0f0; background:${isPresent ? '#fff' : '#fff0f0'};">
+                <span style="font-weight:500;">${s.name}</span>
+                <div style="display:flex; gap:15px; background:#f8f9fa; padding:5px 15px; border-radius:20px;">
+                    <label style="color:green; cursor:pointer; font-weight:bold;">
+                        <input type="radio" name="att-${studentId}" ${isPresent ? 'checked' : ''} onclick="updateAttStatus('${studentId}', true)"> P
+                    </label>
+                    <label style="color:red; cursor:pointer; font-weight:bold;">
+                        <input type="radio" name="att-${studentId}" ${!isPresent ? 'checked' : ''} onclick="updateAttStatus('${studentId}', false)"> A
+                    </label>
+                </div>
+            </div>
+        `;
+    });
+    document.getElementById('att-action-btns').style.display = 'flex';
+}
+
+function updateAttStatus(id, status) {
+    currentAttendanceData[id].present = status;
+}
+
+// ഹാജർ സേവ് ചെയ്യാൻ
+async function saveAttendance() {
+    const cls = document.getElementById('att-class').value;
+    const dateInput = document.getElementById('att-date').value;
+    const formattedDate = dateInput.split('-').reverse().join('-'); 
+    
+    try {
+        await db.collection("attendance").doc(`${cls}-${formattedDate}`).set({
+            class: cls,
+            date: formattedDate,
+            records: currentAttendanceData,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        alert("ഹാജർ വിവരങ്ങൾ വിജയകരമായി സേവ് ചെയ്തു!");
+    } catch(e) {
+        alert("പിശക്: " + e.message);
+    }
+}
+
+// ഹാജർ ഹിസ്റ്ററി പരിശോധിക്കാൻ
+async function viewAttendanceHistory() {
+    const cls = document.getElementById('att-class').value;
+    const listArea = document.getElementById('attendance-list-area');
+    listArea.innerHTML = "ഹിസ്റ്ററി ലോഡ് ചെയ്യുന്നു...";
+
+    try {
+        const snap = await db.collection("attendance")
+            .where("class", "==", cls)
+            .orderBy("timestamp", "desc")
+            .limit(10) // അവസാനത്തെ 10 ദിവസത്തെ ഹാജർ
+            .get();
+
+        if (snap.empty) {
+            listArea.innerHTML = "<p>ഹിസ്റ്ററി ലഭ്യമല്ല.</p>";
+            return;
+        }
+
+        let html = `<h4>അവസാനത്തെ ഹാജർ നില (ക്ലാസ് ${cls})</h4>`;
+        snap.forEach(doc => {
+            const data = doc.data();
+            let presentCount = 0;
+            let total = 0;
+            for (let id in data.records) {
+                if (data.records[id].present) presentCount++;
+                total++;
+            }
+            html += `
+                <div style="background:#f8f9fa; padding:10px; border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                    <span><b>${data.date}</b></span>
+                    <span style="font-size:12px;">ഹാജർ: <b style="color:green;">${presentCount}/${total}</b></span>
+                    <button onclick="editSpecificDate('${cls}', '${data.date}')" style="background:none; border:1px solid #1a73e8; color:#1a73e8; padding:3px 8px; border-radius:4px; font-size:11px;">View/Edit</button>
+                </div>
+            `;
+        });
+        listArea.innerHTML = html;
+    } catch (e) {
+        alert("എറർ: " + e.message);
+    }
+}
+
+// ഹിസ്റ്ററിയിൽ നിന്ന് ഒരു പ്രത്യേക ദിവസം എഡിറ്റ് ചെയ്യാൻ
+function editSpecificDate(cls, date) {
+    // ഡേറ്റ് ഫോർമാറ്റ് മാറ്റുന്നു (DD-MM-YYYY to YYYY-MM-DD)
+    const parts = date.split('-');
+    const formatted = `${parts[2]}-${parts[1]}-${parts[0]}`;
+    document.getElementById('att-date').value = formatted;
+    document.getElementById('att-class').value = cls;
+    loadAttendanceList(cls);
+}

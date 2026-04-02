@@ -17,6 +17,9 @@ const db = firebase.firestore();
 
 const allMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+// **ഗ്ലോബൽ വേരിയബിൾ (ഇത് നിർബന്ധമായും ചേർക്കുക)**
+let currentAttendanceData = {}; 
+
 // 2. ലോഗിൻ & സെക്ഷൻ സ്വിച്ചർ
 async function loginUser() {
     const userID = document.getElementById('login-id').value.trim();
@@ -119,7 +122,7 @@ async function saveStudent() {
     } catch(e) { alert("പിശക് സംഭവിച്ചു!"); }
 }
 
-// 4. സ്റ്റുഡന്റ് ലിസ്റ്റ്
+// 4. സ്റ്റുഡന്റ് ലിസ്റ്റ് (Old Balance ഫീച്ചർ ഉൾപ്പെടെ)
 async function loadStudents(filterClass = 'all') {
     const content = document.getElementById('dynamic-content');
     content.innerHTML = `<select onchange="loadStudents(this.value)" style="margin-bottom:15px; width:100%; padding:10px;">
@@ -152,7 +155,7 @@ async function loadStudents(filterClass = 'all') {
         });
         monthTableHTML += `</div>`;
 
-                // കുടിശ്ശികകൾ കണക്കാക്കുന്നു
+        // കുടിശ്ശികകൾ കണക്കാക്കുന്നു (പുതിയത്)
         const pendingMonthsFee = unpaidCount * s.monthlyFee;
         const oldBalance = Number(s.balance) || 0;
         const totalPending = pendingMonthsFee + oldBalance;
@@ -178,7 +181,10 @@ async function loadStudents(filterClass = 'all') {
                     </div>
                     
                     <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; padding-top:5px; border-top:1px dashed #ffdada;">
-                        <span>പഴയ കുടിശ്ശിക (Old Balance): <b style="color:#d32f2f;">₹${oldBalance}</b></span>
+                        <div>
+                            <span>പഴയ കുടിശ്ശിക (Old Balance): <b style="color:#d32f2f;">₹${oldBalance}</b></span><br>
+                            <small style="color:#888;">(${s.balanceNote || 'വിവരങ്ങളില്ല'})</small>
+                        </div>
                         ${oldBalance > 0 ? `<button onclick="payOldBalance('${doc.id}', '${s.parentPhone}', '${s.name}')" style="background:#d32f2f; color:white; border:none; padding:3px 8px; border-radius:4px; font-size:10px; cursor:pointer;">Pay Old</button>` : ''}
                     </div>
                     
@@ -241,25 +247,20 @@ async function updateFees(id, phone, name) {
         loadStudents();
     } catch(e) { alert("Error!"); }
 }
-// പഴയ കുടിശ്ശിക (Old Balance) അടയ്ക്കാൻ
+
+// **പഴയ കുടിശ്ശിക (Old Balance) അടയ്ക്കാൻ (പുതിയത്)**
 async function payOldBalance(id, phone, name) {
     const ref = db.collection("students").doc(id);
     const snap = await ref.get();
     const s = snap.data();
     const currentBalance = Number(s.balance) || 0;
 
-    if (currentBalance <= 0) {
-        alert("പഴയ കുടിശ്ശിക നിലവിലില്ല.");
-        return;
-    }
+    if (currentBalance <= 0) { alert("പഴയ കുടിശ്ശിക നിലവിലില്ല."); return; }
 
-    const payAmount = prompt(`പഴയ കുടിശ്ശിക: ₹${currentBalance}\nഎത്ര രൂപയാണ് അടയ്ക്കുന്നത്?`);
+    const payAmount = prompt(`പഴയ കുടിശ്ശിക: ₹${currentBalance}\n(${s.balanceNote || 'വിവരങ്ങളില്ല'})\nഎത്ര രൂപയാണ് അടയ്ക്കുന്നത്?`);
     if (!payAmount || isNaN(payAmount) || payAmount <= 0) return;
     
-    if (Number(payAmount) > currentBalance) {
-        alert("അടയ്ക്കുന്ന തുക കുടിശ്ശികയേക്കാൾ കൂടുതലാണ്!");
-        return;
-    }
+    if (Number(payAmount) > currentBalance) { alert("അടയ്ക്കുന്ന തുക കുടിശ്ശികയേക്കാൾ കൂടുതലാണ്!"); return; }
 
     const rcptNo = prompt("റെസീപ്റ്റ് നമ്പർ (Receipt No) നൽകുക:");
     if (!rcptNo) return;
@@ -268,10 +269,7 @@ async function payOldBalance(id, phone, name) {
     const newBalance = currentBalance - Number(payAmount);
 
     try {
-        // ബാലൻസ് അപ്‌ഡേറ്റ് ചെയ്യുന്നു
         await ref.update({ balance: newBalance });
-
-        // പേയ്‌മെന്റ് ഹിസ്റ്ററിയിലേക്ക് ചേർക്കുന്നു
         await db.collection("payments").add({
             studentId: id, studentName: name, amountPaid: Number(payAmount),
             date: date, time: new Date().toLocaleTimeString('en-IN'), 
@@ -279,17 +277,13 @@ async function payOldBalance(id, phone, name) {
             receiptNo: rcptNo, studentID: s.studentID,
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
-
         alert(`വിജയകരമായി അടച്ചു! പുതിയ ബാക്കി: ₹${newBalance}`);
-        
-        if (confirm("റെസീപ്റ്റ് പ്രിന്റ് ചെയ്യണോ?")) {
-            printReceipt(name, payAmount, "Old Balance", date, rcptNo, s.studentID);
-        }
+        if (confirm("റെസീപ്റ്റ് പ്രിന്റ് ചെയ്യണോ?")) { printReceipt(name, payAmount, "Old Balance", date, rcptNo, s.studentID); }
         loadStudents();
     } catch(e) { alert("Error updating balance!"); }
 }
 
-// 6. പ്രിന്റ് ഫങ്ക്ഷൻ (PDF)
+// 6. പ്രിന്റ് ഫങ്ക്ഷൻ (Colorful & Large JPG/PDF)
 function printReceipt(name, amount, months, date, rcptNo, sid) {
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
@@ -298,142 +292,55 @@ function printReceipt(name, amount, months, date, rcptNo, sid) {
                 <title>Receipt - ${rcptNo}</title>
                 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
                 <style>
-                    body { 
-                        font-family: 'Poppins', sans-serif; 
-                        display: flex; 
-                        flex-direction: column; 
-                        align-items: center; 
-                        padding: 40px 20px; 
-                        background-color: #f0f2f5; 
-                    }
-                    .receipt-card { 
-                        width: 450px; 
-                        background: white; 
-                        padding: 35px; 
-                        border-radius: 20px; 
-                        box-shadow: 0 15px 35px rgba(0,0,0,0.15); 
-                        border-top: 12px solid #1a73e8; 
-                        position: relative;
-                    }
+                    body { font-family: 'Poppins', sans-serif; display: flex; flex-direction: column; align-items: center; padding: 40px 20px; background-color: #f0f2f5; }
+                    .receipt-card { width: 450px; background: white; padding: 35px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); border-top: 12px solid #1a73e8; position: relative; }
                     .header { text-align: center; margin-bottom: 25px; }
                     .header h2 { color: #1a73e8; margin: 0; font-size: 26px; font-weight: 600; }
                     .header .sub-info { font-size: 13px; color: #666; margin: 5px 0 10px 0; font-weight: 400; }
-                    .header .receipt-label { 
-                        margin: 5px 0; 
-                        font-size: 11px; 
-                        color: #888; 
-                        text-transform: uppercase; 
-                        letter-spacing: 2px; 
-                        border-top: 1px solid #eee;
-                        border-bottom: 1px solid #eee;
-                        padding: 5px 0;
-                    }
-                    
+                    .header .receipt-label { margin: 5px 0; font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 2px; border-top: 1px solid #eee; border-bottom: 1px solid #eee; padding: 5px 0; }
                     .info-section { margin-top: 20px; }
-                    .info-row { 
-                        display: flex; 
-                        justify-content: space-between; 
-                        margin-bottom: 15px; 
-                        border-bottom: 1px dashed #e0e0e0; 
-                        padding-bottom: 8px; 
-                    }
+                    .info-row { display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 8px; }
                     .label { color: #777; font-size: 14px; }
                     .value { color: #222; font-weight: 600; font-size: 15px; }
-                    
-                    .amount-container { 
-                        background: linear-gradient(135deg, #1a73e8, #1557b0); 
-                        color: white; 
-                        padding: 25px; 
-                        border-radius: 12px; 
-                        text-align: center; 
-                        margin: 30px 0; 
-                    }
+                    .amount-container { background: linear-gradient(135deg, #1a73e8, #1557b0); color: white; padding: 25px; border-radius: 12px; text-align: center; margin: 30px 0; }
                     .amount-container span { font-size: 14px; opacity: 0.9; display: block; margin-bottom: 5px; }
                     .amount-container h1 { margin: 0; font-size: 36px; letter-spacing: 1px; }
-                    
                     .footer { text-align: center; margin-top: 25px; }
                     .footer p { font-size: 13px; color: #666; font-style: italic; }
-                    
                     .btn-group { margin-top: 30px; display: flex; gap: 15px; }
-                    .btn { 
-                        padding: 12px 25px; 
-                        border: none; 
-                        border-radius: 8px; 
-                        cursor: pointer; 
-                        font-weight: 600; 
-                        font-size: 14px; 
-                        transition: 0.3s;
-                    }
+                    .btn { padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; transition: 0.3s; }
                     .btn-download { background: #28a745; color: white; }
                     .btn-print { background: #6c757d; color: white; }
                     .btn:hover { opacity: 0.9; transform: translateY(-2px); }
-
-                    @media print { 
-                        .no-print { display: none; } 
-                        body { background: white; padding: 0; } 
-                        .receipt-card { box-shadow: none; border: 1px solid #ddd; width: 100%; } 
-                    }
+                    @media print { .no-print { display: none; } body { background: white; padding: 0; } .receipt-card { box-shadow: none; border: 1px solid #ddd; width: 100%; } }
                 </style>
             </head>
             <body>
                 <div id="receipt-area" class="receipt-card">
                     <div class="header">
                         <h2>ഇസ്‌ലാഹുൽ ഉലൂം മദ്റസ</h2>
-                        <div class="sub-info">
-                            <span>രജി. നം: <b>1205</b></span> | <span><b>AR NAGAR</b></span>
-                        </div>
+                        <div class="sub-info"><span>രജി. നം: <b>1205</b></span> | <span><b>AR NAGAR</b></span></div>
                         <div class="receipt-label">ഫീസ് രസീത് (OFFICIAL RECEIPT)</div>
                     </div>
-                    
                     <div class="info-section">
-                        <div class="info-row">
-                            <span class="label">രസീത് നം:</span>
-                            <span class="value">#${rcptNo}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="label">തീയതി:</span>
-                            <span class="value">${date}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="label">വിദ്യാർത്ഥി:</span>
-                            <span class="value">${name}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="label">സ്റ്റുഡന്റ് ID:</span>
-                            <span class="value">${sid || '-'}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="label">മാസങ്ങൾ:</span>
-                            <span class="value">${Array.isArray(months) ? months.join(', ') : months}</span>
-                        </div>
+                        <div class="info-row"><span class="label">രസീത് നം:</span><span class="value">#${rcptNo}</span></div>
+                        <div class="info-row"><span class="label">തീയതി:</span><span class="value">${date}</span></div>
+                        <div class="info-row"><span class="label">വിദ്യാർത്ഥി:</span><span class="value">${name}</span></div>
+                        <div class="info-row"><span class="label">സ്റ്റുഡന്റ് ID:</span><span class="value">${sid || '-'}</span></div>
+                        <div class="info-row"><span class="label">മാസങ്ങൾ:</span><span class="value">${Array.isArray(months) ? months.join(', ') : months}</span></div>
                     </div>
-                    
-                    <div class="amount-container">
-                        <span>ആകെ തുക (Total Amount)</span>
-                        <h1>₹${amount}</h1>
-                    </div>
-                    
-                    <div class="footer">
-                        <p>ഫിസബീലില്ലാഹ് - നന്ദി!</p>
-                        <div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px; font-size: 10px; color: #bbb;">
-                            Computer Generated Digital Receipt
-                        </div>
-                    </div>
+                    <div class="amount-container"><span>ആകെ തുക (Total Amount)</span><h1>₹${amount}</h1></div>
+                    <div class="footer"><p>ഫിസബീലില്ലാഹ് - നന്ദി!</p><div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px; font-size: 10px; color: #bbb;">Computer Generated Digital Receipt</div></div>
                 </div>
-
                 <div class="btn-group no-print">
                     <button class="btn btn-download" onclick="downloadImage()">Download JPG (Photo)</button>
                     <button class="btn btn-print" onclick="window.print()">Print PDF</button>
                 </div>
-
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
                 <script>
                     function downloadImage() {
                         const element = document.getElementById('receipt-area');
-                        html2canvas(element, { 
-                            scale: 3, 
-                            backgroundColor: "#ffffff"
-                        }).then(canvas => {
+                        html2canvas(element, { scale: 3, backgroundColor: "#ffffff" }).then(canvas => {
                             const link = document.createElement('a');
                             link.download = 'Receipt_${rcptNo}_${name}.jpg';
                             link.href = canvas.toDataURL('image/jpeg', 1.0);
@@ -447,236 +354,146 @@ function printReceipt(name, amount, months, date, rcptNo, sid) {
     printWindow.document.close();
 }
 
-
-// 7. വിപുലമായ എഡിറ്റിംഗ് (Edit)
+// 7. വിപുലമായ എഡിറ്റിംഗ് (Edit Student with Balance Note)
 async function editStudent(id) {
     const doc = await db.collection("students").doc(id).get();
     const s = doc.data();
     const content = document.getElementById('dynamic-content');
     content.innerHTML = `
-        <div style="background:#fff; padding:20px; border-radius:12px; border:1px solid #ddd;">
-            <h3>വിവരങ്ങൾ തിരുത്തുക</h3>
-            <label>പേര്:</label><input id="e-name" value="${s.name}">
-            <label>ക്ലാസ്:</label><input id="e-class" value="${s.class}">
-            <label>പിതാവ്:</label><input id="e-father" value="${s.fatherName || ''}">
-            <label>വീട്:</label><input id="e-house" value="${s.houseName || ''}">
-            <label>ഫോൺ:</label><input id="e-phone" value="${s.parentPhone || ''}">
-            <label>പഴയ കുടിശ്ശിക:</label><input id="e-balance" type="number" value="${s.balance || 0}">
-            <p style="font-size:11px; color:blue; margin-top:10px;">സഹോദരങ്ങൾ (പേര്:ക്ലാസ്സ് - കോമയിട്ട് നൽകുക):</p>
-            <input id="e-siblings" oninput="recalcEditFee()" value="${s.siblings ? s.siblings.map(sib => sib.name + ":" + sib.class).join(', ') : ''}" placeholder="Sinan:4, Shibli:10">
-            <label>പ്രതിമാസ ഫീസ് (ഓട്ടോ):</label>
-            <input id="e-fee" type="number" value="${s.monthlyFee}" readonly style="background:#f0f0f0;">
-            <div style="display:flex; gap:10px; margin-top:20px;">
-                <button onclick="saveEdit('${id}')" style="background:#28a745; flex:1; color:white; border:none; padding:10px; border-radius:5px;">സേവ് ചെയ്യുക</button>
-                <button onclick="loadStudents()" style="background:#6c757d; flex:1; color:white; border:none; padding:10px; border-radius:5px;">ക്യാൻസൽ</button>
+        <div style="background:#fff; padding:20px; border-radius:12px; border:1px solid #ddd; max-height: 80vh; overflow-y: auto;">
+            <h3 style="color:#1a73e8;">വിവരങ്ങൾ തിരുത്തുക</h3>
+            
+            <div style="margin-bottom:10px;"><label style="font-size:12px; font-weight:bold;">പേര്:</label><input id="e-name" value="${s.name}" style="width:100%; padding:8px;"></div>
+            <div style="display:flex; gap:10px;">
+                <div style="flex:1;"><label style="font-size:12px; font-weight:bold;">ക്ലാസ്:</label><input id="e-class" value="${s.class}" style="width:100%; padding:8px;"></div>
+                <div style="flex:1;"><label style="font-size:12px; font-weight:bold;">ഫോൺ:</label><input id="e-phone" value="${s.parentPhone || ''}" style="width:100%; padding:8px;"></div>
             </div>
+
+            <div style="margin-top:15px; padding:10px; background:#fff3f3; border-radius:8px;">
+                <label style="font-size:12px; font-weight:bold; color:#d32f2f;">പഴയ കുടിശ്ശിക (Old Balance):</label>
+                <input id="e-balance" type="number" value="${s.balance || 0}" style="width:100%; padding:8px;">
+                <label style="font-size:11px; color:#666; margin-top:8px; display:block;">കുടിശ്ശിക വിവരങ്ങൾ (ഉദാ: 2024 Fees):</label>
+                <input id="e-balance-note" value="${s.balanceNote || ''}" placeholder="ഏതൊക്കെ മാസത്തെ തുകയാണിത്?" style="width:100%; padding:8px; margin-top:4px;">
+            </div>
+
+            <div style="margin-top:15px;"><label style="font-size:12px; font-weight:bold;">സഹോദരങ്ങൾ (പേര്:ക്ലാസ്സ്):</label><input id="e-siblings" oninput="recalcEditFee()" value="${s.siblings ? s.siblings.map(sib => sib.name + ":" + sib.class).join(', ') : ''}" style="width:100%; padding:8px;"></div>
+            <label style="font-size:12px; font-weight:bold; margin-top:10px; display:block;">പ്രതിമാസ ഫീസ്:</label><input id="e-fee" type="number" value="${s.monthlyFee}" readonly style="width:100%; padding:8px; background:#f0f0f0;">
+            <div style="display:flex; gap:10px; margin-top:20px;"><button onclick="saveEdit('${id}')" style="background:#28a745; flex:1; color:white;">Save Changes</button><button onclick="loadStudents()" style="background:#6c757d; flex:1; color:white;">Cancel</button></div>
         </div>
     `;
 }
 
-function recalcEditFee() {
-    const sibs = document.getElementById('e-siblings').value.split(',').filter(x => x.trim() !== "");
-    document.getElementById('e-fee').value = 250 + (sibs.length * 50);
-}
-
 async function saveEdit(id) {
-    const sibInput = document.getElementById('e-siblings').value;
-    const siblings = sibInput.split(',').filter(i => i.trim() !== "").map(i => {
-        let p = i.split(':');
-        return { name: p[0].trim(), class: p[1] ? p[1].trim() : '' };
-    });
+    const siblings = document.getElementById('e-siblings').value.split(',').filter(i => i.trim() !== "").map(i => { let p = i.split(':'); return { name: p[0].trim(), class: p[1] ? p[1].trim() : '' }; });
     try {
         await db.collection("students").doc(id).update({
-            name: document.getElementById('e-name').value,
-            class: document.getElementById('e-class').value,
-            fatherName: document.getElementById('e-father').value,
-            houseName: document.getElementById('e-house').value,
-            parentPhone: document.getElementById('e-phone').value,
-            balance: Number(document.getElementById('e-balance').value),
-            monthlyFee: Number(document.getElementById('e-fee').value),
-            siblings: siblings
+            name: document.getElementById('e-name').value, class: document.getElementById('e-class').value, parentPhone: document.getElementById('e-phone').value,
+            balance: Number(document.getElementById('e-balance').value), balanceNote: document.getElementById('e-balance-note').value,
+            monthlyFee: Number(document.getElementById('e-fee').value), siblings: siblings
         });
-        alert("വിവരങ്ങൾ പുതുക്കി!");
-        loadStudents();
-    } catch(e) { alert("പിശക് സംഭവിച്ചു!"); }
+        alert("വിവരങ്ങൾ പുതുക്കി!"); loadStudents();
+    } catch(e) { alert("পিശക്: " + e.message); }
 }
 
-// 8. ഹിസ്റ്ററി & റീ-പ്രിന്റ്
+function recalcEditFee() { const sibs = document.getElementById('e-siblings').value.split(',').filter(x => x.trim() !== ""); document.getElementById('e-fee').value = 250 + (sibs.length * 50); }
+
+// 8. ഹിസ്റ്ററി & റീ-പ്രിന്റ് (Payments)
 async function viewHistory(studentId, studentName) {
     const content = document.getElementById('dynamic-content');
     content.innerHTML = `<h4>History: ${studentName}</h4><button onclick="loadStudents()" style="margin-bottom:10px;">Back</button><div id="hist-list"></div>`;
     const snap = await db.collection("payments").where("studentId", "==", studentId).orderBy("timestamp", "desc").get();
-    const area = document.getElementById('hist-list');
-    if(snap.empty) { area.innerHTML = "വിവരങ്ങളില്ല"; return; }
+    if(snap.empty) { document.getElementById('hist-list').innerHTML = "വിവരങ്ങളില്ല"; return; }
     snap.forEach(doc => {
-        const p = doc.data();
-        const monthsStr = Array.isArray(p.months) ? p.months.join(', ') : p.months;
-        area.innerHTML += `
+        const p = doc.data(); const monthsStr = Array.isArray(p.months) ? p.months.join(', ') : p.months;
+        document.getElementById('hist-list').innerHTML += `
             <div style="background:#f0f7ff; padding:10px; margin-bottom:8px; border-radius:8px; font-size:12px; display:flex; justify-content:space-between; align-items:center;">
-                <div style="line-height:1.4;">
-                    <b>No: ${p.receiptNo || '-'}</b> | ${p.date}<br>
-                    ₹${p.amountPaid} (${monthsStr})
-                </div>
-                <button onclick="printReceipt('${p.studentName}', ${p.amountPaid}, '${monthsStr}', '${p.date}', '${p.receiptNo}', '${p.studentID || ''}')" 
-                    style="padding:5px 8px; background:#1a73e8; color:white; font-size:10px; width:auto; border:none; border-radius:3px; cursor:pointer;">
-                    Print
-                </button>
+                <div><b>No: ${p.receiptNo || '-'}</b> | ${p.date}<br>₹${p.amountPaid} (${monthsStr})</div>
+                <button onclick="printReceipt('${p.studentName}', ${p.amountPaid}, '${monthsStr}', '${p.date}', '${p.receiptNo}', '${p.studentID || ''}')" style="...">Print</button>
             </div>`;
     });
 }
 
-function sendCustomWA(phone, name) {
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent('അസ്സലാമു അലൈക്കും, ' + name + '-ന്റെ കാര്യവുമായി ബന്ധപ്പെട്ട്...')}`, '_blank');
-}
-
+function sendCustomWA(phone, name) { window.open(`https://wa.me/${phone}?text=${encodeURIComponent('അസ്സലാമു അലൈക്കും, ' + name + '-ന്റെ കാര്യവുമായി ബന്ധപ്പെട്ട്...')}`, '_blank'); }
 async function deleteStudent(id) { if (confirm("ഒഴിവാക്കണോ?")) { await db.collection("students").doc(id).delete(); loadStudents(); } }
 function logout() { auth.signOut().then(() => location.reload()); }
-// ഹാജർ മെയിൻ പേജ് കാണിക്കാൻ
+
+// 9. ഹാജർ (Attendance Management)
 function showAttendanceSection() {
-    const content = document.getElementById('dynamic-content');
-    content.innerHTML = `
-        <div style="padding:15px; background:#fff; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.05);">
-            <h3 style="color:#1a73e8;"><i class="fas fa-calendar-check"></i> ഹാജർ മാനേജ്‌മെന്റ്</h3>
+    document.getElementById('dynamic-content').innerHTML = `
+        <div style="padding:15px; background:#fff; border-radius:12px;">
+            <h3>ഹാജർ രേഖപ്പെടുത്തുക</h3>
             <div style="display:flex; gap:10px; margin-bottom:15px;">
-                <select id="att-class" onchange="loadAttendanceList(this.value)" style="flex:2; padding:10px; border-radius:8px; border:1px solid #ddd;">
+                <select id="att-class" onchange="loadAttendanceList(this.value)" style="flex:2; padding:10px;">
                     <option value="">ക്ലാസ്സ് തിരഞ്ഞെടുക്കുക</option>
                     ${[...Array(12).keys()].map(i => `<option value="${i+1}">ക്ലാസ്സ് ${i+1}</option>`).join('')}
                 </select>
-                <input type="date" id="att-date" value="${new Date().toISOString().split('T')[0]}" onchange="loadAttendanceList(document.getElementById('att-class').value)" style="flex:1; padding:10px; border-radius:8px; border:1px solid #ddd;">
+                <input type="date" id="att-date" value="${new Date().toISOString().split('T')[0]}" onchange="loadAttendanceList(document.getElementById('att-class').value)" style="flex:1; padding:10px;">
             </div>
-            
-            <div id="attendance-list-area" style="margin-top:20px;">
-                <p style="text-align:center; color:#999;">ക്ലാസ്സ് തിരഞ്ഞെടുത്താൽ കുട്ടികളുടെ ലിസ്റ്റ് ഇവിടെ കാണാം.</p>
-            </div>
-            
+            <div id="attendance-list-area"></div>
             <div id="att-action-btns" style="display:none; margin-top:20px; gap:10px;">
-                <button onclick="saveAttendance()" style="flex:2; background:#28a745; color:white; padding:12px; border-radius:8px; border:none; font-weight:600;">സേവ് ചെയ്യുക (Save)</button>
-                <button onclick="viewAttendanceHistory()" style="flex:1; background:#1a73e8; color:white; padding:12px; border-radius:8px; border:none;">History നോക്കുക</button>
+                <button onclick="saveAttendance()" style="background:#28a745; color:white; flex:2;">സേവ് ചെയ്യുക (Save)</button>
+                <button onclick="viewAttendanceHistory()" style="background:#1a73e8; color:white; flex:1;">History नोക്കുക</button>
             </div>
         </div>
     `;
 }
-let currentAttendanceData = {}; // ഇത് ഗ്ലോബൽ ആയി ഡിക്ലയർ ചെയ്യണം
 
-// കുട്ടികളുടെ ലിസ്റ്റ് ലോഡ് ചെയ്യാൻ (എഡിറ്റ് ഓപ്ഷൻ ഉൾപ്പെടെ)
 async function loadAttendanceList(cls) {
     if (!cls) return;
     const date = document.getElementById('att-date').value;
+    const formattedDate = date.split('-').reverse().join('-');
     const listArea = document.getElementById('attendance-list-area');
-    listArea.innerHTML = "<p style='text-align:center;'>തിരയുന്നു...</p>";
+    listArea.innerHTML = "ലോഡിംഗ്...";
     
-    // ആദ്യം ഈ ദിവസത്തെ ഹാജർ നില നേരത്തെ സേവ് ചെയ്തിട്ടുണ്ടോ എന്ന് നോക്കുന്നു (Edit Option)
-    const formattedDate = date.split('-').reverse().join('-'); // DD-MM-YYYY
     const docRef = db.collection("attendance").doc(`${cls}-${formattedDate}`);
     const existingDoc = await docRef.get();
-    
     const studentSnap = await db.collection("students").where("class", "==", cls).get();
-    listArea.innerHTML = "";
-    currentAttendanceData = {};
+    listArea.innerHTML = ""; currentAttendanceData = {};
 
-    if (studentSnap.empty) {
-        listArea.innerHTML = "<p style='color:red;'>ഈ ക്ലാസ്സിൽ കുട്ടികളില്ല.</p>";
-        document.getElementById('att-action-btns').style.display = 'none';
-        return;
-    }
-
+    if (studentSnap.empty) { listArea.innerHTML = "കുട്ടികളില്ല."; return; }
     let savedRecords = existingDoc.exists ? existingDoc.data().records : null;
 
     studentSnap.forEach(doc => {
-        const s = doc.data();
-        const studentId = doc.id;
-        // നേരത്തെ സേവ് ചെയ്ത ഹാജർ ഉണ്ടെങ്കിൽ അത് എടുക്കും, ഇല്ലെങ്കിൽ Default ആയി Present (true) നൽകും
-        const isPresent = savedRecords && savedRecords[studentId] ? savedRecords[studentId].present : true;
-        
-        currentAttendanceData[studentId] = { name: s.name, present: isPresent };
-
+        const s = doc.data(); const isPresent = savedRecords && savedRecords[doc.id] ? savedRecords[doc.id].present : true;
+        currentAttendanceData[doc.id] = { name: s.name, present: isPresent };
         listArea.innerHTML += `
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; border-bottom:1px solid #f0f0f0; background:${isPresent ? '#fff' : '#fff0f0'};">
-                <span style="font-weight:500;">${s.name}</span>
-                <div style="display:flex; gap:15px; background:#f8f9fa; padding:5px 15px; border-radius:20px;">
-                    <label style="color:green; cursor:pointer; font-weight:bold;">
-                        <input type="radio" name="att-${studentId}" ${isPresent ? 'checked' : ''} onclick="updateAttStatus('${studentId}', true)"> P
-                    </label>
-                    <label style="color:red; cursor:pointer; font-weight:bold;">
-                        <input type="radio" name="att-${studentId}" ${!isPresent ? 'checked' : ''} onclick="updateAttStatus('${studentId}', false)"> A
-                    </label>
+            <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #eee; background:${isPresent?'#fff':'#fff0f0'};">
+                <span>${s.name}</span>
+                <div>
+                    <label style="color:green;"><input type="radio" name="att-${doc.id}" ${isPresent?'checked':''} onclick="updateAttStatus('${doc.id}', true)"> P</label>
+                    <label style="color:red;"><input type="radio" name="att-${doc.id}" ${!isPresent?'checked':''} onclick="updateAttStatus('${doc.id}', false)"> A</label>
                 </div>
-            </div>
-        `;
+            </div>`;
     });
     document.getElementById('att-action-btns').style.display = 'flex';
 }
 
-function updateAttStatus(id, status) {
-    currentAttendanceData[id].present = status;
-}
+function updateAttStatus(id, status) { currentAttendanceData[id].present = status; }
 
-// ഹാജർ സേവ് ചെയ്യാൻ
 async function saveAttendance() {
     const cls = document.getElementById('att-class').value;
-    const dateInput = document.getElementById('att-date').value;
-    const formattedDate = dateInput.split('-').reverse().join('-'); 
-    
+    const formattedDate = document.getElementById('att-date').value.split('-').reverse().join('-'); 
     try {
-        await db.collection("attendance").doc(`${cls}-${formattedDate}`).set({
-            class: cls,
-            date: formattedDate,
-            records: currentAttendanceData,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        alert("ഹാജർ വിവരങ്ങൾ വിജയകരമായി സേവ് ചെയ്തു!");
-    } catch(e) {
-        alert("പിശക്: " + e.message);
-    }
+        await db.collection("attendance").doc(`${cls}-${formattedDate}`).set({ class: cls, date: formattedDate, records: currentAttendanceData, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+        alert("ഹാജർ സേവ് ചെയ്തു!");
+    } catch(e) { alert("Error: " + e.message); }
 }
 
-// ഹാജർ ഹിസ്റ്ററി പരിശോധിക്കാൻ
 async function viewAttendanceHistory() {
     const cls = document.getElementById('att-class').value;
     const listArea = document.getElementById('attendance-list-area');
-    listArea.innerHTML = "ഹിസ്റ്ററി ലോഡ് ചെയ്യുന്നു...";
-
     try {
-        const snap = await db.collection("attendance")
-            .where("class", "==", cls)
-            .orderBy("timestamp", "desc")
-            .limit(10) // അവസാനത്തെ 10 ദിവസത്തെ ഹാജർ
-            .get();
-
-        if (snap.empty) {
-            listArea.innerHTML = "<p>ഹിസ്റ്ററി ലഭ്യമല്ല.</p>";
-            return;
-        }
-
-        let html = `<h4>അവസാനത്തെ ഹാജർ നില (ക്ലാസ് ${cls})</h4>`;
+        const snap = await db.collection("attendance").where("class", "==", cls).orderBy("timestamp", "desc").limit(10).get();
+        if (snap.empty) { listArea.innerHTML = "ഹിസ്റ്ററി ലഭ്യമല്ല."; return; }
+        let html = `<h4>ഹാജർ ഹിസ്റ്ററി (ക്ലാസ് ${cls})</h4>`;
         snap.forEach(doc => {
-            const data = doc.data();
-            let presentCount = 0;
-            let total = 0;
-            for (let id in data.records) {
-                if (data.records[id].present) presentCount++;
-                total++;
-            }
-            html += `
-                <div style="background:#f8f9fa; padding:10px; border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-                    <span><b>${data.date}</b></span>
-                    <span style="font-size:12px;">ഹാജർ: <b style="color:green;">${presentCount}/${total}</b></span>
-                    <button onclick="editSpecificDate('${cls}', '${data.date}')" style="background:none; border:1px solid #1a73e8; color:#1a73e8; padding:3px 8px; border-radius:4px; font-size:11px;">View/Edit</button>
-                </div>
-            `;
+            const data = doc.data(); let present = 0; let total = 0;
+            for (let id in data.records) { if (data.records[id].present) present++; total++; }
+            html += `<div style="..."><span>${data.date}</span> (P: ${present}/${total}) <button onclick="editSpecificDate('${cls}','${data.date}')">Edit</button></div>`;
         });
         listArea.innerHTML = html;
-    } catch (e) {
-        alert("എറർ: " + e.message);
-    }
+    } catch(e) { alert("Error: " + e.message); }
 }
 
-// ഹിസ്റ്ററിയിൽ നിന്ന് ഒരു പ്രത്യേക ദിവസം എഡിറ്റ് ചെയ്യാൻ
-function editSpecificDate(cls, date) {
-    // ഡേറ്റ് ഫോർമാറ്റ് മാറ്റുന്നു (DD-MM-YYYY to YYYY-MM-DD)
-    const parts = date.split('-');
-    const formatted = `${parts[2]}-${parts[1]}-${parts[0]}`;
-    document.getElementById('att-date').value = formatted;
-    document.getElementById('att-class').value = cls;
-    loadAttendanceList(cls);
-}
+function editSpecificDate(cls, date) { const parts = date.split('-'); document.getElementById('att-date').value = `${parts[2]}-${parts[1]}-${parts[0]}`; document.getElementById('att-class').value = cls; loadAttendanceList(cls); }
+    

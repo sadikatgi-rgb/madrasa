@@ -232,28 +232,159 @@ function printReceipt(name, amount, months, date, rcptNo, sid) {
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
         <html>
-            <head><title>Receipt - ${rcptNo}</title></head>
-            <body style="font-family: 'Arial', sans-serif; padding: 20px; border: 1px dashed #000; width: 280px; margin: auto; text-align: center;">
-                <h2 style="margin:0;">ഇസ്‌ലാഹുൽ ഉലൂം മദ്റസ</h2>
-                <p style="font-size:12px; margin:5px 0;">ഫീസ് രസീത് (OFFICIAL)</p>
-                <hr>
-                <div style="text-align: left; font-size: 13px; line-height:1.6;">
-                    <p style="margin:3px 0;"><b>നം:</b> ${rcptNo} | <b>തീയതി:</b> ${date}</p>
-                    <p style="margin:3px 0;"><b>വിദ്യാർത്ഥി:</b> ${name}</p>
-                    <p style="margin:3px 0;"><b>ID:</b> ${sid || '-'}</p>
-                    <p style="margin:3px 0;"><b>മാസങ്ങൾ:</b> ${Array.isArray(months) ? months.join(', ') : months}</p>
+            <head>
+                <title>Receipt - ${rcptNo}</title>
+                <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+                <style>
+                    body { 
+                        font-family: 'Poppins', sans-serif; 
+                        display: flex; 
+                        flex-direction: column; 
+                        align-items: center; 
+                        padding: 40px 20px; 
+                        background-color: #f0f2f5; 
+                    }
+                    .receipt-card { 
+                        width: 450px; 
+                        background: white; 
+                        padding: 35px; 
+                        border-radius: 20px; 
+                        box-shadow: 0 15px 35px rgba(0,0,0,0.15); 
+                        border-top: 12px solid #1a73e8; 
+                        position: relative;
+                    }
+                    .header { text-align: center; margin-bottom: 25px; }
+                    .header h2 { color: #1a73e8; margin: 0; font-size: 26px; font-weight: 600; }
+                    .header .sub-info { font-size: 13px; color: #666; margin: 5px 0 10px 0; font-weight: 400; }
+                    .header .receipt-label { 
+                        margin: 5px 0; 
+                        font-size: 11px; 
+                        color: #888; 
+                        text-transform: uppercase; 
+                        letter-spacing: 2px; 
+                        border-top: 1px solid #eee;
+                        border-bottom: 1px solid #eee;
+                        padding: 5px 0;
+                    }
+                    
+                    .info-section { margin-top: 20px; }
+                    .info-row { 
+                        display: flex; 
+                        justify-content: space-between; 
+                        margin-bottom: 15px; 
+                        border-bottom: 1px dashed #e0e0e0; 
+                        padding-bottom: 8px; 
+                    }
+                    .label { color: #777; font-size: 14px; }
+                    .value { color: #222; font-weight: 600; font-size: 15px; }
+                    
+                    .amount-container { 
+                        background: linear-gradient(135deg, #1a73e8, #1557b0); 
+                        color: white; 
+                        padding: 25px; 
+                        border-radius: 12px; 
+                        text-align: center; 
+                        margin: 30px 0; 
+                    }
+                    .amount-container span { font-size: 14px; opacity: 0.9; display: block; margin-bottom: 5px; }
+                    .amount-container h1 { margin: 0; font-size: 36px; letter-spacing: 1px; }
+                    
+                    .footer { text-align: center; margin-top: 25px; }
+                    .footer p { font-size: 13px; color: #666; font-style: italic; }
+                    
+                    .btn-group { margin-top: 30px; display: flex; gap: 15px; }
+                    .btn { 
+                        padding: 12px 25px; 
+                        border: none; 
+                        border-radius: 8px; 
+                        cursor: pointer; 
+                        font-weight: 600; 
+                        font-size: 14px; 
+                        transition: 0.3s;
+                    }
+                    .btn-download { background: #28a745; color: white; }
+                    .btn-print { background: #6c757d; color: white; }
+                    .btn:hover { opacity: 0.9; transform: translateY(-2px); }
+
+                    @media print { 
+                        .no-print { display: none; } 
+                        body { background: white; padding: 0; } 
+                        .receipt-card { box-shadow: none; border: 1px solid #ddd; width: 100%; } 
+                    }
+                </style>
+            </head>
+            <body>
+                <div id="receipt-area" class="receipt-card">
+                    <div class="header">
+                        <h2>ഇസ്‌ലാഹുൽ ഉലൂം മദ്റസ</h2>
+                        <div class="sub-info">
+                            <span>രജി. നം: <b>1205</b></span> | <span><b>AR NAGAR</b></span>
+                        </div>
+                        <div class="receipt-label">ഫീസ് രസീത് (OFFICIAL RECEIPT)</div>
+                    </div>
+                    
+                    <div class="info-section">
+                        <div class="info-row">
+                            <span class="label">രസീത് നം:</span>
+                            <span class="value">#${rcptNo}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="label">തീയതി:</span>
+                            <span class="value">${date}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="label">വിദ്യാർത്ഥി:</span>
+                            <span class="value">${name}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="label">സ്റ്റുഡന്റ് ID:</span>
+                            <span class="value">${sid || '-'}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="label">മാസങ്ങൾ:</span>
+                            <span class="value">${Array.isArray(months) ? months.join(', ') : months}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="amount-container">
+                        <span>ആകെ തുക (Total Amount)</span>
+                        <h1>₹${amount}</h1>
+                    </div>
+                    
+                    <div class="footer">
+                        <p>ഫിസബീലില്ലാഹ് - നന്ദി!</p>
+                        <div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px; font-size: 10px; color: #bbb;">
+                            Computer Generated Digital Receipt
+                        </div>
+                    </div>
                 </div>
-                <div style="border: 1px solid #000; padding: 10px; font-size: 18px; font-weight: bold; margin: 10px 0;">
-                    ആകെ തുക: ₹${amount}
+
+                <div class="btn-group no-print">
+                    <button class="btn btn-download" onclick="downloadImage()">Download JPG (Photo)</button>
+                    <button class="btn btn-print" onclick="window.print()">Print PDF</button>
                 </div>
-                <p style="font-size: 10px;">ഫിസബീലില്ലാഹ് - നന്ദി!</p>
-                <button onclick="window.print()" style="margin-top:10px; cursor:pointer;" class="no-print">Print / Download PDF</button>
-                <style>@media print {.no-print {display:none;}}</style>
+
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+                <script>
+                    function downloadImage() {
+                        const element = document.getElementById('receipt-area');
+                        html2canvas(element, { 
+                            scale: 3, 
+                            backgroundColor: "#ffffff"
+                        }).then(canvas => {
+                            const link = document.createElement('a');
+                            link.download = 'Receipt_${rcptNo}_${name}.jpg';
+                            link.href = canvas.toDataURL('image/jpeg', 1.0);
+                            link.click();
+                        });
+                    }
+                </script>
             </body>
         </html>
     `);
     printWindow.document.close();
 }
+
 
 // 7. വിപുലമായ എഡിറ്റിംഗ് (Edit)
 async function editStudent(id) {

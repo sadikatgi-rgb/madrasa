@@ -162,9 +162,14 @@ async function loadStudents(filterClass = 'all') {
         monthTableHTML += `</div>`;
 
         // കുടിശ്ശികകൾ കണക്കാക്കുന്നു (പുതിയത്)
-        const pendingMonthsFee = unpaidCount * s.monthlyFee;
-        const oldBalance = Number(s.balance) || 0;
-        const totalPending = pendingMonthsFee + oldBalance;
+// വരിസംഖ്യ കണക്കാക്കുന്ന പുതിയ രീതി (സഹോദരങ്ങൾ ഉണ്ടെങ്കിൽ 50 വീതം കൂട്ടുന്നു)
+const baseFee = 250;
+const siblingCharge = (s.siblings ? s.siblings.length : 0) * 50;
+const monthlyTotal = baseFee + siblingCharge; // ഒരു മാസത്തെ ആകെ ഫീസ്
+
+const pendingMonthsFee = unpaidCount * monthlyTotal; // അടയ്ക്കാത്ത മാസങ്ങളുടെ ആകെ തുക
+const oldBalance = Number(s.balance) || 0;
+const totalPending = pendingMonthsFee + oldBalance;
 
         listArea.innerHTML += `
             <div class="student-item" style="position:relative; border:1px solid #ddd; padding:15px; border-radius:12px; margin-bottom:15px; background: #fff; box-shadow: 0 4px 8px rgba(0,0,0,0.05);">
@@ -591,4 +596,65 @@ async function deleteGBox(id) {
         await db.collection("gurunidhi").doc(id).delete();
         loadGurunidhiList();
     }
+}
+// 10. കളക്ഷൻ റിപ്പോർട്ട് (Collection Summary)
+async function showCollectionReport() {
+    const content = document.getElementById('dynamic-content');
+    content.innerHTML = `<h3>📊 കളക്ഷൻ റിപ്പോർട്ട്</h3><div id="report-area">കണക്കുകൾ ശേഖരിക്കുന്നു...</div>`;
+    
+    try {
+        const snap = await db.collection("students").get();
+        let classWiseData = {};
+        let grandTotalPending = 0;
+
+        snap.forEach(doc => {
+            const s = doc.data();
+            const cls = s.class || "Unknown";
+            
+            // ഫീസ് കണക്കാക്കുന്നു
+            const unpaidCount = Object.values(s.monthStatus || {}).filter(m => !m.paid).length;
+            const monthlyTotal = 250 + ((s.siblings ? s.siblings.length : 0) * 50);
+            const pending = (unpaidCount * monthlyTotal) + (Number(s.balance) || 0);
+
+            if (!classWiseData[cls]) {
+                classWiseData[cls] = { totalPending: 0, students: [] };
+            }
+            
+            if (pending > 0) {
+                classWiseData[cls].totalPending += pending;
+                classWiseData[cls].students.push({ name: s.name, amount: pending });
+                grandTotalPending += pending;
+            }
+        });
+
+        let html = `<div style="background:#d32f2f; color:white; padding:15px; border-radius:10px; margin-bottom:20px; text-align:center;">
+                        <small>ആകെ ലഭിക്കാനുള്ള കുടിശ്ശിക</small>
+                        <h2 style="margin:0;">₹${grandTotalPending}</h2>
+                    </div>`;
+
+        Object.keys(classWiseData).sort((a,b)=>a-b).forEach(cls => {
+            html += `
+                <div style="background:#fff; border:1px solid #ddd; margin-bottom:10px; border-radius:8px; overflow:hidden;">
+                    <div onclick="toggleReport('${cls}')" style="padding:15px; display:flex; justify-content:space-between; cursor:pointer; background:#f8f9fa;">
+                        <b>ക്ലാസ്സ് ${cls}</b>
+                        <b style="color:#d32f2f;">₹${classWiseData[cls].totalPending} ></b>
+                    </div>
+                    <div id="cls-report-${cls}" style="display:none; padding:10px; border-top:1px solid #eee; font-size:12px; background:#fff;">
+                        ${classWiseData[cls].students.map(st => `
+                            <div style="display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px dashed #eee;">
+                                <span>${st.name}</span>
+                                <span>₹${st.amount}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>`;
+        });
+        document.getElementById('report-area').innerHTML = html;
+    } catch(e) { alert("Error: " + e.message); }
+}
+
+// ലിസ്റ്റ് കാണിക്കാനും മറയ്ക്കാനും
+function toggleReport(cls) {
+    const div = document.getElementById(`cls-report-${cls}`);
+    div.style.display = div.style.display === 'none' ? 'block' : 'none';
 }

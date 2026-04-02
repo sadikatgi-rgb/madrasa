@@ -416,84 +416,130 @@ async function viewHistory(studentId, studentName) {
 function sendCustomWA(phone, name) { window.open(`https://wa.me/${phone}?text=${encodeURIComponent('അസ്സലാമു അലൈക്കും, ' + name + '-ന്റെ കാര്യവുമായി ബന്ധപ്പെട്ട്...')}`, '_blank'); }
 async function deleteStudent(id) { if (confirm("ഒഴിവാക്കണോ?")) { await db.collection("students").doc(id).delete(); loadStudents(); } }
 function logout() { auth.signOut().then(() => location.reload()); }
-
-// 9. ഹാജർ (Attendance Management)
-function showAttendanceSection() {
-    document.getElementById('dynamic-content').innerHTML = `
-        <div style="padding:15px; background:#fff; border-radius:12px;">
-            <h3>ഹാജർ രേഖപ്പെടുത്തുക</h3>
-            <div style="display:flex; gap:10px; margin-bottom:15px;">
-                <select id="att-class" onchange="loadAttendanceList(this.value)" style="flex:2; padding:10px;">
-                    <option value="">ക്ലാസ്സ് തിരഞ്ഞെടുക്കുക</option>
-                    ${[...Array(12).keys()].map(i => `<option value="${i+1}">ക്ലാസ്സ് ${i+1}</option>`).join('')}
-                </select>
-                <input type="date" id="att-date" value="${new Date().toISOString().split('T')[0]}" onchange="loadAttendanceList(document.getElementById('att-class').value)" style="flex:1; padding:10px;">
+// 9. ഗുരുനിധി ബോക്സ് മാനേജ്‌മെന്റ് (📦 Gurunidhi Box)
+function showGurunidhiSection() {
+    const content = document.getElementById('dynamic-content');
+    content.innerHTML = `
+        <div style="padding:15px; background:#fff; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.1);">
+            <h3 style="color:#d32f2f; border-bottom:2px solid #d32f2f; padding-bottom:10px;">
+                📦 ഗുരുനിധി ബോക്സ് 
+            </h3>
+            
+            <div id="admin-g-add" style="background:#fff8f8; padding:15px; border-radius:8px; margin-bottom:20px; border:1px dashed #d32f2f;">
+                <p style="font-weight:bold; margin-top:0; color:#d32f2f;">പുതിയ ബോക്സ് രജിസ്റ്റർ ചെയ്യുക</p>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+                    <input id="g-box-id" placeholder="സ്റ്റുഡന്റ് ID (eg: sha9876)" style="padding:10px; border:1px solid #ddd;">
+                    <input id="g-date-given" type="date" title="നൽകിയ തീയതി" style="padding:10px; border:1px solid #ddd;">
+                    <input id="g-name" placeholder="കുട്ടിയുടെ പേര്" style="padding:10px; border:1px solid #ddd;">
+                    <input id="g-class" placeholder="ക്ലാസ്" style="padding:10px; border:1px solid #ddd;">
+                    <input id="g-father" placeholder="പിതാവിന്റെ പേര്" style="padding:10px; border:1px solid #ddd;">
+                    <input id="g-phone" placeholder="മൊബൈൽ നമ്പർ" style="padding:10px; border:1px solid #ddd;">
+                    <input id="g-house" placeholder="വീട്ടുപേര്" style="padding:10px; border:1px solid #ddd; grid-column: span 2;">
+                </div>
+                <button onclick="saveGurunidhiBox()" style="width:100%; margin-top:10px; background:#d32f2f; color:white; border:none; padding:12px; border-radius:5px; cursor:pointer; font-weight:bold;">സേവ് ചെയ്യുക</button>
             </div>
-            <div id="attendance-list-area"></div>
-            <div id="att-action-btns" style="display:none; margin-top:20px; gap:10px;">
-                <button onclick="saveAttendance()" style="background:#28a745; color:white; flex:2;">സേവ് ചെയ്യുക (Save)</button>
-                <button onclick="viewAttendanceHistory()" style="background:#1a73e8; color:white; flex:1;">History नोക്കുക</button>
+
+            <div style="margin-top:15px;">
+                <input type="text" id="g-search" onkeyup="loadGurunidhiList()" placeholder="പേര് അല്ലെങ്കിൽ ID വെച്ച് തിരയുക..." style="width:100%; padding:12px; margin-bottom:10px; border-radius:25px; border:1px solid #ddd;">
+                <div id="gurunidhi-list-area">വിവരങ്ങൾ തിരയുന്നു...</div>
             </div>
         </div>
     `;
+    loadGurunidhiList();
 }
 
-async function loadAttendanceList(cls) {
-    if (!cls) return;
-    const date = document.getElementById('att-date').value;
-    const formattedDate = date.split('-').reverse().join('-');
-    const listArea = document.getElementById('attendance-list-area');
-    listArea.innerHTML = "ലോഡിംഗ്...";
+// ഡാറ്റാബേസിലേക്ക് ബോക്സ് വിവരം സേവ് ചെയ്യാൻ
+async function saveGurunidhiBox() {
+    const boxID = document.getElementById('g-box-id').value.trim();
+    const gName = document.getElementById('g-name').value.trim();
     
-    const docRef = db.collection("attendance").doc(`${cls}-${formattedDate}`);
-    const existingDoc = await docRef.get();
-    const studentSnap = await db.collection("students").where("class", "==", cls).get();
-    listArea.innerHTML = ""; currentAttendanceData = {};
+    if(!boxID || !gName) { alert("ഐഡിയും പേരും നിർബന്ധമാണ്!"); return; }
 
-    if (studentSnap.empty) { listArea.innerHTML = "കുട്ടികളില്ല."; return; }
-    let savedRecords = existingDoc.exists ? existingDoc.data().records : null;
-
-    studentSnap.forEach(doc => {
-        const s = doc.data(); const isPresent = savedRecords && savedRecords[doc.id] ? savedRecords[doc.id].present : true;
-        currentAttendanceData[doc.id] = { name: s.name, present: isPresent };
-        listArea.innerHTML += `
-            <div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #eee; background:${isPresent?'#fff':'#fff0f0'};">
-                <span>${s.name}</span>
-                <div>
-                    <label style="color:green;"><input type="radio" name="att-${doc.id}" ${isPresent?'checked':''} onclick="updateAttStatus('${doc.id}', true)"> P</label>
-                    <label style="color:red;"><input type="radio" name="att-${doc.id}" ${!isPresent?'checked':''} onclick="updateAttStatus('${doc.id}', false)"> A</label>
-                </div>
-            </div>`;
-    });
-    document.getElementById('att-action-btns').style.display = 'flex';
-}
-
-function updateAttStatus(id, status) { currentAttendanceData[id].present = status; }
-
-async function saveAttendance() {
-    const cls = document.getElementById('att-class').value;
-    const formattedDate = document.getElementById('att-date').value.split('-').reverse().join('-'); 
     try {
-        await db.collection("attendance").doc(`${cls}-${formattedDate}`).set({ class: cls, date: formattedDate, records: currentAttendanceData, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
-        alert("ഹാജർ സേവ് ചെയ്തു!");
-    } catch(e) { alert("Error: " + e.message); }
-}
-
-async function viewAttendanceHistory() {
-    const cls = document.getElementById('att-class').value;
-    const listArea = document.getElementById('attendance-list-area');
-    try {
-        const snap = await db.collection("attendance").where("class", "==", cls).orderBy("timestamp", "desc").limit(10).get();
-        if (snap.empty) { listArea.innerHTML = "ഹിസ്റ്ററി ലഭ്യമല്ല."; return; }
-        let html = `<h4>ഹാജർ ഹിസ്റ്ററി (ക്ലാസ് ${cls})</h4>`;
-        snap.forEach(doc => {
-            const data = doc.data(); let present = 0; let total = 0;
-            for (let id in data.records) { if (data.records[id].present) present++; total++; }
-            html += `<div style="..."><span>${data.date}</span> (P: ${present}/${total}) <button onclick="editSpecificDate('${cls}','${data.date}')">Edit</button></div>`;
+        await db.collection("gurunidhi").add({
+            boxID: boxID,
+            studentName: gName,
+            givenDate: document.getElementById('g-date-given').value,
+            studentClass: document.getElementById('g-class').value,
+            fatherName: document.getElementById('g-father').value,
+            phone: document.getElementById('g-phone').value,
+            houseName: document.getElementById('g-house').value,
+            amount: 0,
+            receivedDate: "",
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
-        listArea.innerHTML = html;
+        alert("വിവരങ്ങൾ വിജയകരമായി ചേർത്തു!");
+        showGurunidhiSection();
     } catch(e) { alert("Error: " + e.message); }
 }
 
-function editSpecificDate(cls, date) { const parts = date.split('-'); document.getElementById('att-date').value = `${parts[2]}-${parts[1]}-${parts[0]}`; document.getElementById('att-class').value = cls; loadAttendanceList(cls); }
+// ഉസ്താദുമാർക്ക് എല്ലാ കുട്ടികളുടെയും ലിസ്റ്റ് കാണാൻ
+async function loadGurunidhiList() {
+    const listArea = document.getElementById('gurunidhi-list-area');
+    const searchVal = document.getElementById('g-search').value.toLowerCase();
     
+    try {
+        const snap = await db.collection("gurunidhi").orderBy("timestamp", "desc").get();
+        listArea.innerHTML = "";
+        
+        if (snap.empty) { listArea.innerHTML = "ബോക്സ് വിവരങ്ങൾ ഒന്നും ലഭ്യമല്ല."; return; }
+
+        snap.forEach(doc => {
+            const g = doc.data();
+            if(g.studentName.toLowerCase().includes(searchVal) || g.boxID.toLowerCase().includes(searchVal)) {
+                listArea.innerHTML += `
+                    <div style="border:1px solid #eee; padding:12px; margin-bottom:10px; border-radius:10px; background:#fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                        <div style="display:flex; justify-content:space-between;">
+                            <b style="color:#d32f2f;">${g.studentName} (${g.studentClass})</b>
+                            <span style="font-size:11px; background:#f0f0f0; padding:2px 5px; border-radius:5px;">ID: ${g.boxID}</span>
+                        </div>
+                        <div style="font-size:12px; color:#555; margin-top:5px; line-height:1.6;">
+                            വീട്: ${g.houseName || '-'} | നൽകിയത്: ${g.givenDate || '-'}<br>
+                            തുക: <b style="color:green; font-size:14px;">₹${g.amount || 0}</b> | ഏൽപ്പിച്ചത്: ${g.receivedDate || 'ഇല്ല'}
+                        </div>
+                        <div style="margin-top:10px; display:flex; gap:5px;">
+                            <button onclick="updateGAmount('${doc.id}')" style="background:#28a745; color:white; flex:1; border:none; padding:8px; border-radius:4px; font-size:11px;">തുക രേഖപ്പെടുത്തുക</button>
+                            <button onclick="printGReceipt('${doc.id}')" style="background:#6c757d; color:white; flex:1; border:none; padding:8px; border-radius:4px; font-size:11px;">Receipt (JPG)</button>
+                            <button onclick="deleteGBox('${doc.id}')" style="background:#ff4d4d; color:white; border:none; padding:8px 12px; border-radius:4px;"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+    } catch(e) { listArea.innerHTML = "Error loading list."; }
+}
+
+// തുക ഏൽപ്പിക്കുമ്പോൾ അപ്‌ഡേറ്റ് ചെയ്യാൻ
+async function updateGAmount(id) {
+    const amt = prompt("ബോക്സിൽ നിന്നും ലഭിച്ച തുക:");
+    if(!amt) return;
+    const rDate = prompt("തിരിച്ചേൽപ്പിച്ച തീയതി (DD-MM-YYYY):", new Date().toLocaleDateString('en-IN'));
+
+    try {
+        await db.collection("gurunidhi").doc(id).update({
+            amount: Number(amt),
+            receivedDate: rDate
+        });
+        alert("തുക രേഖപ്പെടുത്തി!");
+        loadGurunidhiList();
+    } catch(e) { alert("Error!"); }
+}
+
+// രസീത് പ്രിന്റ് ചെയ്യാൻ
+function printGReceipt(id) {
+    db.collection("gurunidhi").doc(id).get().then(doc => {
+        const g = doc.data();
+        if(g.amount <= 0) { alert("തുക ലഭ്യമല്ല!"); return; }
+        // നിങ്ങളുടെ പഴയ printReceipt ഫങ്ക്ഷൻ തന്നെ ഇവിടെ ഉപയോഗിക്കാം
+        printReceipt(g.studentName, g.amount, "Gurunidhi Box Contribution", g.receivedDate, "GN-"+g.boxID, g.boxID);
+    });
+}
+
+// ഡിലീറ്റ് ചെയ്യാൻ
+async function deleteGBox(id) {
+    if(confirm("ഈ ബോക്സ് വിവരം ഒഴിവാക്കണോ?")) {
+        await db.collection("gurunidhi").doc(id).delete();
+        loadGurunidhiList();
+    }
+}
+

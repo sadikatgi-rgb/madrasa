@@ -41,8 +41,11 @@ async function checkUser(uid) {
             document.getElementById('main-dashboard').style.display = 'block';
             document.getElementById('display-name').innerText = data.name;
             document.getElementById('display-role').innerText = "Administrator";
+            
+            // മെനുവിൽ ഗുരുനിധി ബട്ടൺ ഉണ്ടെന്ന് ഉറപ്പുവരുത്തുക (HTML-ൽ നേരിട്ട് നൽകുന്നതാണ് നല്ലത്)
             document.getElementById('usthad-view').style.display = 'block';
             document.getElementById('student-view').style.display = 'none';
+            
             showSection('student-list');
         }
     } catch (error) { alert("Error!"); }
@@ -72,6 +75,9 @@ function showSection(section) {
             <input id="n-fees" type="number" placeholder="പഴയ ബാക്കി കുടിശ്ശിക">
             <button onclick="saveStudent()">സേവ് ചെയ്യുക</button>
         `;
+    }
+else if (section === 'gurunidhi') {
+        showGurunidhiSection(); 
     }
 }
 

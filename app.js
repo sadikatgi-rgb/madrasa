@@ -556,6 +556,7 @@ function showAttendanceSection() {
         </div>
     `;
 }
+let currentAttendanceData = {}; // ഇത് ഗ്ലോബൽ ആയി ഡിക്ലയർ ചെയ്യണം
 
 // കുട്ടികളുടെ ലിസ്റ്റ് ലോഡ് ചെയ്യാൻ (എഡിറ്റ് ഓപ്ഷൻ ഉൾപ്പെടെ)
 async function loadAttendanceList(cls) {

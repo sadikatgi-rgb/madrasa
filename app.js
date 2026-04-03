@@ -221,30 +221,25 @@ async function saveStudent() {
 
 // 4. സ്റ്റുഡന്റ് ലിസ്റ്റ് (Old Balance ഫീച്ചർ ഉൾപ്പെടെ)
 async function loadStudents(filterClass = 'all') {
-    // 1. ലോഗിൻ ചെയ്ത യൂസറുടെ വിവരം എടുക്കുന്നു
     const savedUser = localStorage.getItem("activeUser");
     if (!savedUser) return;
     const user = JSON.parse(savedUser);
 
     const content = document.getElementById('dynamic-content');
-    
     let query = db.collection("students");
     let showFilter = false;
 
-    // 2. അധികാരം പരിശോധിക്കുന്നു (Permission Check)
+    // റോൾ അനുസരിച്ചുള്ള ഫിൽട്ടർ
     if (user.role === 'Usthad') {
-        // ഉസ്താദിന് സ്വന്തം ക്ലാസ് മാത്രം കാണിക്കുന്നു
         filterClass = user.assignedClass; 
         query = query.where("class", "==", filterClass);
     } else if (user.role === 'Sadhar') {
-        // സദറിന് മാത്രം ഡ്രോപ്പ്ഡൗൺ (Filter) കാണിക്കുന്നു
         showFilter = true; 
         if (filterClass !== 'all') {
             query = query.where("class", "==", filterClass);
         }
     }
 
-    // 3. ഹെഡർ സെറ്റ് ചെയ്യുന്നു
     content.innerHTML = `
         ${showFilter ? `
             <select onchange="loadStudents(this.value)" style="margin-bottom:15px; width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;">
@@ -255,18 +250,16 @@ async function loadStudents(filterClass = 'all') {
         <div id="list-area">ലോഡിംഗ്...</div>
     `;
 
-    // 4. ഡാറ്റാബേസിൽ നിന്ന് വിവരങ്ങൾ എടുക്കുന്നു
     const snap = await query.get();
     const listArea = document.getElementById('list-area');
     listArea.innerHTML = "";
-
-    // ഇതിന് താഴെ നിങ്ങളുടെ പഴയ snap.forEach(doc => { ... തുടരാം
 
     snap.forEach(doc => {
         const s = doc.data();
         let sibCount = s.siblings ? s.siblings.length : 0;
         let sibHTML = sibCount > 0 ? s.siblings.map(sib => `${sib.name} (${sib.class})`).join(', ') : "ഇല്ല";
 
+        // മന്ത് ടേബിൾ നിർമ്മാണം
         let monthTableHTML = `<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin: 10px 0; font-size: 10px;">`;
         let unpaidCount = 0;
         allMonths.forEach(m => {
@@ -281,23 +274,21 @@ async function loadStudents(filterClass = 'all') {
         });
         monthTableHTML += `</div>`;
 
-        // കുടിശ്ശികകൾ കണക്കാക്കുന്നു (പുതിയത്)
-// വരിസംഖ്യ കണക്കാക്കുന്ന പുതിയ രീതി (സഹോദരങ്ങൾ ഉണ്ടെങ്കിൽ 50 വീതം കൂട്ടുന്നു)
-const baseFee = 250;
-const siblingCharge = (s.siblings ? s.siblings.length : 0) * 50;
-const monthlyTotal = baseFee + siblingCharge; // ഒരു മാസത്തെ ആകെ ഫീസ്
+        // കുടിശ്ശിക കണക്കുകൂട്ടൽ
+        const mFee = s.monthlyFee || (250 + (sibCount * 50));
+        const pendingMonthsFee = unpaidCount * mFee;
+        const oldBal = Number(s.balance) || 0;
+        const totalPending = pendingMonthsFee + oldBal;
 
-const pendingMonthsFee = unpaidCount * monthlyTotal; // അടയ്ക്കാത്ത മാസങ്ങളുടെ ആകെ തുക
-const oldBalance = Number(s.balance) || 0;
-const totalPending = pendingMonthsFee + oldBalance;
-
+        // ലിസ്റ്റ് ഐറ്റം ഡിസൈൻ
         listArea.innerHTML += `
-            <div style="position:absolute; right:10px; top:10px;">
-    ${(user.role === 'Sadhar' || (user.role === 'Usthad' && user.assignedClass == s.class)) ? `
-        <i class="fas fa-edit" onclick="editStudent('${doc.id}')" style="color:blue; cursor:pointer; margin-right:15px;"></i>
-        <i class="fas fa-trash" onclick="deleteStudent('${doc.id}')" style="color:red; cursor:pointer;"></i>
-    ` : ''}
-</div>
+            <div class="student-item" style="position:relative; background:white; padding:15px; margin-bottom:15px; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.1); border-left:5px solid #1a73e8;">
+                <div style="position:absolute; right:10px; top:10px;">
+                    ${(user.role === 'Sadhar' || (user.role === 'Usthad' && user.assignedClass == s.class)) ? `
+                        <i class="fas fa-edit" onclick="editStudent('${doc.id}')" style="color:blue; cursor:pointer; margin-right:15px;"></i>
+                        <i class="fas fa-trash" onclick="deleteStudent('${doc.id}')" style="color:red; cursor:pointer;"></i>
+                    ` : ''}
+                </div>
                 <h4 style="margin:0 0 5px 0; color:#1a73e8;">${s.name} (ക്ലാസ്: ${s.class})</h4>
                 <div style="font-size:12px; line-height:1.6;">
                     <b>പിതാവ്:</b> ${s.fatherName || '-'}<br>
@@ -308,31 +299,28 @@ const totalPending = pendingMonthsFee + oldBalance;
                 
                 <div style="background:#fff3f3; padding:10px; border-radius:8px; border:1px solid #ffebeb; margin-top:10px;">
                     <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:5px;">
-                        <span>ഈ വർഷത്തെ മാസ ഫീസ് (₹${s.monthlyFee} x ${unpaidCount}):</span>
+                        <span>ഈ വർഷത്തെ ഫീസ് (₹${mFee} x ${unpaidCount}):</span>
                         <b style="color:#d32f2f;">₹${pendingMonthsFee}</b>
                     </div>
-                    
                     <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; padding-top:5px; border-top:1px dashed #ffdada;">
                         <div>
-                            <span>പഴയ കുടിശ്ശിക (Old Balance): <b style="color:#d32f2f;">₹${oldBalance}</b></span><br>
+                            <span>പഴയ ബാക്കി: <b style="color:#d32f2f;">₹${oldBal}</b></span><br>
                             <small style="color:#888;">(${s.balanceNote || 'വിവരങ്ങളില്ല'})</small>
                         </div>
-                        ${oldBalance > 0 ? `<button onclick="payOldBalance('${doc.id}', '${s.parentPhone}', '${s.name}')" style="background:#d32f2f; color:white; border:none; padding:3px 8px; border-radius:4px; font-size:10px; cursor:pointer;">Pay Old</button>` : ''}
+                        ${oldBal > 0 ? `<button onclick="payOldBalance('${doc.id}', '${s.parentPhone}', '${s.name}')" style="background:#d32f2f; color:white; border:none; padding:3px 8px; border-radius:4px; font-size:10px; cursor:pointer;">Pay Old</button>` : ''}
                     </div>
-                    
                     <div style="text-align:right; margin-top:8px; font-weight:bold; border-top:1px solid #ffdada; padding-top:5px; color:#000;">
                         ആകെ കുടിശ്ശിക: ₹${totalPending}
                     </div>
                 </div>
 
                 <div style="display:flex; gap:5px; margin-top:10px;">
-                    <button onclick="updateFees('${doc.id}', '${s.parentPhone}', '${s.name}')" style="flex:1; background:#28a745; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer;">Pay Month Fee</button>
-                   <button onclick="sendCustomWA('${s.parentPhone}', '${s.name}')" style="background:#25d366; flex:1; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer;">Chat</button>
+                    <button onclick="updateFees('${doc.id}', '${s.parentPhone}', '${s.name}')" style="flex:1; background:#28a745; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer;">Pay Month</button>
+                    <button onclick="sendCustomWA('${s.parentPhone}', '${s.name}')" style="background:#25d366; flex:1; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer;">Chat</button>
                 </div>
-            </div> 
-        `; // ഇവിടെയാണ് student-item എന്ന div അവസാനിക്കുന്നത്
-    }); // snap.forEach അവസാനിച്ചു
-} // loadStudents ഫങ്ക്ഷൻ അവസാനിച്ചു
+            </div>`;
+    });
+}
 
 // 5. ഫീ അപ്‌ഡേറ്റ് & പ്രിന്റ്
 async function updateFees(id, phone, name) {

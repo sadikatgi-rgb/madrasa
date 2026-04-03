@@ -130,7 +130,7 @@ function showSection(section) {
             <input id="n-fees" type="number" placeholder="പഴയ ബാക്കി കുടിശ്ശിക">
             <button onclick="saveStudent()">സേവ് ചെയ്യുക</button>
         `;
-    }
+
     else if (section === 'gurunidhi') {
         showGurunidhiSection(); 
     }

@@ -28,7 +28,7 @@ window.onload = function() {
 };
 
 const allMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-alert("കോഡ് ഇവിടെ വരെ വർക്ക് ആകുന്നുണ്ട്!");
+
 
 // 2. ലോഗിൻ ഫങ്ക്ഷൻ
 async function loginUser() {
@@ -99,7 +99,7 @@ function applyPermissions(user) {
         studentView.style.display = 'block';
     }
 }
-
+alert("കോഡ് ഇവിടെ വരെ വർക്ക് ആകുന്നുണ്ട്!");
 // 5. സെക്ഷൻ സ്വിച്ചർ
 function showSection(section) {
     const user = JSON.parse(localStorage.getItem("activeUser"));

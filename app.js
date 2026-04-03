@@ -618,14 +618,16 @@ async function loadGurunidhiList() {
                             <button onclick="addGPayment('${doc.id}', '${g.studentName}', '${g.boxID}')" style="background:#28a745; color:white; border:none; padding:8px; border-radius:4px; font-size:11px;">തുക ചേർക്കുക</button>
                             <button onclick="viewGHistory('${doc.id}', '${g.studentName}')" style="background:#1a73e8; color:white; border:none; padding:8px; border-radius:4px; font-size:11px;">History</button>
                             <button onclick="reissueGBox('${doc.id}')" style="background:#ff9800; color:white; border:none; padding:8px; border-radius:4px; font-size:11px;">Re-Issue (തീയതി മാറ്റുക)</button>
-                            <button onclick="deleteGBox('${doc.id}')" style="background:#ff4d4d; color:white; border:none; padding:8px; border-radius:4px; font-size:11px;">ഡിലീറ്റ്</button>
+                                                        <button onclick="deleteGBox('${doc.id}')" style="background:#ff4d4d; color:white; border:none; padding:8px; border-radius:4px; font-size:11px;">ഡിലീറ്റ്</button>
                         </div>
                     </div>
                 `;
-            }
-        });
-    } catch(e) { listArea.innerHTML = "Error loading list."; }
-}
+            } // if ബ്ലോക്ക് ഇവിടെ അവസാനിക്കുന്നു
+        }); // forEach ലൂപ്പ് ഇവിടെ അവസാനിക്കുന്നു
+    } catch(e) { 
+        listArea.innerHTML = "Error loading list."; 
+    } // catch ബ്ലോക്ക് ഇവിടെ അവസാനിക്കുന്നു
+} // loadGurunidhiList ഫങ്ക്ഷൻ ഇവിടെ അവസാനിക്കുന്നു
 
 // 3. തുക ചേർക്കാനും റെസീപ്റ്റ് നമ്പർ നൽകാനും
 async function addGPayment(docId, name, boxID) {

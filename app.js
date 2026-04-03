@@ -28,6 +28,7 @@ window.onload = function() {
 };
 
 const allMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+alert("കോഡ് ഇവിടെ വരെ വർക്ക് ആകുന്നുണ്ട്!");
 
 // 2. ലോഗിൻ ഫങ്ക്ഷൻ
 async function loginUser() {

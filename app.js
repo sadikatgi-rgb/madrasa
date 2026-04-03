@@ -154,39 +154,69 @@ function logout() {
 
 // 3. സേവ് ഫങ്ക്ഷൻ
 async function saveStudent() {
-    const name = document.getElementById('n-name').value;
-    const cls = document.getElementById('n-class').value;
-    const father = document.getElementById('n-father').value;
-    const house = document.getElementById('n-house').value;
-    const phone = document.getElementById('n-phone').value;
-    const mFee = Number(document.getElementById('n-monthly-fee').value);
-    const oldFees = Number(document.getElementById('n-fees').value);
+    const name = document.getElementById('n-name').value.trim();
+    const cls = document.getElementById('n-class').value.trim();
+    const father = document.getElementById('n-father').value.trim();
+    const house = document.getElementById('n-house').value.trim();
+    const phone = document.getElementById('n-phone').value.trim();
+    const oldFees = Number(document.getElementById('n-fees').value) || 0;
 
+    if (!name || !cls || !phone) { 
+        alert("പേര്, ക്ലാസ്സ്, ഫോൺ നമ്പർ എന്നിവ നിർബന്ധമാണ്!"); 
+        return; 
+    }
+
+    // സഹോദരങ്ങളെ ലിസ്റ്റ് ചെയ്യുന്നു
     let siblingsList = [];
     const sibNames = document.getElementsByClassName('s-name');
     const sibClasses = document.getElementsByClassName('s-class');
     for (let i = 0; i < sibNames.length; i++) {
         if (sibNames[i].value.trim() !== "") {
-            siblingsList.push({ name: sibNames[i].value, class: sibClasses[i].value });
+            siblingsList.push({ 
+                name: sibNames[i].value.trim(), 
+                class: sibClasses[i].value.trim() 
+            });
         }
     }
 
-    let monthStatus = {};
-    allMonths.forEach(m => { monthStatus[m] = { paid: false, date: "-", amount: 0, rcpt: "-" }; });
+    // മാസ ഫീസ് കണക്കാക്കുന്നു (250 + ഓരോ സഹോദരങ്ങൾക്കും 50 വീതം)
+    const mFee = 250 + (siblingsList.length * 50);
 
+    // എല്ലാ മാസത്തെയും സ്റ്റാറ്റസ് തുടക്കത്തിൽ 'paid: false' ആക്കുന്നു
+    let monthStatus = {};
+    allMonths.forEach(m => { 
+        monthStatus[m] = { paid: false, date: "-", amount: 0, rcpt: "-" }; 
+    });
+
+    // സ്റ്റുഡന്റ് ഐഡി നിർമ്മാണം
     const sid = name.toLowerCase().substring(0,3) + phone.slice(-4);
 
     try {
         await db.collection("students").add({
-            name, class: cls, fatherName: father, houseName: house,
-            siblings: siblingsList, parentPhone: phone, studentID: sid,
-            monthlyFee: mFee, balance: oldFees, monthStatus: monthStatus, 
+            name, 
+            class: cls, 
+            fatherName: father, 
+            houseName: house,
+            siblings: siblingsList, 
+            parentPhone: phone, 
+            studentID: sid,
+            monthlyFee: mFee, // കൃത്യമായി കണക്കാക്കിയ ഫീസ്
+            balance: oldFees, 
+            monthStatus: monthStatus, 
             addedDate: new Date().toLocaleDateString('en-IN'),
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
+
         alert(`വിജയകരമായി ചേർത്തു! ID: ${sid}`);
+        
+        // നിലവിൽ ലോഗിൻ ചെയ്ത ആളുടെ റോൾ അനുസരിച്ച് ലിസ്റ്റ് കാണിക്കുന്നു
+        const user = JSON.parse(localStorage.getItem("activeUser"));
         showSection('student-list');
-    } catch(e) { alert("പിശക് സംഭവിച്ചു!"); }
+        
+    } catch(e) { 
+        console.error("Error adding student: ", e);
+        alert("പിശക് സംഭവിച്ചു! ദയവായി വീണ്ടും ശ്രമിക്കുക."); 
+    }
 }
 
 // 4. സ്റ്റുഡന്റ് ലിസ്റ്റ് (Old Balance ഫീച്ചർ ഉൾപ്പെടെ)

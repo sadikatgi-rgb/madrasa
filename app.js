@@ -14,7 +14,7 @@ if (!firebase.apps.length) {
 }
 const auth = firebase.auth();
 const db = firebase.firestore();
-// 1. പേജ് തുറക്കുമ്പോൾ തന്നെ ലോഗിൻ ഉണ്ടോ എന്ന് നോക്കാൻ (ഫയലിന്റെ തുടക്കത്തിൽ നൽകാം)
+// 1. പേജ് തുറക്കുമ്പോൾ തന്നെ ലോഗിൻ പരിശോധിക്കാൻ (One-Time Login)
 window.onload = function() {
     const savedUser = localStorage.getItem("activeUser");
     if (savedUser) {
@@ -22,68 +22,14 @@ window.onload = function() {
     }
 };
 
-// 2. ലോഗിൻ ചെയ്യുമ്പോൾ വിവരങ്ങൾ സേവ് ചെയ്യാൻ
-async function checkUser(uid) {
-    try {
-        const doc = await db.collection("users").doc(uid).get();
-        if (doc.exists) {
-            const userData = doc.data();
-            // വൺ-ടൈം ലോഗിൻ സേവ് ചെയ്യുന്നു
-            localStorage.setItem("activeUser", JSON.stringify(userData)); 
-            applyPermissions(userData);
-        } else {
-            alert("യൂസർ വിവരങ്ങൾ കാണുന്നില്ല!");
-        }
-    } catch (e) { alert("Error: " + e.message); }
-}
-
-// 3. ഓരോരുത്തരുടെയും അധികാരം തീരുമാനിക്കാൻ
-function applyPermissions(user) {
-    document.getElementById('login-page').style.display = 'none';
-    document.getElementById('main-dashboard').style.display = 'block';
-    document.getElementById('display-name').innerText = user.name;
-    
-    // റോൾ കാണിക്കാൻ (Optional)
-    const roleLabel = document.getElementById('display-role');
-    if(roleLabel) roleLabel.innerText = user.role;
-
-    const usthadView = document.getElementById('usthad-view');
-    const studentView = document.getElementById('student-view');
-
-    if (user.role === 'Sadhar' || user.role === 'Usthad') {
-        usthadView.style.display = 'block';
-        studentView.style.display = 'none';
-
-        // സദറിന് മാത്രം റിപ്പോർട്ട് കാണിക്കുന്നു
-        const reportBtn = document.getElementById('report-btn');
-        if (reportBtn) {
-            reportBtn.style.display = (user.role === 'Sadhar') ? 'block' : 'none';
-        }
-
-        // ഉസ്താദ് ആണെങ്കിൽ അവരുടെ ക്ലാസ് മാത്രം ലോഡ് ചെയ്യുന്നു
-        if (user.role === 'Usthad') {
-            loadStudents(user.assignedClass); 
-        } else {
-            loadStudents(); // സദറിന് എല്ലാ കുട്ടികളും
-        }
-    } else {
-        // സ്റ്റുഡന്റ് ലോഗിൻ ആണെങ്കിൽ
-        usthadView.style.display = 'none';
-        studentView.style.display = 'block';
-    }
-}
-
-
 const allMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-// **ഗ്ലോബൽ വേരിയബിൾ (ഇത് നിർബന്ധമായും ചേർക്കുക)**
-let currentAttendanceData = {}; 
-
-// 2. ലോഗിൻ & സെക്ഷൻ സ്വിച്ചർ
+// 2. ലോഗിൻ ഫങ്ക്ഷൻ
 async function loginUser() {
     const userID = document.getElementById('login-id').value.trim();
     const pass = document.getElementById('login-pass').value.trim();
     if (!userID || !pass) { alert("ഐഡിയും പാസ്‌വേഡും നൽകുക"); return; }
+    
     let email = userID.toLowerCase() + "@islahululoom.com";
     try {
         const res = await auth.signInWithEmailAndPassword(email, pass);
@@ -91,13 +37,13 @@ async function loginUser() {
     } catch (e) { alert("ലോഗിൻ പരാജയപ്പെട്ടു: " + e.message); }
 }
 
-// പഴയ checkUser ഫങ്ക്ഷന് പകരം ഇത് നൽകുക
+// 3. യൂസർ വിവരങ്ങൾ ഡാറ്റാബേസിൽ നിന്ന് ശേഖരിക്കാൻ
 async function checkUser(uid) {
     try {
         const doc = await db.collection("users").doc(uid).get();
         if (doc.exists) {
             const userData = doc.data();
-            // ലോഗിൻ വിവരങ്ങൾ ഫോണിൽ സേവ് ചെയ്യുന്നു (One-Time Login)
+            // വിവരങ്ങൾ ഫോണിൽ സേവ് ചെയ്യുന്നു
             localStorage.setItem("activeUser", JSON.stringify(userData)); 
             applyPermissions(userData);
         } else {
@@ -108,41 +54,55 @@ async function checkUser(uid) {
     }
 }
 
-// അധികാരം നിയന്ത്രിക്കാനുള്ള പുതിയ ഫങ്ക്ഷൻ
+// 4. ഓരോരുത്തർക്കും വേണ്ട അധികാരങ്ങൾ നൽകാൻ
 function applyPermissions(user) {
     document.getElementById('login-page').style.display = 'none';
     document.getElementById('main-dashboard').style.display = 'block';
     document.getElementById('display-name').innerText = user.name;
-    document.getElementById('display-role').innerText = user.role || "User";
+    
+    const roleLabel = document.getElementById('display-role');
+    if(roleLabel) roleLabel.innerText = user.role || "User";
 
-    // ഉസ്താദ്/സദർ വ്യൂ ഓപ്പൺ ചെയ്യുന്നു
+    const usthadView = document.getElementById('usthad-view');
+    const studentView = document.getElementById('student-view');
+
+    // സദർ അല്ലെങ്കിൽ ഉസ്താദ് ആണെങ്കിൽ
     if (user.role === 'Sadhar' || user.role === 'Usthad') {
-        document.getElementById('usthad-view').style.display = 'block';
-        document.getElementById('student-view').style.display = 'none';
+        usthadView.style.display = 'block';
+        studentView.style.display = 'none';
 
         // സദറിന് മാത്രം റിപ്പോർട്ട് ബട്ടൺ കാണിക്കുന്നു
-        if (user.role === 'Sadhar') {
-            if(document.getElementById('report-btn')) document.getElementById('report-btn').style.display = 'block';
-            if(document.getElementById('gurunidhi-btn')) document.getElementById('gurunidhi-btn').style.display = 'block';
-            showSection('student-list'); // സദറിന് എല്ലാ കുട്ടികളെയും കാണാം
-        } 
-        // ഉസ്താദുമാർക്ക് റിപ്പോർട്ട് മറയ്ക്കുന്നു
-        else {
-            if(document.getElementById('report-btn')) document.getElementById('report-btn').style.display = 'none';
-            if(document.getElementById('gurunidhi-btn')) document.getElementById('gurunidhi-btn').style.display = 'block';
-            loadStudents(); // അവരുടെ ക്ലാസ് മാത്രം ലോഡ് ചെയ്യാൻ ഇത് സഹായിക്കും
+        const reportBtn = document.getElementById('report-btn');
+        if (reportBtn) {
+            reportBtn.style.display = (user.role === 'Sadhar') ? 'block' : 'none';
+        }
+
+        // ഗുരുനിധി ബട്ടൺ
+        const guruBtn = document.getElementById('gurunidhi-btn');
+        if (guruBtn) guruBtn.style.display = 'block';
+
+        // ലോഡ് ചെയ്യേണ്ട ഡാറ്റ തീരുമാനിക്കുന്നു
+        if (user.role === 'Usthad') {
+            loadStudents(user.assignedClass); // സ്വന്തം ക്ലാസ് മാത്രം
+        } else {
+            loadStudents(); // സദറിന് എല്ലാം
         }
     } else {
         // സ്റ്റുഡന്റ് വ്യൂ
-        document.getElementById('usthad-view').style.display = 'none';
-        document.getElementById('student-view').style.display = 'block';
+        usthadView.style.display = 'none';
+        studentView.style.display = 'block';
     }
 }
 
-
+// 5. സെക്ഷൻ സ്വിച്ചർ
 function showSection(section) {
+    const user = JSON.parse(localStorage.getItem("activeUser"));
     const content = document.getElementById('dynamic-content');
-    if (section === 'student-list') loadStudents();
+    
+    if (section === 'student-list') {
+        // ഉസ്താദ് ആണെങ്കിൽ സ്വന്തം ക്ലാസ് മാത്രം ലോഡ് ചെയ്യാൻ പാരാമീറ്റർ നൽകുന്നു
+        loadStudents(user.role === 'Usthad' ? user.assignedClass : null);
+    }
     else if (section === 'add-student') {
         content.innerHTML = `
             <h3>പുതിയ കുട്ടി</h3>
@@ -159,13 +119,13 @@ function showSection(section) {
             </div>
             <button onclick="addSiblingField()" style="background:#28a745; margin-bottom:15px; font-size:12px; padding:5px; color:white;">+ ഒരാളെ കൂടി ചേർക്കുക</button>
             <input id="n-phone" placeholder="വാട്ട്സാപ്പ് നമ്പർ (91xxxx)">
-            <p style="font-size:12px;">പ്രതിമാസ ഫീസ് (ആദ്യത്തെ കുട്ടിക്ക് 250, അധികമുള്ളവർക്ക് 50 വീതം):</p>
-            <input id="n-monthly-fee" type="number" placeholder="പ്രതിമാസ ഫീസ്" value="250" readonly style="background:#f9f9f9;">
+            <p style="font-size:12px;">പ്രതിമാസ ഫീസ് (250 + ഓരോ സഹോദരങ്ങൾക്കും 50 വീതം):</p>
+            <input id="n-monthly-fee" type="number" value="250" readonly style="background:#f9f9f9;">
             <input id="n-fees" type="number" placeholder="പഴയ ബാക്കി കുടിശ്ശിക">
             <button onclick="saveStudent()">സേവ് ചെയ്യുക</button>
         `;
     }
-else if (section === 'gurunidhi') {
+    else if (section === 'gurunidhi') {
         showGurunidhiSection(); 
     }
     else if (section === 'report') {
@@ -173,14 +133,23 @@ else if (section === 'gurunidhi') {
     }
 }
 
+// 6. സഹോദരങ്ങളെ ചേർക്കാനുള്ള ഫീൽഡ്
 function addSiblingField() {
     const container = document.getElementById('sibling-container');
     const div = document.createElement('div');
     div.style.display = 'flex'; div.style.gap = '5px'; div.style.marginBottom = '5px';
     div.innerHTML = `<input class="s-name" placeholder="പേര്" style="flex:2;"><input class="s-class" placeholder="ക്ലാസ്സ്" style="flex:1;">`;
     container.appendChild(div);
+    
+    // ഫീസ് അപ്‌ഡേറ്റ് ചെയ്യുന്നു
     const count = document.getElementsByClassName('s-name').length;
     document.getElementById('n-monthly-fee').value = 250 + ((count - 1) * 50);
+}
+
+// 7. ലോഗൗട്ട് ഫങ്ക്ഷൻ
+function logout() {
+    localStorage.removeItem("activeUser");
+    location.reload();
 }
 
 // 3. സേവ് ഫങ്ക്ഷൻ
@@ -785,7 +754,3 @@ function toggleClass(month, cls) {
     if(div) div.style.display = div.style.display === 'none' ? 'block' : 'none';
 }
 
-function logout() {
-    localStorage.removeItem("activeUser");
-    location.reload();
-}

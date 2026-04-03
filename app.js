@@ -602,32 +602,48 @@ async function deleteGBox(id) {
 }
 // 10. കളക്ഷൻ റിപ്പോർട്ട് (Collection Summary)
 async function showCollectionReport() {
+    // 1. ലോഗിൻ ചെയ്ത ആളുടെ വിവരങ്ങൾ പരിശോധിക്കുന്നു
+    const user = JSON.parse(localStorage.getItem("activeUser"));
+    
+    // 2. സദർ (Sadhar) അല്ലെങ്കിൽ അഡ്മിൻ ആണോ എന്ന് നോക്കുന്നു. അല്ലെങ്കിൽ ബ്ലോക്ക് ചെയ്യുന്നു.
+    if (!user || user.role !== 'Sadhar') {
+        alert("ക്ഷമിക്കണം, ഈ റിപ്പോർട്ട് കാണാനുള്ള അധികാരം സദറിന് (Sadhar) മാത്രമാണ്.");
+        return; 
+    }
+
     const content = document.getElementById('dynamic-content');
-    content.innerHTML = `<h3>📊 കളക്ഷൻ റിപ്പോർട്ട്</h3><div id="report-area">കണക്കുകൾ ശേഖരിക്കുന്നു...</div>`;
+    content.innerHTML = `<h3>📊 മാസം തിരിച്ചുള്ള റിപ്പോർട്ട്</h3><div id="report-area">വിവരങ്ങൾ ശേഖരിക്കുന്നു...</div>`;
     
     try {
         const snap = await db.collection("students").get();
-        let classWiseData = {};
+        let monthData = {}; 
         let grandTotalPending = 0;
 
         snap.forEach(doc => {
             const s = doc.data();
-            const cls = s.class || "Unknown";
-            
-            // ഫീസ് കണക്കാക്കുന്നു
-            const unpaidCount = Object.values(s.monthStatus || {}).filter(m => !m.paid).length;
+            // സഹോദരങ്ങളെ കണക്കിലെടുത്തുള്ള കൃത്യമായ മാസ ഫീസ് (250 + 50 + 50...)
             const monthlyTotal = 250 + ((s.siblings ? s.siblings.length : 0) * 50);
-            const pending = (unpaidCount * monthlyTotal) + (Number(s.balance) || 0);
+            const mStatus = s.monthStatus || {};
 
-            if (!classWiseData[cls]) {
-                classWiseData[cls] = { totalPending: 0, students: [] };
-            }
-            
-            if (pending > 0) {
-                classWiseData[cls].totalPending += pending;
-                classWiseData[cls].students.push({ name: s.name, amount: pending });
-                grandTotalPending += pending;
-            }
+            Object.keys(mStatus).forEach(month => {
+                if (!monthData[month]) {
+                    monthData[month] = { paid: 0, pending: 0, classes: {} };
+                }
+
+                const cls = s.class || "Unknown";
+                if (!monthData[month].classes[cls]) {
+                    monthData[month].classes[cls] = { total: 0, students: [] };
+                }
+
+                if (mStatus[month].paid) {
+                    monthData[month].paid += monthlyTotal;
+                } else {
+                    monthData[month].pending += monthlyTotal;
+                    monthData[month].classes[cls].total += monthlyTotal;
+                    monthData[month].classes[cls].students.push({ name: s.name, amt: monthlyTotal });
+                    grandTotalPending += monthlyTotal;
+                }
+            });
         });
 
         let html = `<div style="background:#d32f2f; color:white; padding:15px; border-radius:10px; margin-bottom:20px; text-align:center;">
@@ -635,18 +651,31 @@ async function showCollectionReport() {
                         <h2 style="margin:0;">₹${grandTotalPending}</h2>
                     </div>`;
 
-        Object.keys(classWiseData).sort((a,b)=>a-b).forEach(cls => {
+        // മാസം തിരിച്ചുള്ള ലിസ്റ്റ് തയ്യാറാക്കുന്നു
+        Object.keys(monthData).forEach(month => {
+            const m = monthData[month];
             html += `
                 <div style="background:#fff; border:1px solid #ddd; margin-bottom:10px; border-radius:8px; overflow:hidden;">
-                    <div onclick="toggleReport('${cls}')" style="padding:15px; display:flex; justify-content:space-between; cursor:pointer; background:#f8f9fa;">
-                        <b>ക്ലാസ്സ് ${cls}</b>
-                        <b style="color:#d32f2f;">₹${classWiseData[cls].totalPending} ></b>
+                    <div onclick="toggleMonth('${month}')" style="padding:15px; background:#f8f9fa; cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <b>${month}</b><br>
+                            <small style="color:green;">ലഭിച്ചത്: ₹${m.paid}</small> | <small style="color:red;">ബാക്കി: ₹${m.pending}</small>
+                        </div>
+                        <i class="fas fa-chevron-down"></i>
                     </div>
-                    <div id="cls-report-${cls}" style="display:none; padding:10px; border-top:1px solid #eee; font-size:12px; background:#fff;">
-                        ${classWiseData[cls].students.map(st => `
-                            <div style="display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px dashed #eee;">
-                                <span>${st.name}</span>
-                                <span>₹${st.amount}</span>
+                    <div id="m-report-${month}" style="display:none; padding:10px; border-top:1px solid #eee;">
+                        ${Object.keys(m.classes).sort((a,b)=>a-b).map(cls => `
+                            <div style="margin-bottom:5px; border:1px solid #eee; border-radius:5px;">
+                                <div onclick="toggleClass('${month}', '${cls}')" style="padding:8px; background:#fff8f8; cursor:pointer; display:flex; justify-content:space-between;">
+                                    <span>ക്ലാസ്സ് ${cls}</span><span style="color:red;">₹${m.classes[cls].total}</span>
+                                </div>
+                                <div id="c-report-${month}-${cls}" style="display:none; padding:5px 10px; font-size:11px;">
+                                    ${m.classes[cls].students.map(st => `
+                                        <div style="display:flex; justify-content:space-between; border-bottom:1px dashed #eee; padding:3px 0;">
+                                            <span>${st.name}</span><span>₹${st.amt}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
                             </div>
                         `).join('')}
                     </div>
@@ -656,8 +685,13 @@ async function showCollectionReport() {
     } catch(e) { alert("Error: " + e.message); }
 }
 
-// ലിസ്റ്റ് കാണിക്കാനും മറയ്ക്കാനും
-function toggleReport(cls) {
-    const div = document.getElementById(`cls-report-${cls}`);
-    div.style.display = div.style.display === 'none' ? 'block' : 'none';
+// ലിസ്റ്റുകൾ കാണിക്കാനും മറയ്ക്കാനും (ഇത് മാറ്റണ്ട)
+function toggleMonth(month) {
+    const div = document.getElementById(`m-report-${month}`);
+    if(div) div.style.display = div.style.display === 'none' ? 'block' : 'none';
+}
+
+function toggleClass(month, cls) {
+    const div = document.getElementById(`c-report-${month}-${cls}`);
+    if(div) div.style.display = div.style.display === 'none' ? 'block' : 'none';
 }

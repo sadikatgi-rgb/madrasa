@@ -14,6 +14,65 @@ if (!firebase.apps.length) {
 }
 const auth = firebase.auth();
 const db = firebase.firestore();
+// 1. പേജ് തുറക്കുമ്പോൾ തന്നെ ലോഗിൻ ഉണ്ടോ എന്ന് നോക്കാൻ (ഫയലിന്റെ തുടക്കത്തിൽ നൽകാം)
+window.onload = function() {
+    const savedUser = localStorage.getItem("activeUser");
+    if (savedUser) {
+        applyPermissions(JSON.parse(savedUser));
+    }
+};
+
+// 2. ലോഗിൻ ചെയ്യുമ്പോൾ വിവരങ്ങൾ സേവ് ചെയ്യാൻ
+async function checkUser(uid) {
+    try {
+        const doc = await db.collection("users").doc(uid).get();
+        if (doc.exists) {
+            const userData = doc.data();
+            // വൺ-ടൈം ലോഗിൻ സേവ് ചെയ്യുന്നു
+            localStorage.setItem("activeUser", JSON.stringify(userData)); 
+            applyPermissions(userData);
+        } else {
+            alert("യൂസർ വിവരങ്ങൾ കാണുന്നില്ല!");
+        }
+    } catch (e) { alert("Error: " + e.message); }
+}
+
+// 3. ഓരോരുത്തരുടെയും അധികാരം തീരുമാനിക്കാൻ
+function applyPermissions(user) {
+    document.getElementById('login-page').style.display = 'none';
+    document.getElementById('main-dashboard').style.display = 'block';
+    document.getElementById('display-name').innerText = user.name;
+    
+    // റോൾ കാണിക്കാൻ (Optional)
+    const roleLabel = document.getElementById('display-role');
+    if(roleLabel) roleLabel.innerText = user.role;
+
+    const usthadView = document.getElementById('usthad-view');
+    const studentView = document.getElementById('student-view');
+
+    if (user.role === 'Sadhar' || user.role === 'Usthad') {
+        usthadView.style.display = 'block';
+        studentView.style.display = 'none';
+
+        // സദറിന് മാത്രം റിപ്പോർട്ട് കാണിക്കുന്നു
+        const reportBtn = document.getElementById('report-btn');
+        if (reportBtn) {
+            reportBtn.style.display = (user.role === 'Sadhar') ? 'block' : 'none';
+        }
+
+        // ഉസ്താദ് ആണെങ്കിൽ അവരുടെ ക്ലാസ് മാത്രം ലോഡ് ചെയ്യുന്നു
+        if (user.role === 'Usthad') {
+            loadStudents(user.assignedClass); 
+        } else {
+            loadStudents(); // സദറിന് എല്ലാ കുട്ടികളും
+        }
+    } else {
+        // സ്റ്റുഡന്റ് ലോഗിൻ ആണെങ്കിൽ
+        usthadView.style.display = 'none';
+        studentView.style.display = 'block';
+    }
+}
+
 
 const allMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -32,24 +91,54 @@ async function loginUser() {
     } catch (e) { alert("ലോഗിൻ പരാജയപ്പെട്ടു: " + e.message); }
 }
 
+// പഴയ checkUser ഫങ്ക്ഷന് പകരം ഇത് നൽകുക
 async function checkUser(uid) {
     try {
         const doc = await db.collection("users").doc(uid).get();
         if (doc.exists) {
-            const data = doc.data();
-            document.getElementById('login-page').style.display = 'none';
-            document.getElementById('main-dashboard').style.display = 'block';
-            document.getElementById('display-name').innerText = data.name;
-            document.getElementById('display-role').innerText = "Administrator";
-            
-            // മെനുവിൽ ഗുരുനിധി ബട്ടൺ ഉണ്ടെന്ന് ഉറപ്പുവരുത്തുക (HTML-ൽ നേരിട്ട് നൽകുന്നതാണ് നല്ലത്)
-            document.getElementById('usthad-view').style.display = 'block';
-            document.getElementById('student-view').style.display = 'none';
-            
-            showSection('student-list');
+            const userData = doc.data();
+            // ലോഗിൻ വിവരങ്ങൾ ഫോണിൽ സേവ് ചെയ്യുന്നു (One-Time Login)
+            localStorage.setItem("activeUser", JSON.stringify(userData)); 
+            applyPermissions(userData);
+        } else {
+            alert("യൂസർ വിവരങ്ങൾ ലഭ്യമല്ല!");
         }
-    } catch (error) { alert("Error!"); }
+    } catch (error) { 
+        alert("ലോഗിൻ പിശക്: " + error.message); 
+    }
 }
+
+// അധികാരം നിയന്ത്രിക്കാനുള്ള പുതിയ ഫങ്ക്ഷൻ
+function applyPermissions(user) {
+    document.getElementById('login-page').style.display = 'none';
+    document.getElementById('main-dashboard').style.display = 'block';
+    document.getElementById('display-name').innerText = user.name;
+    document.getElementById('display-role').innerText = user.role || "User";
+
+    // ഉസ്താദ്/സദർ വ്യൂ ഓപ്പൺ ചെയ്യുന്നു
+    if (user.role === 'Sadhar' || user.role === 'Usthad') {
+        document.getElementById('usthad-view').style.display = 'block';
+        document.getElementById('student-view').style.display = 'none';
+
+        // സദറിന് മാത്രം റിപ്പോർട്ട് ബട്ടൺ കാണിക്കുന്നു
+        if (user.role === 'Sadhar') {
+            if(document.getElementById('report-btn')) document.getElementById('report-btn').style.display = 'block';
+            if(document.getElementById('gurunidhi-btn')) document.getElementById('gurunidhi-btn').style.display = 'block';
+            showSection('student-list'); // സദറിന് എല്ലാ കുട്ടികളെയും കാണാം
+        } 
+        // ഉസ്താദുമാർക്ക് റിപ്പോർട്ട് മറയ്ക്കുന്നു
+        else {
+            if(document.getElementById('report-btn')) document.getElementById('report-btn').style.display = 'none';
+            if(document.getElementById('gurunidhi-btn')) document.getElementById('gurunidhi-btn').style.display = 'block';
+            loadStudents(); // അവരുടെ ക്ലാസ് മാത്രം ലോഡ് ചെയ്യാൻ ഇത് സഹായിക്കും
+        }
+    } else {
+        // സ്റ്റുഡന്റ് വ്യൂ
+        document.getElementById('usthad-view').style.display = 'none';
+        document.getElementById('student-view').style.display = 'block';
+    }
+}
+
 
 function showSection(section) {
     const content = document.getElementById('dynamic-content');
@@ -694,4 +783,9 @@ function toggleMonth(month) {
 function toggleClass(month, cls) {
     const div = document.getElementById(`c-report-${month}-${cls}`);
     if(div) div.style.display = div.style.display === 'none' ? 'block' : 'none';
+}
+
+function logout() {
+    localStorage.removeItem("activeUser");
+    location.reload();
 }

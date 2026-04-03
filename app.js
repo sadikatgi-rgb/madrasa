@@ -1,3 +1,7 @@
+window.onerror = function(message, source, lineno, colno, error) {
+    alert("Error: " + message + "\nLine: " + lineno);
+};
+
 // 1. Firebase Configuration
 const firebaseConfig = {
     apiKey: "AIzaSyDgWlTlsbkqIo2xQFf-UI6fE6X1KeyI9-U",
@@ -14,10 +18,6 @@ if (!firebase.apps.length) {
 }
 const auth = firebase.auth();
 const db = firebase.firestore();
-
-window.onerror = function(message, source, lineno, colno, error) {
-    alert("Error: " + message + "\nLine: " + lineno);
-};
 
 // 1. പേജ് തുറക്കുമ്പോൾ തന്നെ ലോഗിൻ പരിശോധിക്കാൻ (One-Time Login)
 window.onload = function() {

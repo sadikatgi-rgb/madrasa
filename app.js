@@ -292,11 +292,12 @@ const oldBalance = Number(s.balance) || 0;
 const totalPending = pendingMonthsFee + oldBalance;
 
         listArea.innerHTML += `
-            <div class="student-item" style="position:relative; border:1px solid #ddd; padding:15px; border-radius:12px; margin-bottom:15px; background: #fff; box-shadow: 0 4px 8px rgba(0,0,0,0.05);">
-                <div style="position:absolute; right:10px; top:10px;">
-                    <i class="fas fa-edit" onclick="editStudent('${doc.id}')" style="color:blue; cursor:pointer; margin-right:15px;"></i>
-                    <i class="fas fa-trash" onclick="deleteStudent('${doc.id}')" style="color:red; cursor:pointer;"></i>
-                </div>
+            <div style="position:absolute; right:10px; top:10px;">
+    ${(user.role === 'Sadhar' || (user.role === 'Usthad' && user.assignedClass == s.class)) ? `
+        <i class="fas fa-edit" onclick="editStudent('${doc.id}')" style="color:blue; cursor:pointer; margin-right:15px;"></i>
+        <i class="fas fa-trash" onclick="deleteStudent('${doc.id}')" style="color:red; cursor:pointer;"></i>
+    ` : ''}
+</div>
                 <h4 style="margin:0 0 5px 0; color:#1a73e8;">${s.name} (ക്ലാസ്: ${s.class})</h4>
                 <div style="font-size:12px; line-height:1.6;">
                     <b>പിതാവ്:</b> ${s.fatherName || '-'}<br>

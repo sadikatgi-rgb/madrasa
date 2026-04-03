@@ -34,3 +34,84 @@ button:active { transform: scale(0.98); }
 .fee-btn { background: var(--secondary); font-size: 12px; padding: 8px; width: auto; flex: 1; }
 .wa-btn { background: var(--whatsapp); font-size: 12px; padding: 8px; width: auto; flex: 1; }
 .info-card { background: #f9f9f9; padding: 20px; border-radius: 15px; border: 1px solid #eee; }
+/* 1. പേജുകൾ തമ്മിലുള്ള മാറ്റം നിയന്ത്രിക്കാൻ (Page Transitions) */
+.page {
+    display: none; /* തുടക്കത്തിൽ എല്ലാം മറയ്ക്കുന്നു */
+    animation: fadeIn 0.4s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* 2. സദർ/ഉസ്താദ് ബട്ടണുകൾക്ക് പ്രത്യേക സ്റ്റൈൽ */
+#report-btn {
+    background: #e3f2fd !important; /* നേരിയ നീല നിറം */
+    border: 1px solid #bbdefb;
+}
+
+#report-btn i {
+    color: #1976d2;
+}
+
+#gurunidhi-btn {
+    background: #fff8e1 !important; /* നേരിയ മഞ്ഞ നിറം */
+    border: 1px solid #ffecb3;
+}
+
+#gurunidhi-btn i {
+    color: #ffa000;
+}
+
+/* 3. സ്റ്റാറ്റ് കാർഡുകൾ ക്ലിക്ക് ചെയ്യുമ്പോൾ ഉള്ള മാറ്റം */
+.stat-card {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.stat-card:active {
+    transform: scale(0.95);
+    background-color: #f0f0f0;
+}
+
+/* 4. എഡിറ്റ്, ഡിലീറ്റ് ഐക്കണുകൾ (Icons in Student List) */
+.student-item i {
+    font-size: 18px;
+    padding: 8px;
+    border-radius: 50%;
+    transition: 0.2s;
+}
+
+.student-item i:active {
+    background: #eee;
+    transform: scale(1.2);
+}
+
+/* 5. ലിസ്റ്റ് ഏരിയയിലെ സ്ക്രോളിംഗ് (For long lists) */
+.content-area {
+    padding: 15px;
+    padding-bottom: 80px; /* താഴെ ബട്ടണുകൾ ഉണ്ടെങ്കിൽ മറയാതിരിക്കാൻ */
+}
+
+/* 6. ഇൻപുട്ട് ഫീൽഡുകൾ ഫോക്കസ് ചെയ്യുമ്പോൾ */
+input:focus, select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 5px rgba(26, 115, 232, 0.2);
+}
+
+/* 7. ലോഗൗട്ട് ബട്ടൺ സ്റ്റൈൽ */
+.logout-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.logout-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}

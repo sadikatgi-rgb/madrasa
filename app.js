@@ -327,13 +327,12 @@ const totalPending = pendingMonthsFee + oldBalance;
 
                 <div style="display:flex; gap:5px; margin-top:10px;">
                     <button onclick="updateFees('${doc.id}', '${s.parentPhone}', '${s.name}')" style="flex:1; background:#28a745; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer;">Pay Month Fee</button>
-                    <button onclick="viewHistory('${doc.id}', '${s.name}')" style="background:#6c757d; flex:1; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer;">History</button>
-                                        <button onclick="sendCustomWA('${s.parentPhone}', '${s.name}')" style="background:#25d366; flex:1; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer;">Chat</button>
+                    onclick="sendCustomWA('${s.parentPhone}', '${s.name}')" style="background:#25d366; flex:1; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer;">Chat</button>
                 </div>
-            </div>
-        `;
-    }); // <--- ഈ ബ്രായ്ക്കറ്റ് ഉണ്ടെന്ന് ഉറപ്പാക്കുക
-} // <--- ഈ ബ്രായ്ക്കറ്റ് ഉണ്ടെന്ന് ഉറപ്പാക്കുക
+            </div> 
+        `; // ഇവിടെയാണ് student-item എന്ന div അവസാനിക്കുന്നത്
+    }); // snap.forEach അവസാനിച്ചു
+} // loadStudents ഫങ്ക്ഷൻ അവസാനിച്ചു
 
 // 5. ഫീ അപ്‌ഡേറ്റ് & പ്രിന്റ്
 async function updateFees(id, phone, name) {

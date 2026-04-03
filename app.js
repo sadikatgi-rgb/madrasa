@@ -246,15 +246,20 @@ async function loadStudents(filterClass = 'all') {
         }
     }
 
-    content.innerHTML = `
-        ${showFilter ? `
+        // 1. ഹെഡർ ഭാഗം സെപ്പറേറ്റ് ആയി നിർമ്മിക്കുന്നു (Syntax Error ഒഴിവാക്കാൻ)
+    let headerHTML = '';
+    if (showFilter) {
+        headerHTML = `
             <select onchange="loadStudents(this.value)" style="margin-bottom:15px; width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;">
                 <option value="all" ${filterClass === 'all' ? 'selected' : ''}>എല്ലാ ക്ലാസ്സും</option>
                 ${[...Array(12).keys()].map(i => `<option value="${i+1}" ${filterClass == (i+1) ? 'selected' : ''}>ക്ലാസ്സ് ${i+1}</option>`).join('')}
-            </select>` : `<h3 style="text-align:center; color:#1a73e8; margin-bottom:15px; background:#f8f9fa; padding:10px; border-radius:8px;">ക്ലാസ്സ് ${filterClass} - വിദ്യാർത്ഥികൾ</h3>`
-        }
-        <div id="list-area">ലോഡിംഗ്...</div>
-    `;
+            </select>`;
+    } else {
+        headerHTML = `<h3 style="text-align:center; color:#1a73e8; margin-bottom:15px; background:#f8f9fa; padding:10px; border-radius:8px;">ക്ലാസ്സ് ${filterClass} - വിദ്യാർത്ഥികൾ</h3>`;
+    }
+
+    // 2. കണ്ടെന്റ് ഏരിയയിലേക്ക് ഇത് ചേർക്കുന്നു
+    content.innerHTML = headerHTML + `<div id="list-area">ലോഡിംഗ്...</div>`;
 
     const snap = await query.get();
     const listArea = document.getElementById('list-area');

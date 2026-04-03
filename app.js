@@ -191,17 +191,46 @@ async function saveStudent() {
 
 // 4. സ്റ്റുഡന്റ് ലിസ്റ്റ് (Old Balance ഫീച്ചർ ഉൾപ്പെടെ)
 async function loadStudents(filterClass = 'all') {
-    const content = document.getElementById('dynamic-content');
-    content.innerHTML = `<select onchange="loadStudents(this.value)" style="margin-bottom:15px; width:100%; padding:10px;">
-        <option value="all">എല്ലാ ക്ലാസ്സും</option>
-        ${[...Array(12).keys()].map(i => `<option value="${i+1}">ക്ലാസ്സ് ${i+1}</option>`).join('')}
-    </select><div id="list-area">ലോഡിംഗ്...</div>`;
+    // 1. ലോഗിൻ ചെയ്ത യൂസറുടെ വിവരം എടുക്കുന്നു
+    const savedUser = localStorage.getItem("activeUser");
+    if (!savedUser) return;
+    const user = JSON.parse(savedUser);
 
+    const content = document.getElementById('dynamic-content');
+    
     let query = db.collection("students");
-    if (filterClass !== 'all') query = query.where("class", "==", filterClass);
+    let showFilter = false;
+
+    // 2. അധികാരം പരിശോധിക്കുന്നു (Permission Check)
+    if (user.role === 'Usthad') {
+        // ഉസ്താദിന് സ്വന്തം ക്ലാസ് മാത്രം കാണിക്കുന്നു
+        filterClass = user.assignedClass; 
+        query = query.where("class", "==", filterClass);
+    } else if (user.role === 'Sadhar') {
+        // സദറിന് മാത്രം ഡ്രോപ്പ്ഡൗൺ (Filter) കാണിക്കുന്നു
+        showFilter = true; 
+        if (filterClass !== 'all') {
+            query = query.where("class", "==", filterClass);
+        }
+    }
+
+    // 3. ഹെഡർ സെറ്റ് ചെയ്യുന്നു
+    content.innerHTML = `
+        ${showFilter ? `
+            <select onchange="loadStudents(this.value)" style="margin-bottom:15px; width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;">
+                <option value="all" ${filterClass === 'all' ? 'selected' : ''}>എല്ലാ ക്ലാസ്സും</option>
+                ${[...Array(12).keys()].map(i => `<option value="${i+1}" ${filterClass == (i+1) ? 'selected' : ''}>ക്ലാസ്സ് ${i+1}</option>`).join('')}
+            </select>` : `<h3 style="text-align:center; color:#1a73e8; margin-bottom:15px; background:#f8f9fa; padding:10px; border-radius:8px;">ക്ലാസ്സ് ${filterClass} - വിദ്യാർത്ഥികൾ</h3>`
+        }
+        <div id="list-area">ലോഡിംഗ്...</div>
+    `;
+
+    // 4. ഡാറ്റാബേസിൽ നിന്ന് വിവരങ്ങൾ എടുക്കുന്നു
     const snap = await query.get();
     const listArea = document.getElementById('list-area');
     listArea.innerHTML = "";
+
+    // ഇതിന് താഴെ നിങ്ങളുടെ പഴയ snap.forEach(doc => { ... തുടരാം
 
     snap.forEach(doc => {
         const s = doc.data();

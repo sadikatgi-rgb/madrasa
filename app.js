@@ -234,7 +234,7 @@ async function loadStudents(filterClass = 'all') {
     let query = db.collection("students");
     let showFilter = false;
 
-    // റോൾ അനുസരിച്ചുള്ള ഫിൽട്ടർ
+    // 1. റോൾ അനുസരിച്ചുള്ള ഫിൽട്ടർ (സദർ vs ഉസ്താദ്)
     if (user.role === 'Usthad') {
         filterClass = user.assignedClass; 
         query = query.where("class", "==", filterClass);
@@ -245,11 +245,11 @@ async function loadStudents(filterClass = 'all') {
         }
     }
 
-        // 1. ഹെഡർ ഭാഗം സെപ്പറേറ്റ് ആയി നിർമ്മിക്കുന്നു (Syntax Error ഒഴിവാക്കാൻ)
+    // 2. ഹെഡർ ഭാഗം (ക്ലാസ് സെലക്ഷൻ മെനു)
     let headerHTML = '';
     if (showFilter) {
         headerHTML = `
-            <select onchange="loadStudents(this.value)" style="margin-bottom:15px; width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;">
+            <select onchange="loadStudents(this.value)" style="margin-bottom:15px; width:100%; padding:10px; border-radius:8px; border:1px solid #ddd; font-family:inherit;">
                 <option value="all" ${filterClass === 'all' ? 'selected' : ''}>എല്ലാ ക്ലാസ്സും</option>
                 ${[...Array(12).keys()].map(i => `<option value="${i+1}" ${filterClass == (i+1) ? 'selected' : ''}>ക്ലാസ്സ് ${i+1}</option>`).join('')}
             </select>`;
@@ -257,7 +257,6 @@ async function loadStudents(filterClass = 'all') {
         headerHTML = `<h3 style="text-align:center; color:#1a73e8; margin-bottom:15px; background:#f8f9fa; padding:10px; border-radius:8px;">ക്ലാസ്സ് ${filterClass} - വിദ്യാർത്ഥികൾ</h3>`;
     }
 
-    // 2. കണ്ടെന്റ് ഏരിയയിലേക്ക് ഇത് ചേർക്കുന്നു
     content.innerHTML = headerHTML + `<div id="list-area">ലോഡിംഗ്...</div>`;
 
     const snap = await query.get();
@@ -269,17 +268,26 @@ async function loadStudents(filterClass = 'all') {
         let sibCount = s.siblings ? s.siblings.length : 0;
         let sibHTML = sibCount > 0 ? s.siblings.map(sib => `${sib.name} (${sib.class})`).join(', ') : "ഇല്ല";
 
-        // മന്ത് ടേബിൾ നിർമ്മാണം
-        let monthTableHTML = `<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin: 10px 0; font-size: 10px;">`;
+        // --- മാസങ്ങൾ കണക്കാക്കുന്ന പുതിയ ലോജിക് ---
+        const totalFeeMonths = s.feeMonths || 12; // ഡാറ്റാബേസിൽ ഇല്ലെങ്കിൽ 12 എന്ന് എടുക്കും
         let unpaidCount = 0;
-        allMonths.forEach(m => {
+        
+        // നിശ്ചയിച്ച മാസങ്ങളിൽ (ഉദാ: 10 മാസം) മാത്രം കുടിശ്ശിക നോക്കുന്നു
+        allMonths.slice(0, totalFeeMonths).forEach(m => {
             const isPaid = s.monthStatus && s.monthStatus[m]?.paid;
             if(!isPaid) unpaidCount++;
+        });
+
+        // മന്ത് ടേബിൾ നിർമ്മാണം
+        let monthTableHTML = `<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin: 10px 0; font-size: 10px;">`;
+        allMonths.forEach((m, index) => {
+            const isPaid = s.monthStatus && s.monthStatus[m]?.paid;
+            const isExtraMonth = index >= totalFeeMonths; // കണക്കിൽ ഇല്ലാത്ത മാസങ്ങൾ
+            
             monthTableHTML += `
-                <div style="border: 1px solid #ddd; padding: 4px; text-align: center; border-radius:3px; background: ${isPaid ? '#e8f5e9' : '#fff'}">
-                    <b style="color: ${isPaid ? 'green' : '#777'}">${m}</b><br>
-                    <span style="font-size:8px;">${isPaid ? s.monthStatus[m].date : '-'}</span><br>
-                    <span style="font-size:7px; color:blue;">${isPaid ? 'No:' + (s.monthStatus[m].rcpt || '-') : ''}</span>
+                <div style="border: 1px solid #ddd; padding: 4px; text-align: center; border-radius:3px; background: ${isPaid ? '#e8f5e9' : (isExtraMonth ? '#f5f5f5' : '#fff')}">
+                    <b style="color: ${isPaid ? 'green' : (isExtraMonth ? '#bbb' : '#777')}">${m}</b><br>
+                    <span style="font-size:8px;">${isPaid ? s.monthStatus[m].date : (isExtraMonth ? 'N/A' : '-')}</span>
                 </div>`;
         });
         monthTableHTML += `</div>`;
@@ -290,7 +298,7 @@ async function loadStudents(filterClass = 'all') {
         const oldBal = Number(s.balance) || 0;
         const totalPending = pendingMonthsFee + oldBal;
 
-        // ലിസ്റ്റ് ഐറ്റം ഡിസൈൻ
+        // 3. ഓരോ കുട്ടിയുടെയും കാർഡ് ഡിസൈൻ
         listArea.innerHTML += `
             <div class="student-item" style="position:relative; background:white; padding:15px; margin-bottom:15px; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.1); border-left:5px solid #1a73e8;">
                 <div style="position:absolute; right:10px; top:10px;">
@@ -300,22 +308,20 @@ async function loadStudents(filterClass = 'all') {
                     ` : ''}
                 </div>
                 <h4 style="margin:0 0 5px 0; color:#1a73e8;">${s.name} (ക്ലാസ്: ${s.class})</h4>
-                <div style="font-size:12px; line-height:1.6;">
-                    <b>പിതാവ്:</b> ${s.fatherName || '-'}<br>
-                    <b>ID:</b> ${s.studentID} | <b>സഹോദരങ്ങൾ:</b> ${sibHTML}
+                <div style="font-size:11px; color:#666; margin-bottom:5px;">
+                    <b>ID:</b> ${s.studentID} | <b>ഫീസ് മാസം:</b> ${totalFeeMonths} മാസം
                 </div>
                 
                 ${monthTableHTML}
                 
                 <div style="background:#fff3f3; padding:10px; border-radius:8px; border:1px solid #ffebeb; margin-top:10px;">
                     <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:5px;">
-                        <span>ഈ വർഷത്തെ ഫീസ് (₹${mFee} x ${unpaidCount}):</span>
+                        <span>ബാക്കി മാസങ്ങൾ (${unpaidCount}):</span>
                         <b style="color:#d32f2f;">₹${pendingMonthsFee}</b>
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; padding-top:5px; border-top:1px dashed #ffdada;">
                         <div>
-                            <span>പഴയ ബാക്കി: <b style="color:#d32f2f;">₹${oldBal}</b></span><br>
-                            <small style="color:#888;">(${s.balanceNote || 'വിവരങ്ങളില്ല'})</small>
+                            <span>പഴയ ബാക്കി: <b style="color:#d32f2f;">₹${oldBal}</b></span>
                         </div>
                         ${oldBal > 0 ? `<button onclick="payOldBalance('${doc.id}', '${s.parentPhone}', '${s.name}')" style="background:#d32f2f; color:white; border:none; padding:3px 8px; border-radius:4px; font-size:10px; cursor:pointer;">Pay Old</button>` : ''}
                     </div>
@@ -325,91 +331,11 @@ async function loadStudents(filterClass = 'all') {
                 </div>
 
                 <div style="display:flex; gap:5px; margin-top:10px;">
-                    <button onclick="updateFees('${doc.id}', '${s.parentPhone}', '${s.name}')" style="flex:1; background:#28a745; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer;">Pay Month</button>
-                    <button onclick="sendCustomWA('${s.parentPhone}', '${s.name}')" style="background:#25d366; flex:1; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer;">Chat</button>
+                    <button onclick="updateFees('${doc.id}', '${s.parentPhone}', '${s.name}')" style="flex:1; background:#28a745; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer; font-size:12px;">Pay Month</button>
+                    <button onclick="sendCustomWA('${s.parentPhone}', '${s.name}')" style="background:#25d366; flex:1; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer; font-size:12px;">Chat</button>
                 </div>
             </div>`;
     });
-}
-
-// 5. ഫീ അപ്‌ഡേറ്റ് & പ്രിന്റ്
-async function updateFees(id, phone, name) {
-    const monthsInput = prompt("അടയ്ക്കുന്ന മാസങ്ങൾ നൽകുക (eg: Jan, Feb):");
-    if (!monthsInput) return;
-    const rcptNo = prompt("റെസീപ്റ്റ് നമ്പർ (Receipt No) നൽകുക:");
-    if (!rcptNo) { alert("റെസീപ്റ്റ് നമ്പർ നൽകണം!"); return; }
-
-    const selected = monthsInput.split(',').map(m => m.trim().charAt(0).toUpperCase() + m.trim().slice(1).toLowerCase());
-    
-    try {
-        const ref = db.collection("students").doc(id);
-        const snap = await ref.get();
-        const s = snap.data();
-        let status = s.monthStatus || {};
-        let total = 0; let paidNow = [];
-        const date = new Date().toLocaleDateString('en-IN');
-
-        selected.forEach(m => {
-            if (status[m] && !status[m].paid) {
-                status[m] = { paid: true, date: date, amount: s.monthlyFee, rcpt: rcptNo };
-                total += s.monthlyFee;
-                paidNow.push(m);
-            }
-        });
-
-        if (total === 0) { alert("മാസങ്ങൾ തെറ്റാണ് അല്ലെങ്കിൽ നിലവിൽ അടച്ചവയാണ്!"); return; }
-
-        await ref.update({ monthStatus: status });
-        await db.collection("payments").add({
-            studentId: id, studentName: name, amountPaid: total,
-            date: date, time: new Date().toLocaleTimeString('en-IN'), 
-            months: paidNow, receiptNo: rcptNo, studentID: s.studentID,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-        if (confirm("ഫീസ് സ്വീകരിച്ചു! റെസീപ്റ്റ് പ്രിന്റ് ചെയ്യണോ?")) {
-            printReceipt(name, total, paidNow, date, rcptNo, s.studentID);
-        }
-
-        const msg = `*ഇസ്‌ലാഹുൽ ഉലൂം മദ്റസ*\nഫീസ് രസീത് നം: ${rcptNo}\nവിദ്യാർത്ഥി: ${name}\nതുക: ₹${total}\nമാസങ്ങൾ: ${paidNow.join(', ')}\nതീയതി: ${date}`;
-        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
-        loadStudents();
-    } catch(e) { alert("Error!"); }
-}
-
-// **പഴയ കുടിശ്ശിക (Old Balance) അടയ്ക്കാൻ (പുതിയത്)**
-async function payOldBalance(id, phone, name) {
-    const ref = db.collection("students").doc(id);
-    const snap = await ref.get();
-    const s = snap.data();
-    const currentBalance = Number(s.balance) || 0;
-
-    if (currentBalance <= 0) { alert("പഴയ കുടിശ്ശിക നിലവിലില്ല."); return; }
-
-    const payAmount = prompt(`പഴയ കുടിശ്ശിക: ₹${currentBalance}\n(${s.balanceNote || 'വിവരങ്ങളില്ല'})\nഎത്ര രൂപയാണ് അടയ്ക്കുന്നത്?`);
-    if (!payAmount || isNaN(payAmount) || payAmount <= 0) return;
-    
-    if (Number(payAmount) > currentBalance) { alert("അടയ്ക്കുന്ന തുക കുടിശ്ശികയേക്കാൾ കൂടുതലാണ്!"); return; }
-
-    const rcptNo = prompt("റെസീപ്റ്റ് നമ്പർ (Receipt No) നൽകുക:");
-    if (!rcptNo) return;
-
-    const date = new Date().toLocaleDateString('en-IN');
-    const newBalance = currentBalance - Number(payAmount);
-
-    try {
-        await ref.update({ balance: newBalance });
-        await db.collection("payments").add({
-            studentId: id, studentName: name, amountPaid: Number(payAmount),
-            date: date, time: new Date().toLocaleTimeString('en-IN'), 
-            months: "Old Balance Payment", // മാസത്തിന് പകരം ഇത് കാണിക്കും
-            receiptNo: rcptNo, studentID: s.studentID,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        alert(`വിജയകരമായി അടച്ചു! പുതിയ ബാക്കി: ₹${newBalance}`);
-        if (confirm("റെസീപ്റ്റ് പ്രിന്റ് ചെയ്യണോ?")) { printReceipt(name, payAmount, "Old Balance", date, rcptNo, s.studentID); }
-        loadStudents();
-    } catch(e) { alert("Error updating balance!"); }
 }
 
 // 6. പ്രിന്റ് ഫങ്ക്ഷൻ (Colorful & Large JPG/PDF)

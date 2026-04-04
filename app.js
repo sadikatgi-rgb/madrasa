@@ -544,7 +544,15 @@ async function viewHistory(studentId, studentName) {
 
 function sendCustomWA(phone, name) { window.open(`https://wa.me/${phone}?text=${encodeURIComponent('അസ്സലാമു അലൈക്കും, ' + name + '-ന്റെ കാര്യവുമായി ബന്ധപ്പെട്ട്...')}`, '_blank'); }
 async function deleteStudent(id) { if (confirm("ഒഴിവാക്കണോ?")) { await db.collection("students").doc(id).delete(); loadStudents(); } }
-function logout() { auth.signOut().then(() => location.reload()); }
+async function logout() {
+    try {
+        await auth.signOut(); // ഫയർബേസ് ലോഗ് ഔട്ട്
+        localStorage.removeItem("activeUser"); // ഫോണിലെ ലോഗിൻ ഡാറ്റ നീക്കം ചെയ്യുന്നു
+        location.reload(); // പേജ് റിഫ്രഷ് ചെയ്യുമ്പോൾ ലോഗിൻ സ്ക്രീൻ വരും
+    } catch (e) {
+        alert("Error: " + e.message);
+    }
+}
 
 // 9. ഗുരുനിധി ബോക്സ് മാനേജ്‌മെന്റ് (📦 Gurunidhi Box - Updated)
 function showGurunidhiSection() {

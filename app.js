@@ -710,10 +710,8 @@ async function deleteGBox(id) {
 }
 // 10. കളക്ഷൻ റിപ്പോർട്ട് (Collection Summary)
 async function showCollectionReport() {
-    // 1. ലോഗിൻ ചെയ്ത ആളുടെ വിവരങ്ങൾ പരിശോധിക്കുന്നു
     const user = JSON.parse(localStorage.getItem("activeUser"));
     
-    // 2. സദർ (Sadhar) അല്ലെങ്കിൽ അഡ്മിൻ ആണോ എന്ന് നോക്കുന്നു. അല്ലെങ്കിൽ ബ്ലോക്ക് ചെയ്യുന്നു.
     if (!user || user.role !== 'Sadhar') {
         alert("ക്ഷമിക്കണം, ഈ റിപ്പോർട്ട് കാണാനുള്ള അധികാരം സദറിന് (Sadhar) മാത്രമാണ്.");
         return; 
@@ -729,7 +727,6 @@ async function showCollectionReport() {
 
         snap.forEach(doc => {
             const s = doc.data();
-            // സഹോദരങ്ങളെ കണക്കിലെടുത്തുള്ള കൃത്യമായ മാസ ഫീസ് (250 + 50 + 50...)
             const monthlyTotal = 250 + ((s.siblings ? s.siblings.length : 0) * 50);
             const mStatus = s.monthStatus || {};
 
@@ -752,14 +749,13 @@ async function showCollectionReport() {
                     grandTotalPending += monthlyTotal;
                 }
             });
-        });
+        }); // snap.forEach ഇവിടെ അവസാനിക്കുന്നു
 
         let html = `<div style="background:#d32f2f; color:white; padding:15px; border-radius:10px; margin-bottom:20px; text-align:center;">
                         <small>ആകെ ലഭിക്കാനുള്ള കുടിശ്ശിക</small>
                         <h2 style="margin:0;">₹${grandTotalPending}</h2>
                     </div>`;
 
-        // മാസം തിരിച്ചുള്ള ലിസ്റ്റ് തയ്യാറാക്കുന്നു
         Object.keys(monthData).forEach(month => {
             const m = monthData[month];
             html += `
@@ -788,20 +784,24 @@ async function showCollectionReport() {
                         `).join('')}
                     </div>
                 </div>`;
-        });
+        }); // Object.keys.forEach ഇവിടെ അവസാനിക്കുന്നു
+
         document.getElementById('report-area').innerHTML = html;
-    } catch(e) { alert("Error: " + e.message); }
+
+    } catch(e) { 
+        alert("Error: " + e.message); 
+    }
 }
 
-// ലിസ്റ്റുകൾ കാണിക്കാനും മറയ്ക്കാനും (ഇത് മാറ്റണ്ട)
+// ലിസ്റ്റുകൾ കാണിക്കാനും മറയ്ക്കാനും
 function toggleMonth(month) {
-    const div = document.getElementById(`m-report-${month}`);
+    const div = document.getElementById('m-report-' + month);
     if(div) div.style.display = div.style.display === 'none' ? 'block' : 'none';
 }
 
 function toggleClass(month, cls) {
-    const div = document.getElementById(`c-report-${month}-${cls}`);
+    const div = document.getElementById('c-report-' + month + '-' + cls);
     if(div) div.style.display = div.style.display === 'none' ? 'block' : 'none';
 }
-alert("ഫയൽ പൂർണ്ണമായും ലോഡ് ആയിട്ടുണ്ട്!");
 
+alert("ഫയൽ പൂർണ്ണമായും ലോഡ് ആയിട്ടുണ്ട്!");

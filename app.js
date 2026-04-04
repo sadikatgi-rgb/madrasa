@@ -148,12 +148,6 @@ function addSiblingField() {
     document.getElementById('n-monthly-fee').value = 250 + ((count - 1) * 50);
 }
 
-// 7. ലോഗൗട്ട് ഫങ്ക്ഷൻ
-function logout() {
-    localStorage.removeItem("activeUser");
-    location.reload();
-}
-
 // 3. സേവ് ഫങ്ക്ഷൻ
 async function saveStudent() {
     const name = document.getElementById('n-name').value.trim();

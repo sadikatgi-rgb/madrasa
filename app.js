@@ -116,24 +116,49 @@ function showSection(section) {
     }
     else if (section === 'add-student') {
         content.innerHTML = `
-            <h3>പുതിയ കുട്ടി</h3>
-            <input id="n-name" placeholder="കുട്ടിയുടെ പേര്">
-            <input id="n-class" placeholder="ക്ലാസ്സ് (eg: 1, 2..)">
-            <input id="n-father" placeholder="പിതാവിന്റെ പേര്">
-            <input id="n-house" placeholder="വീട്ടുപേര്">
-            <div id="sibling-container">
-                <p style="font-size:12px; color:blue; margin-bottom:5px;">സഹോദരങ്ങൾ (പേരും ക്ലാസ്സും):</p>
-                <div class="sibling-entry" style="display:flex; gap:5px; margin-bottom:5px;">
-                    <input class="s-name" placeholder="പേര്" style="flex:2;">
-                    <input class="s-class" placeholder="ക്ലാസ്സ്" style="flex:1;">
+            <div style="padding:15px; background:white; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,0.1);">
+                <h3 style="color:#1a73e8; text-align:center;">പുതിയ കുട്ടി</h3>
+                
+                <label style="font-size:12px; font-weight:bold;">കുട്ടിയുടെ പേര്:</label>
+                <input id="n-name" placeholder="കുട്ടിയുടെ പേര്" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ddd; border-radius:5px;">
+                
+                <label style="font-size:12px; font-weight:bold;">ക്ലാസ്സ്:</label>
+                <input id="n-class" placeholder="ക്ലാസ്സ് (eg: 1, 2..)" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ddd; border-radius:5px;">
+                
+                <label style="font-size:12px; font-weight:bold;">പിതാവിന്റെ പേര്:</label>
+                <input id="n-father" placeholder="പിതാവിന്റെ പേര്" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ddd; border-radius:5px;">
+                
+                <label style="font-size:12px; font-weight:bold;">വീട്ടുപേര്:</label>
+                <input id="n-house" placeholder="വീട്ടുപേര്" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ddd; border-radius:5px;">
+                
+                <div id="sibling-container">
+                    <p style="font-size:12px; color:blue; margin-bottom:5px; font-weight:bold;">സഹോദരങ്ങൾ (പേരും ക്ലാസ്സും):</p>
+                    <div class="sibling-entry" style="display:flex; gap:5px; margin-bottom:5px;">
+                        <input class="s-name" placeholder="പേര്" style="flex:2; padding:8px; border:1px solid #ddd; border-radius:5px;">
+                        <input class="s-class" placeholder="ക്ലാസ്സ്" style="flex:1; padding:8px; border:1px solid #ddd; border-radius:5px;">
+                    </div>
                 </div>
+                <button onclick="addSiblingField()" style="background:#28a745; margin-bottom:15px; font-size:12px; padding:8px; color:white; border:none; border-radius:5px; width:100%;">+ ഒരാളെ കൂടി ചേർക്കുക</button>
+                
+                <label style="font-size:12px; font-weight:bold;">വാട്ട്സാപ്പ് നമ്പർ (91xxxx):</label>
+                <input id="n-phone" placeholder="91xxxx" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ddd; border-radius:5px;">
+                
+                <label style="font-size:12px; font-weight:bold; color:#d32f2f;">ഫീസ് കണക്കാക്കേണ്ട മാസങ്ങൾ:</label>
+                <select id="n-fee-months" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ddd; border-radius:5px; background:#fff3f3;">
+                    <option value="9">9 മാസം</option>
+                    <option value="10">10 മാസം</option>
+                    <option value="11">11 മാസം</option>
+                    <option value="12" selected>12 മാസം (സാധാരണ)</option>
+                </select>
+
+                <label style="font-size:12px; font-weight:bold;">പ്രതിമാസ ഫീസ്:</label>
+                <input id="n-monthly-fee" type="number" value="250" readonly style="width:100%; padding:10px; margin-bottom:10px; background:#f9f9f9; border:1px solid #ddd; border-radius:5px;">
+                
+                <label style="font-size:12px; font-weight:bold;">പഴയ ബാക്കി കുടിശ്ശിക:</label>
+                <input id="n-fees" type="number" placeholder="0" style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #ddd; border-radius:5px;">
+                
+                <button onclick="saveStudent()" style="width:100%; padding:12px; background:#1a73e8; color:white; border:none; border-radius:8px; font-weight:bold; font-size:16px;">സേവ് ചെയ്യുക</button>
             </div>
-            <button onclick="addSiblingField()" style="background:#28a745; margin-bottom:15px; font-size:12px; padding:5px; color:white;">+ ഒരാളെ കൂടി ചേർക്കുക</button>
-            <input id="n-phone" placeholder="വാട്ട്സാപ്പ് നമ്പർ (91xxxx)">
-            <p style="font-size:12px;">പ്രതിമാസ ഫീസ് (250 + ഓരോ സഹോദരങ്ങൾക്കും 50 വീതം):</p>
-            <input id="n-monthly-fee" type="number" value="250" readonly style="background:#f9f9f9;">
-            <input id="n-fees" type="number" placeholder="പഴയ ബാക്കി കുടിശ്ശിക">
-            <button onclick="saveStudent()">സേവ് ചെയ്യുക</button>
         `;
     }
     else if (section === 'gurunidhi') {

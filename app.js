@@ -165,13 +165,16 @@ async function saveStudent() {
     const house = document.getElementById('n-house').value.trim();
     const phone = document.getElementById('n-phone').value.trim();
     const oldFees = Number(document.getElementById('n-fees').value) || 0;
+    
+    // --- പുതിയ മാറ്റം: സെലക്ട് ചെയ്ത മാസങ്ങൾ എടുക്കുന്നു ---
+    const feeMonthsInput = document.getElementById('n-fee-months');
+    const feeMonths = feeMonthsInput ? Number(feeMonthsInput.value) : 12; 
 
     if (!name || !cls || !phone) { 
         alert("പേര്, ക്ലാസ്സ്, ഫോൺ നമ്പർ എന്നിവ നിർബന്ധമാണ്!"); 
         return; 
     }
 
-    // സഹോദരങ്ങളെ ലിസ്റ്റ് ചെയ്യുന്നു
     let siblingsList = [];
     const sibNames = document.getElementsByClassName('s-name');
     const sibClasses = document.getElementsByClassName('s-class');
@@ -184,16 +187,13 @@ async function saveStudent() {
         }
     }
 
-    // മാസ ഫീസ് കണക്കാക്കുന്നു (250 + ഓരോ സഹോദരങ്ങൾക്കും 50 വീതം)
     const mFee = 250 + (siblingsList.length * 50);
 
-    // എല്ലാ മാസത്തെയും സ്റ്റാറ്റസ് തുടക്കത്തിൽ 'paid: false' ആക്കുന്നു
     let monthStatus = {};
     allMonths.forEach(m => { 
         monthStatus[m] = { paid: false, date: "-", amount: 0, rcpt: "-" }; 
     });
 
-    // സ്റ്റുഡന്റ് ഐഡി നിർമ്മാണം
     const sid = name.toLowerCase().substring(0,3) + phone.slice(-4);
 
     try {
@@ -205,7 +205,8 @@ async function saveStudent() {
             siblings: siblingsList, 
             parentPhone: phone, 
             studentID: sid,
-            monthlyFee: mFee, // കൃത്യമായി കണക്കാക്കിയ ഫീസ്
+            monthlyFee: mFee,
+            feeMonths: feeMonths, // --- ഫയർബേസിലേക്ക് മാസങ്ങളുടെ എണ്ണം സേവ് ചെയ്യുന്നു ---
             balance: oldFees, 
             monthStatus: monthStatus, 
             addedDate: new Date().toLocaleDateString('en-IN'),
@@ -214,7 +215,6 @@ async function saveStudent() {
 
         alert(`വിജയകരമായി ചേർത്തു! ID: ${sid}`);
         
-        // നിലവിൽ ലോഗിൻ ചെയ്ത ആളുടെ റോൾ അനുസരിച്ച് ലിസ്റ്റ് കാണിക്കുന്നു
         const user = JSON.parse(localStorage.getItem("activeUser"));
         showSection('student-list');
         

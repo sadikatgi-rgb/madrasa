@@ -1,7 +1,3 @@
-window.onerror = function(message, source, lineno, colno, error) {
-    alert("Error: " + message + "\nLine: " + lineno);
-};
-
 // 1. Firebase Configuration
 const firebaseConfig = {
     apiKey: "AIzaSyDgWlTlsbkqIo2xQFf-UI6fE6X1KeyI9-U",

@@ -104,7 +104,7 @@ function applyPermissions(user) {
         studentView.style.display = 'block';
     }
 }
-alert("കോഡ് ഇവിടെ വരെ വർക്ക് ആകുന്നുണ്ട്!");
+
 // 5. സെക്ഷൻ സ്വിച്ചർ
 function showSection(section) {
     const user = JSON.parse(localStorage.getItem("activeUser"));
@@ -812,5 +812,3 @@ function toggleClass(month, cls) {
     const div = document.getElementById('c-report-' + month + '-' + cls);
     if(div) div.style.display = div.style.display === 'none' ? 'block' : 'none';
 }
-
-alert("ഫയൽ പൂർണ്ണമായും ലോഡ് ആയിട്ടുണ്ട്!");

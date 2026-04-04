@@ -566,13 +566,31 @@ async function loadGurunidhiList() {
     const listArea = document.getElementById('gurunidhi-list-area');
     const searchVal = document.getElementById('g-search').value.toLowerCase();
     
+    // ലോഗിൻ ചെയ്ത യൂസറുടെ വിവരങ്ങൾ എടുക്കുന്നു
+    const user = JSON.parse(localStorage.getItem("activeUser"));
+
     try {
-        const snap = await db.collection("gurunidhi").orderBy("timestamp", "desc").get();
+        let query = db.collection("gurunidhi");
+
+        // പുതിയ മാറ്റം: ഉസ്താദ് ആണെങ്കിൽ സ്വന്തം ക്ലാസ്സ് മാത്രം കാണിക്കുന്നു
+        if (user && user.role === 'Usthad') {
+            query = query.where("studentClass", "==", user.assignedClass);
+        }
+
+        // സമയം അനുസരിച്ച് ക്രമീകരിക്കുന്നു
+        const snap = await query.orderBy("timestamp", "desc").get();
         listArea.innerHTML = "";
         
         snap.forEach(doc => {
             const g = doc.data();
+            
+            // സെർച്ച് ഫിൽട്ടർ
             if(g.studentName.toLowerCase().includes(searchVal) || g.boxID.toLowerCase().includes(searchVal)) {
+                
+                // സദർ ആണെങ്കിൽ മാത്രം ഡിലീറ്റ് ബട്ടൺ കാണിക്കാൻ
+                const deleteBtn = (user && user.role === 'Sadhar') ? 
+                    `<button onclick="deleteGBox('${doc.id}')" style="background:#ff4d4d; color:white; border:none; padding:8px; border-radius:4px; font-size:11px;">ഡിലീറ്റ്</button>` : '';
+
                 listArea.innerHTML += `
                     <div style="border:1px solid #eee; padding:12px; margin-bottom:10px; border-radius:10px; background:#fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
                         <div style="display:flex; justify-content:space-between;">
@@ -587,16 +605,22 @@ async function loadGurunidhiList() {
                             <button onclick="addGPayment('${doc.id}', '${g.studentName}', '${g.boxID}')" style="background:#28a745; color:white; border:none; padding:8px; border-radius:4px; font-size:11px;">തുക ചേർക്കുക</button>
                             <button onclick="viewGHistory('${doc.id}', '${g.studentName}')" style="background:#1a73e8; color:white; border:none; padding:8px; border-radius:4px; font-size:11px;">History</button>
                             <button onclick="reissueGBox('${doc.id}')" style="background:#ff9800; color:white; border:none; padding:8px; border-radius:4px; font-size:11px;">Re-Issue (തീയതി മാറ്റുക)</button>
-                                                        <button onclick="deleteGBox('${doc.id}')" style="background:#ff4d4d; color:white; border:none; padding:8px; border-radius:4px; font-size:11px;">ഡിലീറ്റ്</button>
+                            ${deleteBtn}
                         </div>
                     </div>
                 `;
-            } // if ബ്ലോക്ക് ഇവിടെ അവസാനിക്കുന്നു
-        }); // forEach ലൂപ്പ് ഇവിടെ അവസാനിക്കുന്നു
+            }
+        });
+
+        if (listArea.innerHTML === "") {
+            listArea.innerHTML = "<p style='text-align:center; font-size:12px; color:#888;'>വിവരങ്ങൾ ലഭ്യമല്ല.</p>";
+        }
+
     } catch(e) { 
-        listArea.innerHTML = "Error loading list."; 
-    } // catch ബ്ലോക്ക് ഇവിടെ അവസാനിക്കുന്നു
-} // loadGurunidhiList ഫങ്ക്ഷൻ ഇവിടെ അവസാനിക്കുന്നു
+        console.error("Error loading list: ", e);
+        listArea.innerHTML = "വിവരങ്ങൾ ലഭിക്കുന്നതിൽ തടസ്സം നേരിട്ടു."; 
+    }
+}
 
 // 3. തുക ചേർക്കാനും റെസീപ്റ്റ് നമ്പർ നൽകാനും
 async function addGPayment(docId, name, boxID) {

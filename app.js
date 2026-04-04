@@ -18,8 +18,17 @@ const db = firebase.firestore();
 // 1. പേജ് തുറക്കുമ്പോൾ തന്നെ ലോഗിൻ പരിശോധിക്കാൻ (One-Time Login)
 window.onload = function() {
     const savedUser = localStorage.getItem("activeUser");
+    
+    const loginPage = document.getElementById('login-page');
+    const dashboard = document.getElementById('main-dashboard');
+
     if (savedUser) {
+        // ലോഗിൻ വിവരങ്ങൾ ഉണ്ടെങ്കിൽ ഉള്ളിലേക്ക്
         applyPermissions(JSON.parse(savedUser));
+    } else {
+        // ലോഗിൻ ഇല്ലെങ്കിൽ ലോഗിൻ പേജ് കാണിക്കുന്നു
+        if (loginPage) loginPage.style.display = 'block';
+        if (dashboard) dashboard.style.display = 'none';
     }
 };
 

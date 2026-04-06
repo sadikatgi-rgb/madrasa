@@ -708,12 +708,21 @@ async function deleteGBox(id) {
 // 10. കളക്ഷൻ റിപ്പോർട്ട് (Collection Summary)
 async function showCollectionReport() {
     const user = JSON.parse(localStorage.getItem("activeUser"));
+    const content = document.getElementById('dynamic-content');
     
-    // സദർ ആണോ എന്ന് പരിശോധിക്കുന്നു
-    if (!user || user.role !== 'Sadhar') {
-        alert("ക്ഷമിക്കണം, ഈ റിപ്പോർട്ട് കാണാനുള്ള അധികാരം സദറിന് (Sadhar) മാത്രമാണ്.");
+    // മാറ്റം വരുത്തിയ ഭാഗം: സദറിനും ഉസ്താദിനും അനുമതി നൽകുന്നു
+    if (!user || (user.role !== 'Sadhar' && user.role !== 'Usthad')) {
+        alert("ക്ഷമിക്കണം, ഈ റിപ്പോർട്ട് കാണാനുള്ള അധികാരം സദറിനും ഉസ്താദുമാർക്കും മാത്രമാണ്.");
         return; 
     }
+
+    // ഇതിന് താഴെ നമ്മൾ നേരത്തെ തയ്യാറാക്കിയ റിപ്പോർട്ട് ലോജിക് വരും...
+    if (user.role === 'Sadhar') {
+        // സദറിനുള്ള മാസ്റ്റർ റിപ്പോർട്ട് കോഡ്
+    } else {
+        // ഉസ്താദിനുള്ള ക്ലാസ് റിപ്പോർട്ട് കോഡ്
+    }
+}
 
     const content = document.getElementById('dynamic-content');
     content.innerHTML = `

@@ -710,144 +710,150 @@ async function showCollectionReport() {
     const user = JSON.parse(localStorage.getItem("activeUser"));
     const content = document.getElementById('dynamic-content');
     
-    // മാറ്റം വരുത്തിയ ഭാഗം: സദറിനും ഉസ്താദിനും അനുമതി നൽകുന്നു
+    // 1. അനുമതി പരിശോധിക്കുന്നു
     if (!user || (user.role !== 'Sadhar' && user.role !== 'Usthad')) {
         alert("ക്ഷമിക്കണം, ഈ റിപ്പോർട്ട് കാണാനുള്ള അധികാരം സദറിനും ഉസ്താദുമാർക്കും മാത്രമാണ്.");
         return; 
     }
 
-    // ഇതിന് താഴെ നമ്മൾ നേരത്തെ തയ്യാറാക്കിയ റിപ്പോർട്ട് ലോജിക് വരും...
+    // --- 2. സദർ ഉസ്താദിനുള്ള മാസ്റ്റർ റിപ്പോർട്ട് (Master Report for Sadhar) ---
     if (user.role === 'Sadhar') {
-        // സദറിനുള്ള മാസ്റ്റർ റിപ്പോർട്ട് കോഡ്
-    } else {
-        // ഉസ്താദിനുള്ള ക്ലാസ് റിപ്പോർട്ട് കോഡ്
-    }
-}
+        content.innerHTML = `
+            <div style="padding:15px; background:#f8f9fa; min-height:100vh; border-radius:12px;">
+                <h3 style="color:#1a73e8; text-align:center; margin-bottom:20px;">📊 മാസവരി സംഖ്യ - മാസ്റ്റർ റിപ്പോർട്ട്</h3>
+                <div id="grand-summary" style="margin-bottom:20px;"></div>
+                <div id="report-area">വിവരങ്ങൾ ശേഖരിക്കുന്നു...</div>
+            </div>
+        `;
+        
+        try {
+            const snap = await db.collection("students").get();
+            let monthData = {}; 
+            let totalReceived = 0;
+            let totalPending = 0;
 
-    const content = document.getElementById('dynamic-content');
-    content.innerHTML = `
-        <div style="padding:15px; background:#f8f9fa; min-height:100vh; border-radius:12px;">
-            <h3 style="color:#1a73e8; text-align:center; margin-bottom:20px;">📊 മാസവരി സംഖ്യ - മാസ്റ്റർ റിപ്പോർട്ട്</h3>
-            <div id="grand-summary" style="margin-bottom:20px;"></div>
-            <div id="report-area">വിവരങ്ങൾ ശേഖരിക്കുന്നു...</div>
-        </div>
-    `;
-    
-    try {
-        const snap = await db.collection("students").get();
-        let monthData = {}; 
-        let totalReceived = 0;
-        let totalPending = 0;
+            snap.forEach(doc => {
+                const s = doc.data();
+                const monthlyFee = 250 + ((s.siblings ? s.siblings.length : 0) * 50);
+                const mStatus = s.monthStatus || {};
+                const studentClass = s.class || "Unassigned";
 
-        snap.forEach(doc => {
-            const s = doc.data();
-            // ഫീസ് കണക്കാക്കുന്നു: ബേസ് 250 + (സഹോദരങ്ങൾ * 50)
-            const monthlyFee = 250 + ((s.siblings ? s.siblings.length : 0) * 50);
-            const mStatus = s.monthStatus || {};
-            const studentClass = s.class || "Unassigned";
-
-            Object.keys(mStatus).forEach(month => {
-                if (!monthData[month]) {
-                    monthData[month] = { paid: 0, pending: 0, classes: {} };
-                }
-
-                if (!monthData[month].classes[studentClass]) {
-                    monthData[month].classes[studentClass] = { 
-                        paidAmt: 0, 
-                        pendingAmt: 0, 
-                        paidCount: 0, 
-                        pendingCount: 0, 
-                        pendingStudents: [] 
-                    };
-                }
-
-                const targetClass = monthData[month].classes[studentClass];
-
-                if (mStatus[month].paid) {
-                    monthData[month].paid += monthlyFee;
-                    targetClass.paidAmt += monthlyFee;
-                    targetClass.paidCount++;
-                    totalReceived += monthlyFee;
-                } else {
-                    monthData[month].pending += monthlyFee;
-                    targetClass.pendingAmt += monthlyFee;
-                    targetClass.pendingCount++;
-                    targetClass.pendingStudents.push({ name: s.name, amt: monthlyFee });
-                    totalPending += monthlyFee;
-                }
+                Object.keys(mStatus).forEach(month => {
+                    if (!monthData[month]) {
+                        monthData[month] = { paid: 0, pending: 0, classes: {} };
+                    }
+                    if (!monthData[month].classes[studentClass]) {
+                        monthData[month].classes[studentClass] = { 
+                            paidAmt: 0, pendingAmt: 0, paidCount: 0, pendingCount: 0, pendingStudents: [] 
+                        };
+                    }
+                    const targetClass = monthData[month].classes[studentClass];
+                    if (mStatus[month].paid) {
+                        monthData[month].paid += monthlyFee;
+                        targetClass.paidAmt += monthlyFee;
+                        targetClass.paidCount++;
+                        totalReceived += monthlyFee;
+                    } else {
+                        monthData[month].pending += monthlyFee;
+                        targetClass.pendingAmt += monthlyFee;
+                        targetClass.pendingCount++;
+                        targetClass.pendingStudents.push({ name: s.name, amt: monthlyFee });
+                        totalPending += monthlyFee;
+                    }
+                });
             });
-        });
 
-        // ടോപ്പ് സമ്മറി കാർഡ്
-        document.getElementById('grand-summary').innerHTML = `
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
-                <div style="background:#fff; padding:15px; border-radius:12px; border-bottom:4px solid #28a745; text-align:center; box-shadow:0 2px 5px rgba(0,0,0,0.05);">
-                    <small style="color:#666;">ആകെ ലഭിച്ചത്</small><br>
-                    <b style="font-size:20px; color:#28a745;">₹${totalReceived}</b>
-                </div>
-                <div style="background:#fff; padding:15px; border-radius:12px; border-bottom:4px solid #dc3545; text-align:center; box-shadow:0 2px 5px rgba(0,0,0,0.05);">
-                    <small style="color:#666;">ആകെ കുടിശ്ശിക</small><br>
-                    <b style="font-size:20px; color:#dc3545;">₹${totalPending}</b>
-                </div>
+            // സദർ സമ്മറി കാർഡ്
+            document.getElementById('grand-summary').innerHTML = `
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                    <div style="background:#fff; padding:15px; border-radius:12px; border-bottom:4px solid #28a745; text-align:center; box-shadow:0 2px 5px rgba(0,0,0,0.05);">
+                        <small style="color:#666;">ആകെ ലഭിച്ചത്</small><br><b style="font-size:20px; color:#28a745;">₹${totalReceived}</b>
+                    </div>
+                    <div style="background:#fff; padding:15px; border-radius:12px; border-bottom:4px solid #dc3545; text-align:center; box-shadow:0 2px 5px rgba(0,0,0,0.05);">
+                        <small style="color:#666;">ആകെ കുടിശ്ശിക</small><br><b style="font-size:20px; color:#dc3545;">₹${totalPending}</b>
+                    </div>
+                </div>`;
+
+            let html = "";
+            const monthsOrder = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            const sortedMonths = Object.keys(monthData).sort((a, b) => monthsOrder.indexOf(a) - monthsOrder.indexOf(b));
+
+            sortedMonths.forEach(month => {
+                const m = monthData[month];
+                html += `
+                    <div style="background:#fff; border:1px solid #eee; margin-bottom:12px; border-radius:10px; overflow:hidden;">
+                        <div onclick="toggleMonth('${month}')" style="padding:15px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; border-left:5px solid #1a73e8;">
+                            <div><b>${month}</b><br><small style="color:#28a745;">Paid: ₹${m.paid}</small> | <small style="color:#dc3545;">Pending: ₹${m.pending}</small></div>
+                            <span style="color:#1a73e8; font-size:12px;">ക്ലാസ്സുകൾ ▾</span>
+                        </div>
+                        <div id="m-report-${month}" style="display:none; padding:10px; background:#fcfcfc;">
+                            ${Object.keys(m.classes).sort().map(cls => {
+                                const c = m.classes[cls];
+                                return `
+                                    <div style="margin-bottom:8px; border:1px solid #f0f0f0; border-radius:8px; background:white;">
+                                        <div onclick="toggleClass('${month}', '${cls}')" style="padding:10px; cursor:pointer; display:flex; justify-content:space-between; font-size:14px;">
+                                            <span><b>Class ${cls}</b> <small>(${c.paidCount}/${c.pendingCount + c.paidCount})</small></span>
+                                            <b style="color:#dc3545;">₹${c.pendingAmt}</b>
+                                        </div>
+                                        <div id="c-report-${month}-${cls}" style="display:none; padding:8px 12px; font-size:12px; background:#fffafa;">
+                                            ${c.pendingStudents.map(st => `<div style="display:flex; justify-content:space-between; color:#d32f2f;"><span>${st.name}</span><span>₹${st.amt}</span></div>`).join('')}
+                                        </div>
+                                    </div>`;
+                            }).join('')}
+                        </div>
+                    </div>`;
+            });
+            document.getElementById('report-area').innerHTML = html || "<p>ഡാറ്റ ലഭ്യമല്ല.</p>";
+        } catch(e) { document.getElementById('report-area').innerHTML = "Error!"; }
+
+    } 
+    // --- 3. ഉസ്താദുമാർക്കുള്ള സ്വന്തം ക്ലാസ് റിപ്പോർട്ട് (Class Report for Usthads) ---
+    else {
+        const myClass = user.assignedClass;
+        content.innerHTML = `
+            <div style="padding:15px; background:#fff; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.08);">
+                <h3 style="color:#d32f2f; text-align:center; margin-bottom:20px;">📊 ക്ലാസ് റിപ്പോർട്ട് (${myClass})</h3>
+                <div id="u-summary" style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:20px;"></div>
+                <div id="u-list-area">ലോഡിംഗ്...</div>
             </div>
         `;
 
-        let html = "";
-        // മാസങ്ങൾ ക്രമത്തിൽ കാണിക്കുന്നു
-        const monthsOrder = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        const sortedMonths = Object.keys(monthData).sort((a, b) => monthsOrder.indexOf(a) - monthsOrder.indexOf(b));
+        try {
+            const snap = await db.collection("students").where("class", "==", myClass).get();
+            let tPaid = 0; let tPending = 0; let html = "";
 
-        sortedMonths.forEach(month => {
-            const m = monthData[month];
-            html += `
-                <div style="background:#fff; border:1px solid #eee; margin-bottom:12px; border-radius:10px; overflow:hidden; box-shadow:0 2px 4px rgba(0,0,0,0.02);">
-                    <div onclick="toggleMonth('${month}')" style="padding:15px; background:#fff; cursor:pointer; display:flex; justify-content:space-between; align-items:center; border-left:5px solid #1a73e8;">
-                        <div>
-                            <b style="font-size:16px;">${month}</b><br>
-                            <small style="color:#28a745; font-weight:bold;">Paid: ₹${m.paid}</small> | 
-                            <small style="color:#dc3545; font-weight:bold;">Pending: ₹${m.pending}</small>
+            snap.forEach(doc => {
+                const s = doc.data();
+                let sPaid = 0;
+                if (s.monthStatus) { Object.values(s.monthStatus).forEach(m => { if (m.paid) sPaid += Number(m.amount); }); }
+                const sPending = Number(s.balance || 0);
+                tPaid += sPaid; tPending += sPending;
+
+                html += `
+                    <div style="padding:15px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
+                        <div><b>${s.name}</b><br><small>ID: ${s.id}</small></div>
+                        <div style="text-align:right;">
+                            <span style="color:#38a169; font-weight:bold;">₹${sPaid}</span><br>
+                            <span style="color:${sPending > 0 ? '#e53e3e' : '#aaa'}; font-size:11px;">${sPending > 0 ? 'ബാക്കി: ₹'+sPending : 'Completed'}</span>
                         </div>
-                        <span style="color:#1a73e8; font-size:12px;">ക്ലാസ്സുകൾ കാണുക ▾</span>
-                    </div>
-                    
-                    <div id="m-report-${month}" style="display:none; padding:10px; background:#fcfcfc; border-top:1px solid #f0f0f0;">
-                        ${Object.keys(m.classes).sort().map(cls => {
-                            const c = m.classes[cls];
-                            return `
-                                <div style="margin-bottom:8px; border:1px solid #f0f0f0; border-radius:8px; background:white;">
-                                    <div onclick="toggleClass('${month}', '${cls}')" style="padding:10px; cursor:pointer; display:flex; justify-content:space-between; font-size:14px; align-items:center;">
-                                        <span><b>Class ${cls}</b> <small style="color:gray;">(${c.paidCount} Paid / ${c.pendingCount} Pending)</small></span>
-                                        <b style="color:#dc3545;">₹${c.pendingAmt}</b>
-                                    </div>
-                                    <div id="c-report-${month}-${cls}" style="display:none; padding:8px 12px; font-size:12px; background:#fffafa; border-top:1px dashed #eee;">
-                                        <p style="margin:0 0 5px 0; color:#666; font-weight:bold;">കുടിശ്ശികയുള്ള കുട്ടികൾ:</p>
-                                        ${c.pendingStudents.length > 0 ? c.pendingStudents.map(st => `
-                                            <div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #f9f9f9; color:#d32f2f;">
-                                                <span>${st.name}</span><span>₹${st.amt}</span>
-                                            </div>
-                                        `).join('') : '<div style="color:green;">എല്ലാവരും അടച്ചു തീർത്തു!</div>'}
-                                    </div>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                </div>`;
-        });
+                        <div onclick="viewPaymentHistory('${doc.id}', '${s.name}')" style="cursor:pointer; margin-left:10px; background:#ebf8ff; padding:8px; border-radius:8px; color:#3182ce;">📋</div>
+                    </div>`;
+            });
 
-        document.getElementById('report-area').innerHTML = html || "<p style='text-align:center;'>ഡാറ്റ ലഭ്യമല്ല.</p>";
-
-    } catch(e) { 
-        console.error(e);
-        document.getElementById('report-area').innerHTML = "Error loading data."; 
+            document.getElementById('u-summary').innerHTML = `
+                <div style="background:#f0fff4; padding:15px; border-radius:12px; text-align:center; border:1px solid #c6f6d5;"><small>ലഭിച്ചത്</small><br><b style="color:#22543d;">₹${tPaid}</b></div>
+                <div style="background:#fff5f5; padding:15px; border-radius:12px; text-align:center; border:1px solid #fed7d7;"><small>കുടിശ്ശിക</small><br><b style="color:#742a2a;">₹${tPending}</b></div>
+            `;
+            document.getElementById('u-list-area').innerHTML = html || "കുട്ടികൾ ഇല്ല.";
+        } catch(e) { document.getElementById('u-list-area').innerHTML = "Error!"; }
     }
 }
 
-// ലിസ്റ്റുകൾ കാണിക്കാനും മറയ്ക്കാനും ഉള്ള ഫങ്ക്ഷനുകൾ
+// ടോഗിൾ ഫങ്ക്ഷനുകൾ പുറത്ത് നൽകണം
 function toggleMonth(month) {
     const div = document.getElementById('m-report-' + month);
     if(div) div.style.display = div.style.display === 'none' ? 'block' : 'none';
 }
-
 function toggleClass(month, cls) {
     const div = document.getElementById('c-report-' + month + '-' + cls);
     if(div) div.style.display = div.style.display === 'none' ? 'block' : 'none';

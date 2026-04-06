@@ -710,19 +710,29 @@ async function showCollectionReport() {
     const user = JSON.parse(localStorage.getItem("activeUser"));
     const content = document.getElementById('dynamic-content');
     
-    // 1. അനുമതി പരിശോധിക്കുന്നു
     if (!user || (user.role !== 'Sadhar' && user.role !== 'Usthad')) {
         alert("ക്ഷമിക്കണം, ഈ റിപ്പോർട്ട് കാണാനുള്ള അധികാരം സദറിനും ഉസ്താദുമാർക്കും മാത്രമാണ്.");
         return; 
     }
 
-    // --- 2. സദർ ഉസ്താദിനുള്ള മാസ്റ്റർ റിപ്പോർട്ട് (Master Report for Sadhar) ---
+    // നിലവിലെ മാസം വരെയുള്ള കുടിശ്ശിക മാത്രം കാണിക്കാനുള്ള ലോജിക്
+    const now = new Date();
+    const currentMonthIdx = now.getMonth(); 
+    const monthsOrder = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
     if (user.role === 'Sadhar') {
         content.innerHTML = `
             <div style="padding:15px; background:#f8f9fa; min-height:100vh; border-radius:12px;">
                 <h3 style="color:#1a73e8; text-align:center; margin-bottom:20px;">📊 മാസവരി സംഖ്യ - മാസ്റ്റർ റിപ്പോർട്ട്</h3>
                 <div id="grand-summary" style="margin-bottom:20px;"></div>
                 <div id="report-area">വിവരങ്ങൾ ശേഖരിക്കുന്നു...</div>
+                
+                <div id="salary-tracker-section" style="margin-top:30px;">
+                    <h3 style="color:#2d3748; border-top:2px solid #ddd; pt:15px;">👨‍🏫 ഉസ്താദുമാരുടെ ശമ്പള കണക്ക്</h3>
+                    <div id="usthad-salary-summary" style="background:white; padding:15px; border-radius:12px; border:1px solid #e2e8f0;">
+                        <p style="text-align:center; color:gray;">ശമ്പള വിവരങ്ങൾ ലോഡ് ചെയ്യുന്നു...</p>
+                    </div>
+                </div>
             </div>
         `;
         
@@ -739,6 +749,8 @@ async function showCollectionReport() {
                 const studentClass = s.class || "Unassigned";
 
                 Object.keys(mStatus).forEach(month => {
+                    const monthIdxInList = monthsOrder.indexOf(month);
+                    
                     if (!monthData[month]) {
                         monthData[month] = { paid: 0, pending: 0, classes: {} };
                     }
@@ -747,44 +759,47 @@ async function showCollectionReport() {
                             paidAmt: 0, pendingAmt: 0, paidCount: 0, pendingCount: 0, pendingStudents: [] 
                         };
                     }
+                    
                     const targetClass = monthData[month].classes[studentClass];
+                    
                     if (mStatus[month].paid) {
                         monthData[month].paid += monthlyFee;
                         targetClass.paidAmt += monthlyFee;
                         targetClass.paidCount++;
                         totalReceived += monthlyFee;
                     } else {
-                        monthData[month].pending += monthlyFee;
-                        targetClass.pendingAmt += monthlyFee;
-                        targetClass.pendingCount++;
-                        targetClass.pendingStudents.push({ name: s.name, amt: monthlyFee });
-                        totalPending += monthlyFee;
+                        // മാറ്റം: നിലവിലെ മാസം വരെയുള്ളത് മാത്രം Pending-ൽ കൂട്ടുന്നു
+                        if (monthIdxInList <= currentMonthIdx) {
+                            monthData[month].pending += monthlyFee;
+                            targetClass.pendingAmt += monthlyFee;
+                            targetClass.pendingCount++;
+                            targetClass.pendingStudents.push({ name: s.name, amt: monthlyFee });
+                            totalPending += monthlyFee;
+                        }
                     }
                 });
             });
 
-            // സദർ സമ്മറി കാർഡ്
             document.getElementById('grand-summary').innerHTML = `
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
                     <div style="background:#fff; padding:15px; border-radius:12px; border-bottom:4px solid #28a745; text-align:center; box-shadow:0 2px 5px rgba(0,0,0,0.05);">
                         <small style="color:#666;">ആകെ ലഭിച്ചത്</small><br><b style="font-size:20px; color:#28a745;">₹${totalReceived}</b>
                     </div>
                     <div style="background:#fff; padding:15px; border-radius:12px; border-bottom:4px solid #dc3545; text-align:center; box-shadow:0 2px 5px rgba(0,0,0,0.05);">
-                        <small style="color:#666;">ആകെ കുടിശ്ശിക</small><br><b style="font-size:20px; color:#dc3545;">₹${totalPending}</b>
+                        <small style="color:#666;">നിലവിലെ കുടിശ്ശിക</small><br><b style="font-size:20px; color:#dc3545;">₹${totalPending}</b>
                     </div>
                 </div>`;
 
+            // മാസങ്ങൾ ക്രമത്തിൽ കാണിക്കുന്നു
             let html = "";
-            const monthsOrder = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
             const sortedMonths = Object.keys(monthData).sort((a, b) => monthsOrder.indexOf(a) - monthsOrder.indexOf(b));
-
             sortedMonths.forEach(month => {
                 const m = monthData[month];
                 html += `
                     <div style="background:#fff; border:1px solid #eee; margin-bottom:12px; border-radius:10px; overflow:hidden;">
                         <div onclick="toggleMonth('${month}')" style="padding:15px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; border-left:5px solid #1a73e8;">
                             <div><b>${month}</b><br><small style="color:#28a745;">Paid: ₹${m.paid}</small> | <small style="color:#dc3545;">Pending: ₹${m.pending}</small></div>
-                            <span style="color:#1a73e8; font-size:12px;">ക്ലാസ്സുകൾ ▾</span>
+                            <span style="color:#1a73e8; font-size:12px;">വിശദാംശങ്ങൾ ▾</span>
                         </div>
                         <div id="m-report-${month}" style="display:none; padding:10px; background:#fcfcfc;">
                             ${Object.keys(m.classes).sort().map(cls => {
@@ -804,17 +819,21 @@ async function showCollectionReport() {
                     </div>`;
             });
             document.getElementById('report-area').innerHTML = html || "<p>ഡാറ്റ ലഭ്യമല്ല.</p>";
-        } catch(e) { document.getElementById('report-area').innerHTML = "Error!"; }
+            
+            // സദറിന് ശമ്പള കണക്ക് ലോഡ് ചെയ്യുന്നു
+            loadSadharSalaryTracker(totalReceived);
 
-    } 
-    // --- 3. ഉസ്താദുമാർക്കുള്ള സ്വന്തം ക്ലാസ് റിപ്പോർട്ട് (Class Report for Usthads) ---
-    else {
+        } catch(e) { console.error(e); }
+
+    } else {
+        // --- ഉസ്താദുമാർക്കുള്ള സ്വന്തം ക്ലാസ് റിപ്പോർട്ട് ---
         const myClass = user.assignedClass;
         content.innerHTML = `
             <div style="padding:15px; background:#fff; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.08);">
                 <h3 style="color:#d32f2f; text-align:center; margin-bottom:20px;">📊 ക്ലാസ് റിപ്പോർട്ട് (${myClass})</h3>
                 <div id="u-summary" style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:20px;"></div>
                 <div id="u-list-area">ലോഡിംഗ്...</div>
+                <button onclick="showSalaryManagement()" style="width:100%; padding:12px; background:#f8f9fa; border:1px solid #ddd; border-radius:8px; margin-top:10px;">എന്റെ ശമ്പള വിവരങ്ങൾ</button>
             </div>
         `;
 
@@ -825,18 +844,26 @@ async function showCollectionReport() {
             snap.forEach(doc => {
                 const s = doc.data();
                 let sPaid = 0;
-                if (s.monthStatus) { Object.values(s.monthStatus).forEach(m => { if (m.paid) sPaid += Number(m.amount); }); }
-                const sPending = Number(s.balance || 0);
-                tPaid += sPaid; tPending += sPending;
+                if (s.monthStatus) {
+                    Object.keys(s.monthStatus).forEach(month => {
+                        const mIdx = monthsOrder.indexOf(month);
+                        if (s.monthStatus[month].paid) {
+                            sPaid += Number(s.monthStatus[month].amount || 0);
+                        } else if (mIdx <= currentMonthIdx) {
+                            // നിലവിലെ മാസം വരെയുള്ള കുടിശ്ശിക
+                            const fee = 250 + ((s.siblings ? s.siblings.length : 0) * 50);
+                            tPending += fee;
+                        }
+                    });
+                }
+                tPaid += sPaid;
 
                 html += `
                     <div style="padding:15px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
                         <div><b>${s.name}</b><br><small>ID: ${s.id}</small></div>
                         <div style="text-align:right;">
-                            <span style="color:#38a169; font-weight:bold;">₹${sPaid}</span><br>
-                            <span style="color:${sPending > 0 ? '#e53e3e' : '#aaa'}; font-size:11px;">${sPending > 0 ? 'ബാക്കി: ₹'+sPending : 'Completed'}</span>
+                            <span style="color:#38a169; font-weight:bold;">Paid: ₹${sPaid}</span>
                         </div>
-                        <div onclick="viewPaymentHistory('${doc.id}', '${s.name}')" style="cursor:pointer; margin-left:10px; background:#ebf8ff; padding:8px; border-radius:8px; color:#3182ce;">📋</div>
                     </div>`;
             });
 
@@ -845,16 +872,87 @@ async function showCollectionReport() {
                 <div style="background:#fff5f5; padding:15px; border-radius:12px; text-align:center; border:1px solid #fed7d7;"><small>കുടിശ്ശിക</small><br><b style="color:#742a2a;">₹${tPending}</b></div>
             `;
             document.getElementById('u-list-area').innerHTML = html || "കുട്ടികൾ ഇല്ല.";
-        } catch(e) { document.getElementById('u-list-area').innerHTML = "Error!"; }
+        } catch(e) { console.error(e); }
     }
 }
 
-// ടോഗിൾ ഫങ്ക്ഷനുകൾ പുറത്ത് നൽകണം
-function toggleMonth(month) {
-    const div = document.getElementById('m-report-' + month);
-    if(div) div.style.display = div.style.display === 'none' ? 'block' : 'none';
+// --- സദർ പേജിലെ ശമ്പള പട്ടിക ലോഡ് ചെയ്യാനുള്ള ഫങ്ക്ഷൻ ---
+async function loadSadharSalaryTracker(totalCollection) {
+    const tracker = document.getElementById('usthad-salary-summary');
+    let totalSalaryNeed = 60000; // ഉദാഹരണത്തിന് 60,000 (ഇത് പിന്നീട് ഡൈനാമിക് ആക്കാം)
+    
+    tracker.innerHTML = `
+        <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:15px;">
+            <tr style="background:#f7fafc; text-align:left;">
+                <th style="padding:10px; border-bottom:2px solid #edf2f7;">ഉസ്താദ്</th>
+                <th style="padding:10px; border-bottom:2px solid #edf2f7;">ശമ്പളം</th>
+                <th style="padding:10px; border-bottom:2px solid #edf2f7;">സ്റ്റാറ്റസ്</th>
+            </tr>
+            <tr>
+                <td style="padding:10px; border-bottom:1px solid #eee;">ഫൈസ് ഉസ്താദ്</td>
+                <td style="padding:10px; border-bottom:1px solid #eee;">₹6000</td>
+                <td style="padding:10px; border-bottom:1px solid #eee; color:red;">Pending</td>
+            </tr>
+            </table>
+        <div style="background:#fff5f5; padding:12px; border-radius:8px; border:1px solid #feb2b2;">
+            <p style="margin:0; font-size:13px; color:#c53030;">
+                ആകെ വേണ്ട ശമ്പളം: <b>₹${totalSalaryNeed}</b><br>
+                വരിസംഖ്യയിലൂടെ ലഭിച്ചത്: <b>₹${totalCollection}</b><br>
+                <b>അധികമായി കണ്ടെത്തേണ്ടത്: ₹${Math.max(0, totalSalaryNeed - totalCollection)}</b>
+            </p>
+        </div>
+        <button onclick="showSalaryManagement()" style="width:100%; padding:10px; margin-top:10px; background:#1a73e8; color:white; border:none; border-radius:6px; font-size:12px;">ശമ്പളം വിതരണം ചെയ്യുക</button>
+    `;
 }
-function toggleClass(month, cls) {
-    const div = document.getElementById('c-report-' + month + '-' + cls);
-    if(div) div.style.display = div.style.display === 'none' ? 'block' : 'none';
+
+// --- പുതിയ ശമ്പള മാനേജ്‌മെന്റ് ഫങ്ക്ഷൻ (UI) ---
+async function showSalaryManagement() {
+    const content = document.getElementById('dynamic-content');
+    content.innerHTML = `
+        <div style="padding:20px; background:white; border-radius:15px; box-shadow:0 5px 20px rgba(0,0,0,0.1);">
+            <h3 style="text-align:center; color:#1a73e8; margin-bottom:20px;">💰 ശമ്പളവും ലീവ് കണക്കും</h3>
+            
+            <div style="background:#f8f9fa; padding:15px; border-radius:10px;">
+                <label style="font-size:12px;">അടിസ്ഥാന ശമ്പളം:</label>
+                <input id="sal-base" type="number" value="15000" oninput="calculateNetSalary()" style="width:100%; padding:10px; margin-bottom:10px; border-radius:6px; border:1px solid #ddd;">
+                
+                <label style="font-size:12px;">അലവൻസുകൾ:</label>
+                <input id="sal-allowance" type="number" value="1000" oninput="calculateNetSalary()" style="width:100%; padding:10px; margin-bottom:10px; border-radius:6px; border:1px solid #ddd;">
+                
+                <label style="font-size:12px;">എടുത്ത ലീവ് (ഈ മാസം):</label>
+                <input id="sal-leaves" type="number" value="0" oninput="calculateNetSalary()" style="width:100%; padding:10px; margin-bottom:10px; border-radius:6px; border:1px solid #ddd;">
+                
+                <div style="background:white; padding:15px; border-radius:10px; border:1px solid #eee; margin-top:10px;">
+                    <p style="margin:0; font-size:13px;">അനുവദനീയമായ ലീവ്: <b>1.5</b></p>
+                    <p style="margin:5px 0; font-size:13px; color:red;">ലീവ് കാരണം കുറയുന്നത്: <b id="deduction-amt">₹0</b></p>
+                    <hr>
+                    <h3 style="margin:10px 0 0 0; color:#28a745;">നൽകാനുള്ള തുക: <span id="net-salary">₹16000</span></h3>
+                </div>
+            </div>
+            
+            <button onclick="showCollectionReport()" style="width:100%; padding:12px; margin-top:20px; background:#6c757d; color:white; border:none; border-radius:8px;">തിരികെ റിപ്പോർട്ടിലേക്ക്</button>
+        </div>
+    `;
+    calculateNetSalary();
+}
+
+// --- ശമ്പളം കണക്കാക്കുന്ന ലോജിക് ---
+function calculateNetSalary() {
+    const base = Number(document.getElementById('sal-base').value) || 0;
+    const allowance = Number(document.getElementById('sal-allowance').value) || 0;
+    const leavesTaken = Number(document.getElementById('sal-leaves').value) || 0;
+
+    const allowedLeave = 1.5;
+    let deduction = 0;
+
+    if (leavesTaken > allowedLeave) {
+        const extraLeaves = leavesTaken - allowedLeave;
+        const perDaySalary = base / 30;
+        deduction = extraLeaves * perDaySalary;
+    }
+
+    const netSalary = (base + allowance) - deduction;
+
+    document.getElementById('deduction-amt').innerText = "₹" + Math.round(deduction);
+    document.getElementById('net-salary').innerText = "₹" + Math.round(netSalary);
 }

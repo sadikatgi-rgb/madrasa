@@ -706,6 +706,7 @@ async function deleteGBox(id) {
     }
 }
 // 10. കളക്ഷൻ റിപ്പോർട്ട് (Collection Summary)
+// 10. കളക്ഷൻ റിപ്പോർട്ട് (Collection Summary)
 async function showCollectionReport() {
     const user = JSON.parse(localStorage.getItem("activeUser"));
     const content = document.getElementById('dynamic-content');
@@ -726,6 +727,18 @@ async function showCollectionReport() {
                 <div id="grand-summary" style="margin-bottom:20px;"></div>
                 <div id="report-area">വിവരങ്ങൾ ശേഖരിക്കുന്നു...</div>
                 
+                <div id="payment-entry-section" style="margin-top:30px; padding:15px; background:white; border-radius:12px; border:2px solid #e2e8f0; box-shadow:0 4px 10px rgba(0,0,0,0.05);">
+                    <h3 style="color:#2d3748; margin-top:0; font-size:16px;">💸 ഉസ്താദുമാർക്ക് തുക കൈമാറാൻ</h3>
+                    <div style="display:flex; gap:10px; margin-top:10px;">
+                        <button onclick="showPaymentEntry()" style="flex:1; padding:12px; background:#28a745; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">
+                            ➕ പുതിയ എൻട്രി
+                        </button>
+                        <button onclick="showSalaryManagement()" style="flex:1; padding:12px; background:#1a73e8; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">
+                            💰 ശമ്പളം & ലീവ്
+                        </button>
+                    </div>
+                </div>
+
                 <div id="salary-tracker-section" style="margin-top:30px;">
                     <h3 style="color:#2d3748; border-top:2px solid #ddd; padding-top:15px;">👨‍🏫 ഉസ്താദുമാരുടെ ശമ്പള കണക്ക്</h3>
                     <div id="usthad-salary-summary" style="background:white; padding:15px; border-radius:12px; border:1px solid #e2e8f0;">
@@ -756,9 +769,7 @@ async function showCollectionReport() {
                             paidAmt: 0, pendingAmt: 0, paidCount: 0, pendingCount: 0, pendingStudents: [] 
                         };
                     }
-                    
                     const targetClass = monthData[month].classes[studentClass];
-                    
                     if (mStatus[month] && mStatus[month].paid) {
                         monthData[month].paid += monthlyFee;
                         targetClass.paidAmt += monthlyFee;
@@ -823,7 +834,6 @@ async function showCollectionReport() {
         } catch(e) { console.error(e); }
 
     } else {
-        // --- ഉസ്താദുമാർക്കുള്ള സ്വന്തം ക്ലാസ് റിപ്പോർട്ട് ---
         const myClass = user.assignedClass;
         content.innerHTML = `
             <div style="padding:15px; background:#fff; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.08);">
@@ -837,13 +847,11 @@ async function showCollectionReport() {
         try {
             const snap = await db.collection("students").where("class", "==", myClass).get();
             let tPaid = 0; let tPending = 0; let html = "";
-
             snap.forEach(doc => {
                 const s = doc.data();
                 const monthlyFee = 250 + ((s.siblings ? s.siblings.length : 0) * 50);
                 const mStatus = s.monthStatus || {};
                 let sPaid = 0; let sPending = 0;
-
                 monthsOrder.forEach((month, idx) => {
                     if (mStatus[month] && mStatus[month].paid) {
                         sPaid += Number(mStatus[month].amount || monthlyFee);
@@ -851,16 +859,13 @@ async function showCollectionReport() {
                         sPending += monthlyFee;
                     }
                 });
-                
                 tPaid += sPaid; tPending += sPending;
-
                 html += `
                     <div style="padding:15px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
                         <div><b>${s.name}</b><br><small>Pending: ₹${sPending}</small></div>
                         <button onclick="viewPaymentHistory('${doc.id}', '${s.name}')" style="background:#ebf8ff; border:none; padding:8px; border-radius:8px; color:#3182ce;">📋</button>
                     </div>`;
             });
-
             document.getElementById('u-summary').innerHTML = `
                 <div style="background:#f0fff4; padding:15px; border-radius:12px; text-align:center; border:1px solid #c6f6d5;"><small>ലഭിച്ചത്</small><br><b style="color:#22543d;">₹${tPaid}</b></div>
                 <div style="background:#fff5f5; padding:15px; border-radius:12px; text-align:center; border:1px solid #fed7d7;"><small>കുടിശ്ശിക</small><br><b style="color:#742a2a;">₹${tPending}</b></div>
@@ -870,7 +875,7 @@ async function showCollectionReport() {
     }
 }
 
-// ടോഗിൾ ഫങ്ക്ഷനുകൾ (ഇവയാണ് വിശദാംശങ്ങൾ വർക്ക് ആക്കുന്നത്)
+// സഹായ ഫങ്ക്ഷനുകൾ
 function toggleMonth(month) {
     const div = document.getElementById('m-report-' + month);
     if(div) div.style.display = div.style.display === 'none' ? 'block' : 'none';
@@ -880,23 +885,16 @@ function toggleClass(month, cls) {
     if(div) div.style.display = div.style.display === 'none' ? 'block' : 'none';
 }
 
-// ഓരോ മാസത്തെയും കുടിശ്ശിക പ്രത്യേകം അടയ്ക്കാനും റസീപ്റ്റ് നൽകാനും
 async function paySpecificMonth(studentId, month, amount) {
     const rcpt = prompt(`${month} മാസത്തെ വരിസംഖ്യയ്ക്കുള്ള റസീപ്റ്റ് നമ്പർ നൽകുക:`);
     if (!rcpt) return;
-
     try {
         await db.collection("students").doc(studentId).update({
-            [`monthStatus.${month}`]: {
-                paid: true,
-                amount: amount,
-                date: new Date().toLocaleDateString('en-IN'),
-                receipt: rcpt
-            }
+            [`monthStatus.${month}`]: { paid: true, amount: amount, date: new Date().toLocaleDateString('en-IN'), receipt: rcpt }
         });
         alert("വിജയകരമായി രേഖപ്പെടുത്തി!");
-        showCollectionReport(); // റിപ്പോർട്ട് പുതുക്കുന്നു
-    } catch (e) { alert("Error updating!"); }
+        showCollectionReport();
+    } catch (e) { alert("Error!"); }
 }
 
 async function loadSadharSalaryTracker(totalCollection) {
@@ -907,20 +905,15 @@ async function loadSadharSalaryTracker(totalCollection) {
                     <th style="padding:10px; border-bottom:2px solid #edf2f7;">ഉസ്താദ്</th>
                     <th style="padding:10px; border-bottom:2px solid #edf2f7;">ശമ്പളം</th>
                 </tr>`;
-    
     try {
         const uSnap = await db.collection("users").where("role", "==", "Usthad").get();
         uSnap.forEach(doc => {
             const u = doc.data();
-            const salary = u.baseSalary || 6000; // ഡിഫോൾട്ട് ശമ്പളം
+            const salary = u.baseSalary || 6000;
             totalSalaryNeed += salary;
-            html += `<tr>
-                <td style="padding:10px; border-bottom:1px solid #eee;">${u.name}</td>
-                <td style="padding:10px; border-bottom:1px solid #eee;">₹${salary}</td>
-            </tr>`;
+            html += `<tr><td style="padding:10px; border-bottom:1px solid #eee;">${u.name}</td><td style="padding:10px; border-bottom:1px solid #eee;">₹${salary}</td></tr>`;
         });
         html += `</table>`;
-        
         const gap = totalSalaryNeed - totalCollection;
         tracker.innerHTML = html + `
             <div style="background:#fff5f5; padding:12px; border-radius:8px; border:1px solid #feb2b2;">
@@ -932,77 +925,93 @@ async function loadSadharSalaryTracker(totalCollection) {
             </div>`;
     } catch(e) { tracker.innerHTML = "വിവരങ്ങൾ ലഭ്യമല്ല."; }
 }
-// --- പുതിയ ശമ്പള മാനേജ്‌മെന്റ് ഫങ്ക്ഷൻ (UI) ---
+
+// ഉസ്താദുമാർക്ക് പണം നൽകുന്നത് രേഖപ്പെടുത്താനുള്ള ഫങ്ക്ഷൻ (പോപ്പ്-അപ്പ്)
+async function showPaymentEntry() {
+    try {
+        const uSnap = await db.collection("users").where("role", "==", "Usthad").get();
+        let options = `<option value="">ഉസ്താദിനെ തിരഞ്ഞെടുക്കുക</option>`;
+        uSnap.forEach(doc => options += `<option value="${doc.data().name}">${doc.data().name}</option>`);
+
+        const now = new Date();
+        const currentDate = now.toISOString().split('T')[0];
+        const currentTime = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+        const dayNames = ["ഞായർ", "തിങ്കൾ", "ചൊവ്വ", "ബുധൻ", "വ്യാഴം", "വെള്ളി", "ശനി"];
+        const currentDay = dayNames[now.getDay()];
+
+        const modalHtml = `
+            <div id="payment-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:1000; padding:20px;">
+                <div style="background:white; padding:20px; border-radius:15px; width:100%; max-width:400px; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
+                    <h3 style="text-align:center; color:#1a73e8; margin-bottom:15px;">💸 തുക കൈമാറ്റം</h3>
+                    <div style="margin-bottom:12px;"><label style="font-size:12px;">ഉസ്താദിന്റെ പേര്:</label><select id="pop-name" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;">${options}</select></div>
+                    <div style="margin-bottom:12px;"><label style="font-size:12px;">തുക (₹):</label><input id="pop-amt" type="number" placeholder="₹0.00" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;"></div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:12px;">
+                        <div><label style="font-size:11px;">തീയതി:</label><input id="pop-date" type="date" value="${currentDate}" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; font-size:12px;"></div>
+                        <div><label style="font-size:11px;">ദിവസം:</label><input value="${currentDay}" readonly style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; background:#f0f0f0; font-size:12px;"></div>
+                    </div>
+                    <div style="margin-bottom:15px;"><label style="font-size:11px;">സമയം:</label><input id="pop-time" type="text" value="${currentTime}" readonly style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; background:#f0f0f0; font-size:12px;"></div>
+                    <div style="display:flex; gap:10px;">
+                        <button onclick="document.getElementById('payment-modal').remove()" style="flex:1; padding:10px; background:#eee; border:none; border-radius:6px;">Cancel</button>
+                        <button onclick="confirmPaymentSave()" style="flex:2; padding:10px; background:#28a745; color:white; border:none; border-radius:6px; font-weight:bold;">സേവ് ചെയ്യുക</button>
+                    </div>
+                </div>
+            </div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    } catch (e) { alert("Error loading users"); }
+}
+
+async function confirmPaymentSave() {
+    const name = document.getElementById('pop-name').value;
+    const amt = document.getElementById('pop-amt').value;
+    const date = document.getElementById('pop-date').value;
+    const time = document.getElementById('pop-time').value;
+    if (!name || !amt) { alert("പേരും തുകയും നൽകുക!"); return; }
+    try {
+        await db.collection("salary_payments").add({
+            usthadName: name, amount: Number(amt), date: date, time: time, timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        document.getElementById('payment-modal').remove();
+        alert("വിജയകരമായി രേഖപ്പെടുത്തി!");
+    } catch (e) { alert("Error saving data!"); }
+}
+
 async function showSalaryManagement() {
     const user = JSON.parse(localStorage.getItem("activeUser"));
     const content = document.getElementById('dynamic-content');
-    
-    // ഡിഫോൾട്ട് വിലകൾ (ഉപയോക്താവിന്റെ പ്രൊഫൈലിൽ ശമ്പളം ഉണ്ടെങ്കിൽ അത് എടുക്കാം)
     const baseVal = user.baseSalary || 15000;
     const allowVal = user.allowance || 1000;
-
     content.innerHTML = `
         <div style="padding:20px; background:white; border-radius:15px; box-shadow:0 5px 20px rgba(0,0,0,0.1); max-width:500px; margin:auto;">
             <h3 style="text-align:center; color:#1a73e8; margin-bottom:20px;">💰 ശമ്പളവും ലീവ് കണക്കും</h3>
-            
             <div style="background:#f8f9fa; padding:15px; border-radius:10px;">
-                <div style="margin-bottom:15px;">
-                    <label style="font-size:12px; color:#555;">അടിസ്ഥാന ശമ്പളം:</label>
-                    <input id="sal-base" type="number" value="${baseVal}" oninput="calculateNetSalary()" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ddd; outline:none;">
-                </div>
-                
-                <div style="margin-bottom:15px;">
-                    <label style="font-size:12px; color:#555;">അലവൻസുകൾ:</label>
-                    <input id="sal-allowance" type="number" value="${allowVal}" oninput="calculateNetSalary()" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ddd; outline:none;">
-                </div>
-                
-                <div style="margin-bottom:15px;">
-                    <label style="font-size:12px; color:#555;">എടുത്ത ലീവ് (ഈ മാസം):</label>
-                    <input id="sal-leaves" type="number" value="0" step="0.5" oninput="calculateNetSalary()" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ddd; outline:none;">
-                </div>
-                
-                <div style="background:white; padding:15px; border-radius:10px; border:1px solid #eee; margin-top:10px; box-shadow:inset 0 2px 4px rgba(0,0,0,0.02);">
-                    <p style="margin:0; font-size:13px; color:#666;">അനുവദനീയമായ ലീവ്: <b>1.5</b></p>
-                    <p style="margin:5px 0; font-size:13px; color:#d32f2f;">ലീവ് കാരണം കുറയുന്നത്: <b id="deduction-amt">₹0</b></p>
-                    <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
-                    <h3 style="margin:5px 0 0 0; color:#28a745; text-align:center;">നൽകാനുള്ള തുക: <span id="net-salary">₹0</span></h3>
+                <div style="margin-bottom:15px;"><label style="font-size:12px;">അടിസ്ഥാന ശമ്പളം:</label><input id="sal-base" type="number" value="${baseVal}" oninput="calculateNetSalary()" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ddd;"></div>
+                <div style="margin-bottom:15px;"><label style="font-size:12px;">അലവൻസുകൾ:</label><input id="sal-allowance" type="number" value="${allowVal}" oninput="calculateNetSalary()" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ddd;"></div>
+                <div style="margin-bottom:15px;"><label style="font-size:12px;">എടുത്ത ലീവ്:</label><input id="sal-leaves" type="number" value="0" step="0.5" oninput="calculateNetSalary()" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ddd;"></div>
+                <div style="background:white; padding:15px; border-radius:10px; border:1px solid #eee; margin-top:10px;">
+                    <p style="margin:0; font-size:13px;">അനുവദനീയമായ ലീവ്: 1.5</p>
+                    <p style="margin:5px 0; font-size:13px; color:red;">ലീവ് കാരണം കുറയുന്നത്: <b id="deduction-amt">₹0</b></p>
+                    <h3 style="margin:10px 0 0 0; color:#28a745; text-align:center;">നൽകാനുള്ള തുക: <span id="net-salary">₹0</span></h3>
                 </div>
             </div>
-            
             <div style="display:flex; gap:10px; margin-top:20px;">
-                <button onclick="showCollectionReport()" style="flex:1; padding:12px; background:#6c757d; color:white; border:none; border-radius:8px; cursor:pointer;">തിരികെ</button>
-                ${user.role === 'Sadhar' ? `<button onclick="saveSalaryRecord()" style="flex:2; padding:12px; background:#1a73e8; color:white; border:none; border-radius:8px; cursor:pointer;">സേവ് ചെയ്യുക</button>` : ''}
+                <button onclick="showCollectionReport()" style="flex:1; padding:12px; background:#6c757d; color:white; border:none; border-radius:8px;">തിриകെ</button>
+                ${user.role === 'Sadhar' ? `<button onclick="saveSalaryRecord()" style="flex:2; padding:12px; background:#1a73e8; color:white; border:none; border-radius:8px;">സേവ് ചെയ്യുക</button>` : ''}
             </div>
-        </div>
-    `;
+        </div>`;
     calculateNetSalary();
 }
 
-// --- ശമ്പളം കണക്കാക്കുന്ന ലോജിക് ---
 function calculateNetSalary() {
     const base = Number(document.getElementById('sal-base').value) || 0;
     const allowance = Number(document.getElementById('sal-allowance').value) || 0;
-    const leavesTaken = Number(document.getElementById('sal-leaves').value) || 0;
-
-    const allowedLeave = 1.5;
+    const leaves = Number(document.getElementById('sal-leaves').value) || 0;
     let deduction = 0;
-
-    // ലീവ് 1.5-ൽ കൂടുതൽ ആണെങ്കിൽ മാത്രം ശമ്പളം കുറയ്ക്കുക
-    if (leavesTaken > allowedLeave) {
-        const extraLeaves = leavesTaken - allowedLeave;
-        const perDaySalary = base / 30;
-        deduction = extraLeaves * perDaySalary;
-    }
-
-    const netSalary = (base + allowance) - deduction;
-
-    // സ്ക്രീനിൽ കാണിക്കുന്നു (Math.round ഉപയോഗിച്ച് പൈസ ഒഴിവാക്കി പൂർണ്ണസംഖ്യയാക്കുന്നു)
+    if (leaves > 1.5) deduction = (leaves - 1.5) * (base / 30);
+    const net = (base + allowance) - deduction;
     document.getElementById('deduction-amt').innerText = "₹" + Math.round(deduction);
-    document.getElementById('net-salary').innerText = "₹" + Math.round(netSalary);
+    document.getElementById('net-salary').innerText = "₹" + Math.round(net);
 }
 
-// ശമ്പളം വിതരണം ചെയ്തത് രേഖപ്പെടുത്താൻ (സദറിന് മാത്രം)
 async function saveSalaryRecord() {
-    // ഇവിടെ സാലറി പെയ്ഡ് ആയി മാർക്ക് ചെയ്യാനുള്ള കോഡ് ചേർക്കാം
     alert("ശമ്പള വിവരം താൽക്കാലികമായി കണക്കാക്കി. ഡാറ്റാബേസിലേക്ക് സേവ് ചെയ്യാനുള്ള സൗകര്യം ഉടൻ ലഭ്യമാകും.");
 }

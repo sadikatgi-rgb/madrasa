@@ -77,33 +77,30 @@ function applyPermissions(user) {
     const usthadView = document.getElementById('usthad-view');
     const studentView = document.getElementById('student-view');
 
-    // സദർ അല്ലെങ്കിൽ ഉസ്താദ് ആണെങ്കിൽ
     if (user.role === 'Sadhar' || user.role === 'Usthad') {
         usthadView.style.display = 'block';
         studentView.style.display = 'none';
 
-        // സദറിന് മാത്രം റിപ്പോർട്ട് ബട്ടൺ കാണിക്കുന്നു
+        // മാറ്റം വരുത്തിയ ഭാഗം: സദറിനും ഉസ്താദിനും റിപ്പോർട്ട് ബട്ടൺ കാണിക്കുന്നു
         const reportBtn = document.getElementById('report-btn');
         if (reportBtn) {
-            reportBtn.style.display = (user.role === 'Sadhar') ? 'block' : 'none';
+            reportBtn.style.display = 'block'; // എല്ലാവർക്കും കാണാം
         }
 
-        // ഗുരുനിധി ബട്ടൺ
         const guruBtn = document.getElementById('gurunidhi-btn');
         if (guruBtn) guruBtn.style.display = 'block';
 
-        // ലോഡ് ചെയ്യേണ്ട ഡാറ്റ തീരുമാനിക്കുന്നു
         if (user.role === 'Usthad') {
-            loadStudents(user.assignedClass); // സ്വന്തം ക്ലാസ് മാത്രം
+            loadStudents(user.assignedClass);
         } else {
-            loadStudents(); // സദറിന് എല്ലാം
+            loadStudents();
         }
     } else {
-        // സ്റ്റുഡന്റ് വ്യൂ
         usthadView.style.display = 'none';
         studentView.style.display = 'block';
     }
 }
+
 
 // 5. സെക്ഷൻ സ്വിച്ചർ
 function showSection(section) {

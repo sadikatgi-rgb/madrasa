@@ -704,88 +704,131 @@ async function deleteGBox(id) {
 async function showCollectionReport() {
     const user = JSON.parse(localStorage.getItem("activeUser"));
     
+    // സദർ ആണോ എന്ന് പരിശോധിക്കുന്നു
     if (!user || user.role !== 'Sadhar') {
         alert("ക്ഷമിക്കണം, ഈ റിപ്പോർട്ട് കാണാനുള്ള അധികാരം സദറിന് (Sadhar) മാത്രമാണ്.");
         return; 
     }
 
     const content = document.getElementById('dynamic-content');
-    content.innerHTML = `<h3>📊 മാസം തിരിച്ചുള്ള റിപ്പോർട്ട്</h3><div id="report-area">വിവരങ്ങൾ ശേഖരിക്കുന്നു...</div>`;
+    content.innerHTML = `
+        <div style="padding:15px; background:#f8f9fa; min-height:100vh; border-radius:12px;">
+            <h3 style="color:#1a73e8; text-align:center; margin-bottom:20px;">📊 മാസവരി സംഖ്യ - മാസ്റ്റർ റിപ്പോർട്ട്</h3>
+            <div id="grand-summary" style="margin-bottom:20px;"></div>
+            <div id="report-area">വിവരങ്ങൾ ശേഖരിക്കുന്നു...</div>
+        </div>
+    `;
     
     try {
         const snap = await db.collection("students").get();
         let monthData = {}; 
-        let grandTotalPending = 0;
+        let totalReceived = 0;
+        let totalPending = 0;
 
         snap.forEach(doc => {
             const s = doc.data();
-            const monthlyTotal = 250 + ((s.siblings ? s.siblings.length : 0) * 50);
+            // ഫീസ് കണക്കാക്കുന്നു: ബേസ് 250 + (സഹോദരങ്ങൾ * 50)
+            const monthlyFee = 250 + ((s.siblings ? s.siblings.length : 0) * 50);
             const mStatus = s.monthStatus || {};
+            const studentClass = s.class || "Unassigned";
 
             Object.keys(mStatus).forEach(month => {
                 if (!monthData[month]) {
                     monthData[month] = { paid: 0, pending: 0, classes: {} };
                 }
 
-                const cls = s.class || "Unknown";
-                if (!monthData[month].classes[cls]) {
-                    monthData[month].classes[cls] = { total: 0, students: [] };
+                if (!monthData[month].classes[studentClass]) {
+                    monthData[month].classes[studentClass] = { 
+                        paidAmt: 0, 
+                        pendingAmt: 0, 
+                        paidCount: 0, 
+                        pendingCount: 0, 
+                        pendingStudents: [] 
+                    };
                 }
+
+                const targetClass = monthData[month].classes[studentClass];
 
                 if (mStatus[month].paid) {
-                    monthData[month].paid += monthlyTotal;
+                    monthData[month].paid += monthlyFee;
+                    targetClass.paidAmt += monthlyFee;
+                    targetClass.paidCount++;
+                    totalReceived += monthlyFee;
                 } else {
-                    monthData[month].pending += monthlyTotal;
-                    monthData[month].classes[cls].total += monthlyTotal;
-                    monthData[month].classes[cls].students.push({ name: s.name, amt: monthlyTotal });
-                    grandTotalPending += monthlyTotal;
+                    monthData[month].pending += monthlyFee;
+                    targetClass.pendingAmt += monthlyFee;
+                    targetClass.pendingCount++;
+                    targetClass.pendingStudents.push({ name: s.name, amt: monthlyFee });
+                    totalPending += monthlyFee;
                 }
             });
-        }); // snap.forEach ഇവിടെ അവസാനിക്കുന്നു
+        });
 
-        let html = `<div style="background:#d32f2f; color:white; padding:15px; border-radius:10px; margin-bottom:20px; text-align:center;">
-                        <small>ആകെ ലഭിക്കാനുള്ള കുടിശ്ശിക</small>
-                        <h2 style="margin:0;">₹${grandTotalPending}</h2>
-                    </div>`;
+        // ടോപ്പ് സമ്മറി കാർഡ്
+        document.getElementById('grand-summary').innerHTML = `
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                <div style="background:#fff; padding:15px; border-radius:12px; border-bottom:4px solid #28a745; text-align:center; box-shadow:0 2px 5px rgba(0,0,0,0.05);">
+                    <small style="color:#666;">ആകെ ലഭിച്ചത്</small><br>
+                    <b style="font-size:20px; color:#28a745;">₹${totalReceived}</b>
+                </div>
+                <div style="background:#fff; padding:15px; border-radius:12px; border-bottom:4px solid #dc3545; text-align:center; box-shadow:0 2px 5px rgba(0,0,0,0.05);">
+                    <small style="color:#666;">ആകെ കുടിശ്ശിക</small><br>
+                    <b style="font-size:20px; color:#dc3545;">₹${totalPending}</b>
+                </div>
+            </div>
+        `;
 
-        Object.keys(monthData).forEach(month => {
+        let html = "";
+        // മാസങ്ങൾ ക്രമത്തിൽ കാണിക്കുന്നു
+        const monthsOrder = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const sortedMonths = Object.keys(monthData).sort((a, b) => monthsOrder.indexOf(a) - monthsOrder.indexOf(b));
+
+        sortedMonths.forEach(month => {
             const m = monthData[month];
             html += `
-                <div style="background:#fff; border:1px solid #ddd; margin-bottom:10px; border-radius:8px; overflow:hidden;">
-                    <div onclick="toggleMonth('${month}')" style="padding:15px; background:#f8f9fa; cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
+                <div style="background:#fff; border:1px solid #eee; margin-bottom:12px; border-radius:10px; overflow:hidden; box-shadow:0 2px 4px rgba(0,0,0,0.02);">
+                    <div onclick="toggleMonth('${month}')" style="padding:15px; background:#fff; cursor:pointer; display:flex; justify-content:space-between; align-items:center; border-left:5px solid #1a73e8;">
                         <div>
-                            <b>${month}</b><br>
-                            <small style="color:green;">ലഭിച്ചത്: ₹${m.paid}</small> | <small style="color:red;">ബാക്കി: ₹${m.pending}</small>
+                            <b style="font-size:16px;">${month}</b><br>
+                            <small style="color:#28a745; font-weight:bold;">Paid: ₹${m.paid}</small> | 
+                            <small style="color:#dc3545; font-weight:bold;">Pending: ₹${m.pending}</small>
                         </div>
-                        <i class="fas fa-chevron-down"></i>
+                        <span style="color:#1a73e8; font-size:12px;">ക്ലാസ്സുകൾ കാണുക ▾</span>
                     </div>
-                    <div id="m-report-${month}" style="display:none; padding:10px; border-top:1px solid #eee;">
-                        ${Object.keys(m.classes).sort((a,b)=>a-b).map(cls => `
-                            <div style="margin-bottom:5px; border:1px solid #eee; border-radius:5px;">
-                                <div onclick="toggleClass('${month}', '${cls}')" style="padding:8px; background:#fff8f8; cursor:pointer; display:flex; justify-content:space-between;">
-                                    <span>ക്ലാസ്സ് ${cls}</span><span style="color:red;">₹${m.classes[cls].total}</span>
+                    
+                    <div id="m-report-${month}" style="display:none; padding:10px; background:#fcfcfc; border-top:1px solid #f0f0f0;">
+                        ${Object.keys(m.classes).sort().map(cls => {
+                            const c = m.classes[cls];
+                            return `
+                                <div style="margin-bottom:8px; border:1px solid #f0f0f0; border-radius:8px; background:white;">
+                                    <div onclick="toggleClass('${month}', '${cls}')" style="padding:10px; cursor:pointer; display:flex; justify-content:space-between; font-size:14px; align-items:center;">
+                                        <span><b>Class ${cls}</b> <small style="color:gray;">(${c.paidCount} Paid / ${c.pendingCount} Pending)</small></span>
+                                        <b style="color:#dc3545;">₹${c.pendingAmt}</b>
+                                    </div>
+                                    <div id="c-report-${month}-${cls}" style="display:none; padding:8px 12px; font-size:12px; background:#fffafa; border-top:1px dashed #eee;">
+                                        <p style="margin:0 0 5px 0; color:#666; font-weight:bold;">കുടിശ്ശികയുള്ള കുട്ടികൾ:</p>
+                                        ${c.pendingStudents.length > 0 ? c.pendingStudents.map(st => `
+                                            <div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #f9f9f9; color:#d32f2f;">
+                                                <span>${st.name}</span><span>₹${st.amt}</span>
+                                            </div>
+                                        `).join('') : '<div style="color:green;">എല്ലാവരും അടച്ചു തീർത്തു!</div>'}
+                                    </div>
                                 </div>
-                                <div id="c-report-${month}-${cls}" style="display:none; padding:5px 10px; font-size:11px;">
-                                    ${m.classes[cls].students.map(st => `
-                                        <div style="display:flex; justify-content:space-between; border-bottom:1px dashed #eee; padding:3px 0;">
-                                            <span>${st.name}</span><span>₹${st.amt}</span>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            </div>
-                        `).join('')}
+                            `;
+                        }).join('')}
                     </div>
                 </div>`;
-        }); // Object.keys.forEach ഇവിടെ അവസാനിക്കുന്നു
+        });
 
-        document.getElementById('report-area').innerHTML = html;
+        document.getElementById('report-area').innerHTML = html || "<p style='text-align:center;'>ഡാറ്റ ലഭ്യമല്ല.</p>";
 
     } catch(e) { 
-        alert("Error: " + e.message); 
+        console.error(e);
+        document.getElementById('report-area').innerHTML = "Error loading data."; 
     }
 }
 
-// ലിസ്റ്റുകൾ കാണിക്കാനും മറയ്ക്കാനും
+// ലിസ്റ്റുകൾ കാണിക്കാനും മറയ്ക്കാനും ഉള്ള ഫങ്ക്ഷനുകൾ
 function toggleMonth(month) {
     const div = document.getElementById('m-report-' + month);
     if(div) div.style.display = div.style.display === 'none' ? 'block' : 'none';

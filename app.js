@@ -1057,3 +1057,14 @@ function calculateNetSalary() {
 async function saveSalaryRecord() {
     alert("ശമ്പള വിവരം താൽക്കാലികമായി കണക്കാക്കി. ഡാറ്റാബേസിലേക്ക് സേവ് ചെയ്യാനുള്ള സൗകര്യം ഉടൻ ലഭ്യമാകും.");
 }
+function updateBaseSalary() {
+    const select = document.getElementById('sal-usthad-select');
+    const baseInput = document.getElementById('sal-base');
+    const selectedOption = select.options[select.selectedIndex];
+    
+    // users കളക്ഷനിൽ നിന്ന് ലഭിക്കുന്ന baseSalary ഇവിടെ നൽകുന്നു
+    baseInput.value = selectedOption.getAttribute('data-base') || 0;
+    
+    // തുക മാറുമ്പോൾ നെറ്റ് സാലറിയും റീ-കാൽക്കുലേറ്റ് ചെയ്യണം
+    calculateNetSalary(); 
+}

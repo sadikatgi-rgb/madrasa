@@ -790,7 +790,7 @@ async function showCollectionReport() {
                 const m = monthData[month];
                 html += `
                     <div style="background:#fff; border:1px solid #eee; margin-bottom:12px; border-radius:10px; overflow:hidden;">
-                        <div onclick="toggleMonth('${month}')" style="padding:15px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; border-left:5px solid #1a73e8;">
+                        <div onclick="window.toggleMonth('${month}')" style="padding:15px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; border-left:5px solid #1a73e8;">
                             <div><b>${month}</b><br><small style="color:#28a745;">Paid: ₹${m.paid}</small> | <small style="color:#dc3545;">Pending: ₹${m.pending}</small></div>
                             <span style="color:#1a73e8; font-size:12px;">ക്ലാസ്സുകൾ ▾</span>
                         </div>
@@ -799,7 +799,7 @@ async function showCollectionReport() {
                                 const c = m.classes[cls];
                                 return `
                                     <div style="margin-bottom:8px; border:1px solid #f0f0f0; border-radius:8px; background:white;">
-                                        <div onclick="toggleClass('${month}', '${cls}')" style="padding:10px; cursor:pointer; display:flex; justify-content:space-between; font-size:14px;">
+                                        <div onclick="window.toggleClass('${month}', '${cls}')" style="padding:10px; cursor:pointer; display:flex; justify-content:space-between; font-size:14px;">
                                             <span><b>Class ${cls}</b></span>
                                             <b style="color:#dc3545;">₹${c.pendingAmt}</b>
                                         </div>

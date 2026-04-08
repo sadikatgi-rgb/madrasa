@@ -753,9 +753,16 @@ async function showCollectionReport() {
             </div>
         </div>`;
 
-    try {
+        try {
         const studentsSnap = await db.collection("students").get();
-        const remittanceSnap = await db.collection("remittances").get();
+        
+        // remittances കളക്ഷൻ ഇല്ലെങ്കിൽ എറർ ഒഴിവാക്കാൻ ഇങ്ങനെ ചെയ്യുക
+        let remittanceSnap = { forEach: () => {} }; 
+        try {
+            remittanceSnap = await db.collection("remittances").get();
+        } catch (remErr) {
+            console.log("Remittances collection not found yet, skipping...");
+        }
 
         let monthData = {}; let totalReceived = 0; let totalPending = 0;
 

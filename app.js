@@ -886,10 +886,13 @@ async function loadRemittanceTable(monthData, remittanceSnap) {
             remittancesByClass[cls].forEach(r => {
                 paid += r.amount;
                 historyHtml += `
-                    <div style="display:flex; justify-content:space-between; font-size:9px; color:#555; background:#fff; padding:4px 8px; border-radius:4px; margin-bottom:2px; border:1px solid #f0f0f0;">
-                        <span>📅 ${r.date} <small style="color:#999;">(${r.time || ''})</small></span>
-                        <span style="font-weight:bold; color:#1a73e8;">₹${r.amount}</span>
-                    </div>`;
+    <div style="display:flex; justify-content:space-between; align-items:center; font-size:10px; color:#444; background:#f9f9f9; padding:6px 10px; border-radius:6px; margin-bottom:4px; border:1px solid #eee;">
+        <span>
+            <span style="margin-right:8px;">📅 ${r.date}</span> 
+            <span style="color:#e67e22; font-weight:500;">🕒 ${r.time || '--:--'}</span>
+        </span>
+        <span style="font-weight:bold; color:#1a73e8; font-size:11px;">₹${r.amount}</span>
+    </div>`;
             });
         }
 

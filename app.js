@@ -858,29 +858,61 @@ async function loadRemittanceTable(monthData, remittanceSnap) {
                     <th style="padding:8px; border-bottom:1px solid #ddd;">Add</th>
                 </tr>`;
 
-    let handedOver = {};
+    // ഓരോ ക്ലാസ്സിന്റെയും പണമിടപാട് ഹിസ്റ്ററി ഗ്രൂപ്പ് ചെയ്യുന്നു
+    let remittancesByClass = {};
     remittanceSnap.forEach(doc => {
         const d = doc.data();
-        handedOver[d.class] = (handedOver[d.class] || 0) + d.amount;
+        if (!remittancesByClass[d.class]) remittancesByClass[d.class] = [];
+        remittancesByClass[d.class].push(d);
     });
 
     uSnap.forEach(doc => {
         const u = doc.data();
         const cls = u.assignedClass;
+        
+        // മൊത്തം പിരിച്ച തുക കണക്കാക്കുന്നു
         let collected = 0;
-        Object.values(monthData).forEach(m => { if (m.classes[cls]) collected += m.classes[cls].paidAmt; });
+        Object.values(monthData).forEach(m => { 
+            if (m.classes[cls]) collected += m.classes[cls].paidAmt; 
+        });
 
-        const paid = handedOver[cls] || 0;
+        // ഹിസ്റ്ററിയും മൊത്തം ഏൽപ്പിച്ച തുകയും
+        let paid = 0;
+        let historyHtml = "";
+        if (remittancesByClass[cls]) {
+            // ഏറ്റവും പുതിയ ഇടപാടുകൾ ആദ്യം വരാൻ സോർട്ട് ചെയ്യുന്നു
+            remittancesByClass[cls].sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+            
+            remittancesByClass[cls].forEach(r => {
+                paid += r.amount;
+                historyHtml += `
+                    <div style="display:flex; justify-content:space-between; font-size:9px; color:#555; background:#fff; padding:4px 8px; border-radius:4px; margin-bottom:2px; border:1px solid #f0f0f0;">
+                        <span>📅 ${r.date} <small style="color:#999;">(${r.time || ''})</small></span>
+                        <span style="font-weight:bold; color:#1a73e8;">₹${r.amount}</span>
+                    </div>`;
+            });
+        }
+
         const balance = collected - paid;
 
         html += `
-            <tr>
-                <td style="padding:8px; border-bottom:1px solid #eee;">${u.name}<br><b>(Cls: ${cls})</b></td>
-                <td style="padding:8px; border-bottom:1px solid #eee; color:green;">₹${collected}</td>
-                <td style="padding:8px; border-bottom:1px solid #eee; color:blue;">₹${paid}</td>
-                <td style="padding:8px; border-bottom:1px solid #eee; color:${balance > 0 ? 'red' : 'green'}; font-weight:bold;">₹${balance}</td>
+            <tr style="background:#fdfdfd;">
+                <td style="padding:10px 8px; border-bottom:1px solid #eee;">
+                    <b style="color:#2d3748;">${u.name}</b><br>
+                    <span style="color:#718096; font-size:10px;">Class ${cls}</span>
+                </td>
+                <td style="padding:8px; border-bottom:1px solid #eee; color:#28a745; font-weight:600;">₹${collected}</td>
+                <td style="padding:8px; border-bottom:1px solid #eee; color:#1a73e8; font-weight:600;">₹${paid}</td>
+                <td style="padding:8px; border-bottom:1px solid #eee; color:${balance > 0 ? '#dc3545' : '#28a745'}; font-weight:bold;">₹${balance}</td>
                 <td style="padding:8px; border-bottom:1px solid #eee;">
-                    <button onclick="addRemittance('${cls}', '${u.name}')" style="background:#1a73e8; color:white; border:none; border-radius:4px; padding:5px; cursor:pointer;">+</button>
+                    <button onclick="addRemittance('${cls}', '${u.name}')" style="background:#1a73e8; color:white; border:none; border-radius:6px; width:28px; height:28px; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(26,115,232,0.3);">+</button>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="5" style="padding:0 8px 10px 20px; border-bottom:1px solid #eee; background:#fcfcfc;">
+                    <div style="max-height:80px; overflow-y:auto; padding-top:5px;">
+                        ${historyHtml || '<small style="color:#999; font-style:italic;">ഇടപാടുകൾ ലഭ്യമല്ല</small>'}
+                    </div>
                 </td>
             </tr>`;
     });

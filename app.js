@@ -842,6 +842,7 @@ async function showCollectionReport() {
 }
 
 // 3. സദർ - ഉസ്താദ് പണമിടപാട് ടേബിൾ (പുതിയത്)
+// 1. ലോഡ് ചെയ്യുന്ന ടേബിൾ (മാറ്റമില്ലാതെ - ഇതിൽ ID ഉം സമയവും ഡിസ്‌പ്ലേ ചെയ്യാനുണ്ട്)
 async function loadRemittanceTable(monthData, remittanceSnap) {
     const remArea = document.getElementById('remittance-section');
     const uSnap = await db.collection("users").where("role", "==", "Usthad").get();
@@ -862,7 +863,6 @@ async function loadRemittanceTable(monthData, remittanceSnap) {
     remittanceSnap.forEach(doc => {
         const d = doc.data();
         if (!remittancesByClass[d.class]) remittancesByClass[d.class] = [];
-        // doc.id കൂടി ഇവിടെ ഉൾപ്പെടുത്തുന്നു
         remittancesByClass[d.class].push({ ...d, id: doc.id }); 
     });
 
@@ -875,7 +875,6 @@ async function loadRemittanceTable(monthData, remittanceSnap) {
         let paid = 0;
         let historyHtml = "";
         if (remittancesByClass[cls]) {
-            // സമയം അനുസരിച്ച് സോർട്ട് ചെയ്യുന്നു
             remittancesByClass[cls].sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
             
             remittancesByClass[cls].forEach(r => {
@@ -922,13 +921,18 @@ async function loadRemittanceTable(monthData, remittanceSnap) {
     html += `</table></div>`;
     remArea.innerHTML = html;
 }
-// 1. പുതിയ എൻട്രി ചേർക്കാൻ
+
+// 2. പുതിയ എൻട്രി ചേർക്കാൻ (ഈ ഒരൊറ്റ ഫങ്ക്ഷൻ മാത്രം മതി)
 async function addRemittance(cls, name) {
     const amt = prompt(`${name} (Class ${cls}) ഏൽപ്പിച്ച തുക നൽകുക:`);
     if (!amt || isNaN(amt)) return;
 
+    // തീയതി ചോദിക്കുന്നു (default ആയി ഇന്നത്തെ തീയതി)
+    const dateInput = prompt("തീയതി നൽകുക:", new Date().toLocaleDateString('en-IN'));
+    if (!dateInput) return;
+
+    // സമയം സിസ്റ്റത്തിൽ നിന്ന് ഓട്ടോമാറ്റിക് ആയി എടുക്കുന്നു
     const now = new Date();
-    const dateStr = now.toLocaleDateString('en-IN'); 
     const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
 
     try {
@@ -936,7 +940,7 @@ async function addRemittance(cls, name) {
             class: cls,
             usthadName: name,
             amount: Number(amt),
-            date: dateStr,
+            date: dateInput,
             time: timeStr,
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
@@ -945,7 +949,7 @@ async function addRemittance(cls, name) {
     } catch (e) { alert("Error: " + e.message); }
 }
 
-// 2. ഉള്ള എൻട്രി തിരുത്താൻ
+// 3. ഉള്ള എൻട്രി തിരുത്താൻ (മാറ്റമില്ലാതെ)
 async function editRemittance(id, oldAmount) {
     const newAmt = prompt("തിരുത്തിയ തുക നൽകുക:", oldAmount);
     if (!newAmt || isNaN(newAmt) || Number(newAmt) === oldAmount) return;
@@ -960,7 +964,7 @@ async function editRemittance(id, oldAmount) {
     } catch (e) { alert("Error: " + e.message); }
 }
 
-// 3. എൻട്രി ഡിലീറ്റ് ചെയ്യാൻ
+// 4. എൻട്രി ഡിലീറ്റ് ചെയ്യാൻ (മാറ്റമില്ലാതെ)
 async function deleteRemittance(id) {
     if (!confirm("ഈ എൻട്രി ഹിസ്റ്ററിയിൽ നിന്ന് ഒഴിവാക്കണമെന്നുറപ്പാണോ?")) return;
     try {
@@ -969,24 +973,6 @@ async function deleteRemittance(id) {
         showCollectionReport();
     } catch (e) { alert("Error: " + e.message); }
 }
-
-
-// 4. ഉസ്താദ് പണം ഏൽപ്പിക്കുമ്പോൾ ആഡ് ചെയ്യാനുള്ള ഫങ്ക്ഷൻ
-async function addRemittance(cls, name) {
-    const amt = prompt(`${name} (Class ${cls}) ഏൽപ്പിച്ച തുക നൽകുക:`);
-    if (!amt || isNaN(amt)) return;
-    const date = prompt("തീയതി നൽകുക:", new Date().toLocaleDateString('en-IN'));
-
-    try {
-        await db.collection("remittances").add({
-            class: cls, usthadName: name, amount: Number(amt), date: date, timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        });
-                alert("വിജയകരമായി രേഖപ്പെടുത്തി!");
-        showCollectionReport();
-    } catch (e) { 
-        alert("Error: " + e.message); // വെറും Error എന്നതിന് പകരം കൃത്യം കാരണം കാണിക്കും
-    } 
-} // <-- ഇവിടെയാണ് showCollectionReport ഫങ്ക്ഷൻ അവസാനിക്കുന്നത്.
 
 // ---  ശമ്പള മാനേജ്‌മെന്റ് ഫങ്ക്ഷനുകൾ ഇവിടെ തുടങ്ങുന്നു (മാറ്റമില്ലാതെ) ---
 

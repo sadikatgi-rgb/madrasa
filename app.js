@@ -858,41 +858,41 @@ async function loadRemittanceTable(monthData, remittanceSnap) {
                     <th style="padding:8px; border-bottom:1px solid #ddd;">Add</th>
                 </tr>`;
 
-    // ഓരോ ക്ലാസ്സിന്റെയും പണമിടപാട് ഹിസ്റ്ററി ഗ്രൂപ്പ് ചെയ്യുന്നു
     let remittancesByClass = {};
     remittanceSnap.forEach(doc => {
         const d = doc.data();
         if (!remittancesByClass[d.class]) remittancesByClass[d.class] = [];
-        remittancesByClass[d.class].push(d);
+        // doc.id കൂടി ഇവിടെ ഉൾപ്പെടുത്തുന്നു
+        remittancesByClass[d.class].push({ ...d, id: doc.id }); 
     });
 
     uSnap.forEach(doc => {
         const u = doc.data();
         const cls = u.assignedClass;
-        
-        // മൊത്തം പിരിച്ച തുക കണക്കാക്കുന്നു
         let collected = 0;
-        Object.values(monthData).forEach(m => { 
-            if (m.classes[cls]) collected += m.classes[cls].paidAmt; 
-        });
+        Object.values(monthData).forEach(m => { if (m.classes[cls]) collected += m.classes[cls].paidAmt; });
 
-        // ഹിസ്റ്ററിയും മൊത്തം ഏൽപ്പിച്ച തുകയും
         let paid = 0;
         let historyHtml = "";
         if (remittancesByClass[cls]) {
-            // ഏറ്റവും പുതിയ ഇടപാടുകൾ ആദ്യം വരാൻ സോർട്ട് ചെയ്യുന്നു
+            // സമയം അനുസരിച്ച് സോർട്ട് ചെയ്യുന്നു
             remittancesByClass[cls].sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
             
             remittancesByClass[cls].forEach(r => {
                 paid += r.amount;
                 historyHtml += `
-    <div style="display:flex; justify-content:space-between; align-items:center; font-size:10px; color:#444; background:#f9f9f9; padding:6px 10px; border-radius:6px; margin-bottom:4px; border:1px solid #eee;">
-        <span>
-            <span style="margin-right:8px;">📅 ${r.date}</span> 
-            <span style="color:#e67e22; font-weight:500;">🕒 ${r.time || '--:--'}</span>
-        </span>
-        <span style="font-weight:bold; color:#1a73e8; font-size:11px;">₹${r.amount}</span>
-    </div>`;
+                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:10px; color:#444; background:#f9f9f9; padding:6px 10px; border-radius:6px; margin-bottom:4px; border:1px solid #eee;">
+                        <span style="flex:1;">
+                            <span>📅 ${r.date}</span> 
+                            <span style="color:#e67e22; margin-left:5px; font-weight:500;">🕒 ${r.time || 'Time N/A'}</span>
+                        </span>
+                        <span style="font-weight:bold; color:#1a73e8; margin-right:12px;">₹${r.amount}</span>
+                        
+                        <div style="display:flex; gap:10px;">
+                            <span onclick="editRemittance('${r.id}', ${r.amount})" style="cursor:pointer; font-size:12px;" title="തിരുത്തുക">✏️</span>
+                            <span onclick="deleteRemittance('${r.id}')" style="cursor:pointer; font-size:12px; color:#e74c3c;" title="ഒഴിവാക്കുക">🗑️</span>
+                        </div>
+                    </div>`;
             });
         }
 
@@ -901,19 +901,18 @@ async function loadRemittanceTable(monthData, remittanceSnap) {
         html += `
             <tr style="background:#fdfdfd;">
                 <td style="padding:10px 8px; border-bottom:1px solid #eee;">
-                    <b style="color:#2d3748;">${u.name}</b><br>
-                    <span style="color:#718096; font-size:10px;">Class ${cls}</span>
+                    <b>${u.name}</b><br><span style="color:#718096; font-size:10px;">Class ${cls}</span>
                 </td>
-                <td style="padding:8px; border-bottom:1px solid #eee; color:#28a745; font-weight:600;">₹${collected}</td>
-                <td style="padding:8px; border-bottom:1px solid #eee; color:#1a73e8; font-weight:600;">₹${paid}</td>
+                <td style="padding:8px; border-bottom:1px solid #eee; color:#28a745;">₹${collected}</td>
+                <td style="padding:8px; border-bottom:1px solid #eee; color:#1a73e8;">₹${paid}</td>
                 <td style="padding:8px; border-bottom:1px solid #eee; color:${balance > 0 ? '#dc3545' : '#28a745'}; font-weight:bold;">₹${balance}</td>
                 <td style="padding:8px; border-bottom:1px solid #eee;">
-                    <button onclick="addRemittance('${cls}', '${u.name}')" style="background:#1a73e8; color:white; border:none; border-radius:6px; width:28px; height:28px; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(26,115,232,0.3);">+</button>
+                    <button onclick="addRemittance('${cls}', '${u.name}')" style="background:#1a73e8; color:white; border:none; border-radius:6px; width:28px; height:28px; cursor:pointer;">+</button>
                 </td>
             </tr>
             <tr>
                 <td colspan="5" style="padding:0 8px 10px 20px; border-bottom:1px solid #eee; background:#fcfcfc;">
-                    <div style="max-height:80px; overflow-y:auto; padding-top:5px;">
+                    <div style="max-height:100px; overflow-y:auto; padding-top:5px;">
                         ${historyHtml || '<small style="color:#999; font-style:italic;">ഇടപാടുകൾ ലഭ്യമല്ല</small>'}
                     </div>
                 </td>
@@ -923,6 +922,54 @@ async function loadRemittanceTable(monthData, remittanceSnap) {
     html += `</table></div>`;
     remArea.innerHTML = html;
 }
+// 1. പുതിയ എൻട്രി ചേർക്കാൻ
+async function addRemittance(cls, name) {
+    const amt = prompt(`${name} (Class ${cls}) ഏൽപ്പിച്ച തുക നൽകുക:`);
+    if (!amt || isNaN(amt)) return;
+
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-IN'); 
+    const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+    try {
+        await db.collection("remittances").add({
+            class: cls,
+            usthadName: name,
+            amount: Number(amt),
+            date: dateStr,
+            time: timeStr,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        alert(`വിജയകരമായി രേഖപ്പെടുത്തി!\nസമയം: ${timeStr}`);
+        showCollectionReport();
+    } catch (e) { alert("Error: " + e.message); }
+}
+
+// 2. ഉള്ള എൻട്രി തിരുത്താൻ
+async function editRemittance(id, oldAmount) {
+    const newAmt = prompt("തിരുത്തിയ തുക നൽകുക:", oldAmount);
+    if (!newAmt || isNaN(newAmt) || Number(newAmt) === oldAmount) return;
+    
+    try {
+        await db.collection("remittances").doc(id).update({
+            amount: Number(newAmt),
+            lastEdited: new Date().toLocaleString('en-IN')
+        });
+        alert("തുക വിജയകരമായി തിരുത്തി!");
+        showCollectionReport();
+    } catch (e) { alert("Error: " + e.message); }
+}
+
+// 3. എൻട്രി ഡിലീറ്റ് ചെയ്യാൻ
+async function deleteRemittance(id) {
+    if (!confirm("ഈ എൻട്രി ഹിസ്റ്ററിയിൽ നിന്ന് ഒഴിവാക്കണമെന്നുറപ്പാണോ?")) return;
+    try {
+        await db.collection("remittances").doc(id).delete();
+        alert("എൻട്രി ഒഴിവാക്കിയിരിക്കുന്നു!");
+        showCollectionReport();
+    } catch (e) { alert("Error: " + e.message); }
+}
+
 
 // 4. ഉസ്താദ് പണം ഏൽപ്പിക്കുമ്പോൾ ആഡ് ചെയ്യാനുള്ള ഫങ്ക്ഷൻ
 async function addRemittance(cls, name) {

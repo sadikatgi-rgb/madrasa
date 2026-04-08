@@ -892,12 +892,14 @@ async function addRemittance(cls, name) {
         await db.collection("remittances").add({
             class: cls, usthadName: name, amount: Number(amt), date: date, timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
-        alert("വിജയകരമായി രേഖപ്പെടുത്തി!");
+                alert("വിജയകരമായി രേഖപ്പെടുത്തി!");
         showCollectionReport();
-    } catch (e) { alert("Error!"); }
-}
+    } catch (e) { 
+        alert("Error: " + e.message); // വെറും Error എന്നതിന് പകരം കൃത്യം കാരണം കാണിക്കും
+    } 
+} // <-- ഇവിടെയാണ് showCollectionReport ഫങ്ക്ഷൻ അവസാനിക്കുന്നത്.
 
-// --- നിങ്ങളുടെ ശമ്പള മാനേജ്‌മെന്റ് ഫങ്ക്ഷനുകൾ ഇവിടെ തുടങ്ങുന്നു (മാറ്റമില്ലാതെ) ---
+// ---  ശമ്പള മാനേജ്‌മെന്റ് ഫങ്ക്ഷനുകൾ ഇവിടെ തുടങ്ങുന്നു (മാറ്റമില്ലാതെ) ---
 
 async function showSalaryManagement() {
     const content = document.getElementById('dynamic-content');

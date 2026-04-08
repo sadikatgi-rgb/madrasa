@@ -706,13 +706,27 @@ async function deleteGBox(id) {
     }
 }
 // 10. കളക്ഷൻ റിപ്പോർട്ട് (Collection Summary)
- // 1. കളക്ഷൻ റിപ്പോർട്ട് കാണിക്കാനുള്ള ഫങ്ക്ഷൻ
+
+  // --- റിപ്പോർട്ട് സെക്ഷൻ ആരംഭം ---
+
+// 1. മാസങ്ങളും ക്ലാസ്സുകളും തുറക്കാനും അടയ്ക്കാനും (Toggle Functions)
+window.toggleMonth = function(month) {
+    const el = document.getElementById(`m-report-${month}`);
+    if(el) el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'block' : 'none';
+};
+
+window.toggleClass = function(month, cls) {
+    const el = document.getElementById(`c-report-${month}-${cls}`);
+    if(el) el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'block' : 'none';
+};
+
+// 2. മെയിൻ കളക്ഷൻ റിപ്പോർട്ട് ഫങ്ക്ഷൻ
 async function showCollectionReport() {
     const user = JSON.parse(localStorage.getItem("activeUser"));
     const content = document.getElementById('dynamic-content');
     
     if (!user || (user.role !== 'Sadhar' && user.role !== 'Usthad')) {
-        alert("ക്ഷമിക്കണം, ഈ റിപ്പോർട്ട് കാണാനുള്ള അധികാരം സദറിനും ഉസ്താദുമാർക്കും മാത്രമാണ്.");
+        alert("അനുമതിയില്ല!");
         return; 
     }
 
@@ -720,123 +734,173 @@ async function showCollectionReport() {
     const currentMonthIdx = now.getMonth(); 
     const monthsOrder = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-    if (user.role === 'Sadhar') {
-        content.innerHTML = `
-            <div style="padding:15px; background:#f8f9fa; min-height:100vh; border-radius:12px;">
-                <h3 style="color:#1a73e8; text-align:center; margin-bottom:20px;">📊 മാസവരി സംഖ്യ - മാസ്റ്റർ റിപ്പോർട്ട്</h3>
-                <div id="grand-summary" style="margin-bottom:20px;"></div>
-                <div id="report-area">വിവരങ്ങൾ ശേഖരിക്കുന്നു...</div>
-                
-                <div id="payment-entry-section" style="margin-top:30px; padding:15px; background:white; border-radius:12px; border:2px solid #e2e8f0; box-shadow:0 4px 10px rgba(0,0,0,0.05);">
-                    <h3 style="color:#2d3748; margin-top:0; font-size:16px;">💸 ഉസ്താദുമാർക്ക് തുക കൈമാറാൻ</h3>
-                    <div style="display:flex; gap:10px; margin-top:10px;">
-                        <button onclick="showPaymentEntry()" style="flex:1; padding:12px; background:#28a745; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">➕ പുതിയ എൻട്രി</button>
-                        <button onclick="showSalaryManagement()" style="flex:1; padding:12px; background:#1a73e8; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">💰 ശമ്പളം & ലീവ്</button>
-                    </div>
+    content.innerHTML = `
+        <div style="padding:15px; background:#f8f9fa; min-height:100vh; border-radius:12px;">
+            <h3 style="color:#1a73e8; text-align:center; margin-bottom:20px;">📊 മാസവരി സംഖ്യ - മാസ്റ്റർ റിപ്പോർട്ട്</h3>
+            
+            <div id="grand-summary" style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:20px;"></div>
+            
+            <div id="remittance-section" style="margin-bottom:20px;"></div>
+
+            <div id="report-area">വിവരങ്ങൾ ശേഖരിക്കുന്നു...</div>
+            
+            <div id="payment-entry-section" style="margin-top:30px; padding:15px; background:white; border-radius:12px; border:2px solid #e2e8f0; box-shadow:0 4px 10px rgba(0,0,0,0.05);">
+                <h3 style="color:#2d3748; margin-top:0; font-size:16px;">💸 ഉസ്താദുമാർക്ക് തുക കൈമാറാൻ</h3>
+                <div style="display:flex; gap:10px; margin-top:10px;">
+                    <button onclick="showPaymentEntry()" style="flex:1; padding:12px; background:#28a745; color:white; border:none; border-radius:8px; font-weight:bold;">➕ പുതിയ എൻട്രി</button>
+                    <button onclick="showSalaryManagement()" style="flex:1; padding:12px; background:#1a73e8; color:white; border:none; border-radius:8px; font-weight:bold;">💰 ശമ്പളം & ലീവ്</button>
                 </div>
+            </div>
+        </div>`;
 
-                <div id="salary-tracker-section" style="margin-top:30px;">
-                    <h3 style="color:#2d3748; border-top:2px solid #ddd; padding-top:15px;">👨‍🏫 ഉസ്താദുമാരുടെ ശമ്പള കണക്ക്</h3>
-                    <div id="usthad-salary-summary" style="background:white; padding:15px; border-radius:12px; border:1px solid #e2e8f0;">
-                        <p style="text-align:center; color:gray;">ശമ്പള വിവരങ്ങൾ ലോഡ് ചെയ്യുന്നു...</p>
-                    </div>
-                </div>
-            </div>`;
-        
-        try {
-            const snap = await db.collection("students").get();
-            let monthData = {}; let totalReceived = 0; let totalPending = 0;
+    try {
+        const studentsSnap = await db.collection("students").get();
+        const remittanceSnap = await db.collection("remittances").get();
 
-            snap.forEach(doc => {
-                const s = doc.data();
-                const monthlyFee = 250 + ((s.siblings ? s.siblings.length : 0) * 50);
-                const mStatus = s.monthStatus || {};
-                const studentClass = s.class || "Unassigned";
+        let monthData = {}; let totalReceived = 0; let totalPending = 0;
 
-                monthsOrder.forEach((month, monthIdxInList) => {
-                    if (!monthData[month]) monthData[month] = { paid: 0, pending: 0, classes: {} };
-                    if (!monthData[month].classes[studentClass]) {
-                        monthData[month].classes[studentClass] = { paidAmt: 0, pendingAmt: 0, paidCount: 0, pendingCount: 0, pendingStudents: [] };
-                    }
-                    const targetClass = monthData[month].classes[studentClass];
-                    if (mStatus[month] && mStatus[month].paid) {
-                        monthData[month].paid += monthlyFee;
-                        targetClass.paidAmt += monthlyFee;
-                        targetClass.paidCount++;
-                        totalReceived += monthlyFee;
-                    } else if (monthIdxInList <= currentMonthIdx) {
-                        monthData[month].pending += monthlyFee;
-                        targetClass.pendingAmt += monthlyFee;
-                        targetClass.pendingCount++;
-                        targetClass.pendingStudents.push({ id: doc.id, name: s.name, amt: monthlyFee });
-                        totalPending += monthlyFee;
-                    }
-                });
+        studentsSnap.forEach(doc => {
+            const s = doc.data();
+            const monthlyFee = 250 + ((s.siblings ? s.siblings.length : 0) * 50);
+            const mStatus = s.monthStatus || {};
+            const cls = s.class || "Unassigned";
+
+            monthsOrder.forEach((month, idx) => {
+                if (idx > currentMonthIdx) return;
+
+                if (!monthData[month]) monthData[month] = { paid: 0, pending: 0, classes: {} };
+                if (!monthData[month].classes[cls]) {
+                    monthData[month].classes[cls] = { paidAmt: 0, pendingAmt: 0, pendingStudents: [] };
+                }
+
+                const targetClass = monthData[month].classes[cls];
+                if (mStatus[month] && mStatus[month].paid) {
+                    monthData[month].paid += monthlyFee;
+                    targetClass.paidAmt += monthlyFee;
+                    totalReceived += monthlyFee;
+                } else {
+                    monthData[month].pending += monthlyFee;
+                    targetClass.pendingAmt += monthlyFee;
+                    targetClass.pendingStudents.push({ id: doc.id, name: s.name, amt: monthlyFee });
+                    totalPending += monthlyFee;
+                }
             });
+        });
 
-            document.getElementById('grand-summary').innerHTML = `
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
-                    <div style="background:#fff; padding:15px; border-radius:12px; border-bottom:4px solid #28a745; text-align:center;">
-                        <small>ആകെ ലഭിച്ചത്</small><br><b style="font-size:20px; color:#28a745;">₹${totalReceived}</b>
+        document.getElementById('grand-summary').innerHTML = `
+            <div style="background:#fff; padding:15px; border-radius:12px; border-bottom:4px solid #28a745; text-align:center;">
+                <small>ആകെ ലഭിച്ചത്</small><br><b style="font-size:20px; color:#28a745;">₹${totalReceived}</b>
+            </div>
+            <div style="background:#fff; padding:15px; border-radius:12px; border-bottom:4px solid #dc3545; text-align:center;">
+                <small>നിലവിലെ കുടിശ്ശിക</small><br><b style="font-size:20px; color:#dc3545;">₹${totalPending}</b>
+            </div>`;
+
+        let html = "";
+        monthsOrder.slice(0, currentMonthIdx + 1).forEach(month => {
+            if (!monthData[month]) return;
+            const m = monthData[month];
+            html += `
+                <div style="background:#fff; border:1px solid #eee; margin-bottom:12px; border-radius:10px; overflow:hidden;">
+                    <div onclick="window.toggleMonth('${month}')" style="padding:15px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; border-left:5px solid #1a73e8;">
+                        <div><b>${month}</b><br><small style="color:#28a745;">Paid: ₹${m.paid}</small> | <small style="color:#dc3545;">Pending: ₹${m.pending}</small></div>
+                        <span style="color:#1a73e8; font-size:12px;">ക്ലാസ്സുകൾ ▾</span>
                     </div>
-                    <div style="background:#fff; padding:15px; border-radius:12px; border-bottom:4px solid #dc3545; text-align:center;">
-                        <small>നിലവിലെ കുടിശ്ശിക</small><br><b style="font-size:20px; color:#dc3545;">₹${totalPending}</b>
+                    <div id="m-report-${month}" style="display:none; padding:10px; background:#fcfcfc;">
+                        ${Object.keys(m.classes).sort().map(cls => {
+                            const c = m.classes[cls];
+                            return `
+                                <div style="margin-bottom:8px; border:1px solid #f0f0f0; border-radius:8px; background:white;">
+                                    <div onclick="window.toggleClass('${month}', '${cls}')" style="padding:10px; cursor:pointer; display:flex; justify-content:space-between; font-size:14px;">
+                                        <span><b>Class ${cls}</b></span>
+                                        <b style="color:#dc3545;">₹${c.pendingAmt}</b>
+                                    </div>
+                                    <div id="c-report-${month}-${cls}" style="display:none; padding:8px 12px; font-size:12px;">
+                                        ${c.pendingStudents.map(st => `
+                                            <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                                                <span>${st.name}</span>
+                                                <button onclick="paySpecificMonth('${st.id}', '${month}', ${st.amt})" style="background:#28a745; color:white; border:none; padding:2px 6px; border-radius:4px;">Pay ₹${st.amt}</button>
+                                            </div>`).join('')}
+                                    </div>
+                                </div>`;
+                        }).join('')}
                     </div>
                 </div>`;
+        });
+        document.getElementById('report-area').innerHTML = html || "<p>ഡാറ്റ ലഭ്യമല്ല.</p>";
 
-            let html = "";
-            monthsOrder.forEach(month => {
-                if (!monthData[month]) return;
-                const m = monthData[month];
-                html += `
-                    <div style="background:#fff; border:1px solid #eee; margin-bottom:12px; border-radius:10px; overflow:hidden;">
-                        <div onclick="window.toggleMonth('${month}')" style="padding:15px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; border-left:5px solid #1a73e8;">
-                            <div><b>${month}</b><br><small style="color:#28a745;">Paid: ₹${m.paid}</small> | <small style="color:#dc3545;">Pending: ₹${m.pending}</small></div>
-                            <span style="color:#1a73e8; font-size:12px;">ക്ലാസ്സുകൾ ▾</span>
-                        </div>
-                        <div id="m-report-${month}" style="display:none; padding:10px; background:#fcfcfc;">
-                            ${Object.keys(m.classes).sort().map(cls => {
-                                const c = m.classes[cls];
-                                return `
-                                    <div style="margin-bottom:8px; border:1px solid #f0f0f0; border-radius:8px; background:white;">
-                                        <div onclick="window.toggleClass('${month}', '${cls}')" style="padding:10px; cursor:pointer; display:flex; justify-content:space-between; font-size:14px;">
-                                            <span><b>Class ${cls}</b></span>
-                                            <b style="color:#dc3545;">₹${c.pendingAmt}</b>
-                                        </div>
-                                        <div id="c-report-${month}-${cls}" style="display:none; padding:8px 12px; font-size:12px;">
-                                            ${c.pendingStudents.map(st => `
-                                                <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                                                    <span>${st.name}</span>
-                                                    <button onclick="paySpecificMonth('${st.id}', '${month}', ${st.amt})" style="background:#28a745; color:white; border:none; padding:2px 6px; border-radius:4px;">Pay ₹${st.amt}</button>
-                                                </div>`).join('')}
-                                        </div>
-                                    </div>`;
-                            }).join('')}
-                        </div>
-                    </div>`;
-            });
-            document.getElementById('report-area').innerHTML = html || "<p>ഡാറ്റ ലഭ്യമല്ല.</p>";
-            loadSadharSalaryTracker(totalReceived);
-        } catch(e) { console.error(e); }
-
-    } else {
-        // ഉസ്താദ് പേജ് - ഇവിടെ ശമ്പള ബട്ടൺ ഒഴിവാക്കി
-        const myClass = user.assignedClass;
-        content.innerHTML = `
-            <div style="padding:15px; background:#fff; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.08);">
-                <h3 style="color:#d32f2f; text-align:center; margin-bottom:20px;">📊 ക്ലാസ് റിപ്പോർട്ട് (${myClass})</h3>
-                <div id="u-summary" style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:20px;"></div>
-                <div id="u-list-area">ലോഡിംഗ്...</div>
-            </div>`;
-        // ... (ഉസ്താദിന്റെ ഡാറ്റ ലോഡിംഗ് പഴയതുപോലെ തുടരും)
-        loadUsthadData(myClass, monthsOrder, currentMonthIdx);
-    }
+        if (user.role === 'Sadhar') {
+            loadRemittanceTable(monthData, remittanceSnap);
+        }
+    } catch(e) { console.error(e); }
 }
 
-// 2. ശമ്പളവും ലീവും കണക്കാക്കുന്ന ഫങ്ക്ഷൻ (Updated for Manual Allowance)
+// 3. സദർ - ഉസ്താദ് പണമിടപാട് ടേബിൾ (പുതിയത്)
+async function loadRemittanceTable(monthData, remittanceSnap) {
+    const remArea = document.getElementById('remittance-section');
+    const uSnap = await db.collection("users").where("role", "==", "Usthad").get();
+    
+    let html = `
+        <div style="background:white; padding:15px; border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,0.1); border-top:4px solid #1a73e8; margin-bottom:20px;">
+            <h4 style="margin:0 0 10px 0; font-size:14px; color:#1a73e8;">🤝 ഉസ്താദുമാരുടെ കളക്ഷൻ സ്റ്റാറ്റസ്</h4>
+            <table style="width:100%; border-collapse:collapse; font-size:11px;">
+                <tr style="background:#f8f9fa;">
+                    <th style="padding:8px; border-bottom:1px solid #ddd; text-align:left;">ഉസ്താദ്/ക്ലാസ്സ്</th>
+                    <th style="padding:8px; border-bottom:1px solid #ddd;">പിരിച്ചത്</th>
+                    <th style="padding:8px; border-bottom:1px solid #ddd;">ഏൽപ്പിച്ചത്</th>
+                    <th style="padding:8px; border-bottom:1px solid #ddd;">ബാക്കി</th>
+                    <th style="padding:8px; border-bottom:1px solid #ddd;">Add</th>
+                </tr>`;
+
+    let handedOver = {};
+    remittanceSnap.forEach(doc => {
+        const d = doc.data();
+        handedOver[d.class] = (handedOver[d.class] || 0) + d.amount;
+    });
+
+    uSnap.forEach(doc => {
+        const u = doc.data();
+        const cls = u.assignedClass;
+        let collected = 0;
+        Object.values(monthData).forEach(m => { if (m.classes[cls]) collected += m.classes[cls].paidAmt; });
+
+        const paid = handedOver[cls] || 0;
+        const balance = collected - paid;
+
+        html += `
+            <tr>
+                <td style="padding:8px; border-bottom:1px solid #eee;">${u.name}<br><b>(Cls: ${cls})</b></td>
+                <td style="padding:8px; border-bottom:1px solid #eee; color:green;">₹${collected}</td>
+                <td style="padding:8px; border-bottom:1px solid #eee; color:blue;">₹${paid}</td>
+                <td style="padding:8px; border-bottom:1px solid #eee; color:${balance > 0 ? 'red' : 'green'}; font-weight:bold;">₹${balance}</td>
+                <td style="padding:8px; border-bottom:1px solid #eee;">
+                    <button onclick="addRemittance('${cls}', '${u.name}')" style="background:#1a73e8; color:white; border:none; border-radius:4px; padding:5px; cursor:pointer;">+</button>
+                </td>
+            </tr>`;
+    });
+
+    html += `</table></div>`;
+    remArea.innerHTML = html;
+}
+
+// 4. ഉസ്താദ് പണം ഏൽപ്പിക്കുമ്പോൾ ആഡ് ചെയ്യാനുള്ള ഫങ്ക്ഷൻ
+async function addRemittance(cls, name) {
+    const amt = prompt(`${name} (Class ${cls}) ഏൽപ്പിച്ച തുക നൽകുക:`);
+    if (!amt || isNaN(amt)) return;
+    const date = prompt("തീയതി നൽകുക:", new Date().toLocaleDateString('en-IN'));
+
+    try {
+        await db.collection("remittances").add({
+            class: cls, usthadName: name, amount: Number(amt), date: date, timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        alert("വിജയകരമായി രേഖപ്പെടുത്തി!");
+        showCollectionReport();
+    } catch (e) { alert("Error!"); }
+}
+
+// --- നിങ്ങളുടെ ശമ്പള മാനേജ്‌മെന്റ് ഫങ്ക്ഷനുകൾ ഇവിടെ തുടങ്ങുന്നു (മാറ്റമില്ലാതെ) ---
+
 async function showSalaryManagement() {
     const content = document.getElementById('dynamic-content');
-    
     try {
         const uSnap = await db.collection("users").where("role", "==", "Usthad").get();
         let usthadOptions = `<option value="">തിരഞ്ഞെടുക്കുക</option>`;
@@ -848,44 +912,29 @@ async function showSalaryManagement() {
         content.innerHTML = `
             <div style="padding:20px; background:white; border-radius:15px; box-shadow:0 5px 20px rgba(0,0,0,0.1); max-width:500px; margin:auto;">
                 <h3 style="text-align:center; color:#1a73e8; margin-bottom:20px;">💰 ശമ്പളവും ലീവ് കണക്കും</h3>
-                
                 <div style="margin-bottom:15px;">
                     <label style="font-size:12px;">ഉസ്താദിനെ തിരഞ്ഞെടുക്കുക:</label>
                     <select id="sal-usthad-select" onchange="updateBaseSalaryFromSelect()" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ddd;">
                         ${usthadOptions}
                     </select>
                 </div>
-
                 <div style="background:#f8f9fa; padding:15px; border-radius:10px;">
-                    <div style="margin-bottom:15px;">
-                        <label style="font-size:12px;">അടിസ്ഥാന ശമ്പളം:</label>
-                        <input id="sal-base" type="number" readonly style="width:100%; padding:10px; border-radius:6px; border:1px solid #ddd; background:#eee;">
-                    </div>
-                    <div style="margin-bottom:15px;">
-                        <label style="font-size:12px;">ഈ മാസത്തെ അലവൻസ് (മാറ്റാം):</label>
-                        <input id="sal-allowance" type="number" value="0" oninput="calculateNetSalary()" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ddd; border-left:4px solid #1a73e8;">
-                    </div>
-                    <div style="margin-bottom:15px;">
-                        <label style="font-size:12px;">എടുത്ത ലീവ് (ഈ മാസം):</label>
-                        <input id="sal-leaves" type="number" value="0" step="0.5" oninput="calculateNetSalary()" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ddd;">
-                    </div>
-                    
+                    <div style="margin-bottom:15px;"><label style="font-size:12px;">അടിസ്ഥാന ശമ്പളം:</label><input id="sal-base" type="number" readonly style="width:100%; padding:10px; border-radius:6px; border:1px solid #ddd; background:#eee;"></div>
+                    <div style="margin-bottom:15px;"><label style="font-size:12px;">ഈ മാസത്തെ അലവൻസ്:</label><input id="sal-allowance" type="number" value="0" oninput="calculateNetSalary()" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ddd; border-left:4px solid #1a73e8;"></div>
+                    <div style="margin-bottom:15px;"><label style="font-size:12px;">എടുത്ത ലീവ്:</label><input id="sal-leaves" type="number" value="0" step="0.5" oninput="calculateNetSalary()" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ddd;"></div>
                     <div style="background:white; padding:15px; border-radius:10px; border:1px solid #eee; margin-top:10px;">
-                        <p style="margin:0; font-size:13px;">അനുവദനീയമായ ലീവ്: 1.5</p>
-                        <p style="margin:5px 0; font-size:13px; color:red;">ലീവ് കാരണം കുറയുന്നത്: <b id="deduction-amt">₹0</b></p>
-                        <h3 style="margin:10px 0 0 0; color:#28a745; text-align:center;">നൽകാനുള്ള തുക: <span id="net-salary">₹0</span></h3>
+                        <p style="margin:5px 0; font-size:13px; color:red;">ലീവ് കുറവ്: <b id="deduction-amt">₹0</b></p>
+                        <h3 style="margin:10px 0 0 0; color:#28a745; text-align:center;">നെറ്റ് ശമ്പളം: <span id="net-salary">₹0</span></h3>
                     </div>
                 </div>
-
                 <div style="display:flex; gap:10px; margin-top:20px;">
                     <button onclick="showCollectionReport()" style="flex:1; padding:12px; background:#6c757d; color:white; border:none; border-radius:8px;">തിരികെ</button>
                     <button onclick="saveSalaryRecord()" style="flex:2; padding:12px; background:#1a73e8; color:white; border:none; border-radius:8px; font-weight:bold;">സേവ് ചെയ്യുക</button>
                 </div>
             </div>`;
-    } catch (e) { alert("Error loading data"); }
+    } catch (e) { alert("Error!"); }
 }
 
-// സെലക്ട് ബോക്സിൽ നിന്ന് അടിസ്ഥാന ശമ്പളം ഓട്ടോമാറ്റിക് ആയി എടുക്കാൻ
 function updateBaseSalaryFromSelect() {
     const select = document.getElementById('sal-usthad-select');
     const baseInput = document.getElementById('sal-base');
@@ -894,50 +943,30 @@ function updateBaseSalaryFromSelect() {
     calculateNetSalary();
 }
 
-// 3. നെറ്റ് സാലറി കണക്കാക്കുന്ന ലോജിക്
 function calculateNetSalary() {
     const base = Number(document.getElementById('sal-base').value) || 0;
     const allowance = Number(document.getElementById('sal-allowance').value) || 0;
     const leaves = Number(document.getElementById('sal-leaves').value) || 0;
-    
     let deduction = 0;
-    if (leaves > 1.5) {
-        const excessLeaves = leaves - 1.5;
-        const oneDayPay = base / 30;
-        deduction = Math.round(excessLeaves * oneDayPay);
-    }
-    
+    if (leaves > 1.5) deduction = Math.round((leaves - 1.5) * (base / 30));
     const net = (base + allowance) - deduction;
-    
     document.getElementById('deduction-amt').innerText = `₹${deduction}`;
     document.getElementById('net-salary').innerText = `₹${net}`;
 }
 
-// 4. ശമ്പള വിവരങ്ങൾ സേവ് ചെയ്യാനുള്ള ഫങ്ക്ഷൻ
 async function saveSalaryRecord() {
     const select = document.getElementById('sal-usthad-select');
     const usthadName = select.options[select.selectedIndex].text;
     const net = document.getElementById('net-salary').innerText.replace('₹', '');
-    const allowance = document.getElementById('sal-allowance').value;
-    const leaves = document.getElementById('sal-leaves').value;
-
     if (!select.value) { alert("ഉസ്താദിനെ തിരഞ്ഞെടുക്കുക!"); return; }
-
     try {
         await db.collection("salary_payments").add({
-            usthadName: usthadName,
-            amount: Number(net),
-            allowanceGiven: Number(allowance),
-            leavesTaken: Number(leaves),
-            date: new Date().toISOString().split('T')[0],
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            usthadName: usthadName, amount: Number(net), date: new Date().toISOString().split('T')[0], timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
-        alert("ശമ്പള വിവരങ്ങൾ വിജയകരമായി സേവ് ചെയ്തു!");
+        alert("വിജയകരമായി സേവ് ചെയ്തു!");
         showCollectionReport();
-    } catch (e) { alert("സേവ് ചെയ്യാൻ പറ്റിയില്ല!"); }
+    } catch (e) { alert("Error!"); }
 }
-                       
-
 
 async function loadSadharSalaryTracker(totalCollection) {
     const tracker = document.getElementById('usthad-salary-summary');

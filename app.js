@@ -796,8 +796,16 @@ async function showCollectionReport() {
             const monthlyFee = 250 + ((s.siblings ? s.siblings.length : 0) * 50);
             const mStatus = s.monthStatus || {};
 
+                        // ഓരോ കുട്ടിയും ഏത് മാസം മുതൽ മദ്രസയിൽ വരുന്നു എന്ന് നോക്കുന്നു (ഷവ്വാൽ ലോജിക്)
+            const startMonthName = s.startMonth || "May";
+            const startMonthIdx = monthsOrder.indexOf(startMonthName);
+
             monthsOrder.forEach((month, idx) => {
+                // 1. ഭാവിയിലെ മാസങ്ങൾ ഒഴിവാക്കുന്നു
                 if (idx > currentMonthIdx) return;
+                
+                // 2. കുട്ടി ചേരുന്നതിന് മുൻപുള്ള മാസങ്ങൾ കണക്കിലെടുക്കുന്നില്ല
+                if (idx < startMonthIdx) return;
 
                 if (!monthData[month]) monthData[month] = { paid: 0, pending: 0, classes: {} };
                 if (!monthData[month].classes[cls]) {
@@ -805,32 +813,27 @@ async function showCollectionReport() {
                 }
 
                 const targetClass = monthData[month].classes[cls];
+                
+                // ഫീസ് അടച്ചിട്ടുണ്ടോ എന്ന് പരിശോധിക്കുന്നു
                 if (mStatus[month] && mStatus[month].paid) {
                     monthData[month].paid += monthlyFee;
                     targetClass.paidAmt += monthlyFee;
                     totalReceived += monthlyFee;
-                // പുതിയ കോഡ് (ഇത് ചേർക്കുക)
-
-                  } else {
-                    // മുകളിൽ ഗ്ലോബൽ ആയി നൽകിയത് കൊണ്ട് ഇവിടെ currentMonthName നേരിട്ട് ലഭിക്കും
-                    const isCurrentMonth = (month === currentMonthName); 
-                    const hasStarted = (monthData[month] && monthData[month].paid > 0);
-
-                    if (isCurrentMonth || hasStarted) {
-                        monthData[month].pending += monthlyFee;
-                        targetClass.pendingAmt += monthlyFee;
-                        
-                        targetClass.pendingStudents.push({ 
-                            id: doc.id, 
-                            name: s.name, 
-                            amt: monthlyFee,
-                            month: month 
-                        });
-                        
-                        totalPending += monthlyFee;
-                    }
+                } else {
+                    // ഫീസ് അടച്ചിട്ടില്ലെങ്കിൽ മാത്രം കുടിശ്ശികയായി (Pending) കൂട്ടുന്നു
+                    monthData[month].pending += monthlyFee;
+                    targetClass.pendingAmt += monthlyFee;
+                    
+                    targetClass.pendingStudents.push({ 
+                        id: doc.id, 
+                        name: s.name, 
+                        amt: monthlyFee,
+                        month: month 
+                    });
+                    
+                    totalPending += monthlyFee;
                 }
- }); // monthsOrder ലൂപ്പ് അവസാനിക്കുന്നു
+            }); // monthsOrder ലൂപ്പ് അവസാനിക്കുന്നു
         }); // studentsSnap ലൂപ്പ് അവസാനിക്കുന്നു
 
         // 1. മുകളിലെ സമ്മറി കാർഡുകൾ (ഈ മാസത്തെ പ്രാധാന്യം നൽകുന്നു)

@@ -362,9 +362,8 @@ async function loadStudents(filterClass = 'all') {
                 </div>
                 <h4 style="margin:0 0 5px 0; color:#1a73e8;">${s.name} (ക്ലാസ്: ${s.class})</h4>
                 <div style="font-size:11px; color:#666; margin-bottom:5px;">
-                    <b>ID:</b> ${s.studentID} | <b>ഫീസ് മാസം:</b> ${totalFeeMonths} മാസം
+                    <b>ID:</b> ${s.studentID} | <b>ഫീസ് മാസം:</b> ${s.feeMonths || 12} മാസം
                 </div>
-                
                 ${monthTableHTML}
                 
                 <div style="background:#fff3f3; padding:10px; border-radius:8px; border:1px solid #ffebeb; margin-top:10px;">

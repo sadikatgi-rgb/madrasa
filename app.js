@@ -791,14 +791,18 @@ async function showCollectionReport() {
                     monthData[month].paid += monthlyFee;
                     targetClass.paidAmt += monthlyFee;
                     totalReceived += monthlyFee;
-                } else {
-                    monthData[month].pending += monthlyFee;
-                    targetClass.pendingAmt += monthlyFee;
-                    targetClass.pendingStudents.push({ id: doc.id, name: s.name, amt: monthlyFee });
-                    totalPending += monthlyFee;
-                }
-            });
-        });
+                // പുതിയ കോഡ് (ഇത് ചേർക്കുക)
+} else {
+    // ഈ മാസത്തിൽ ആരെങ്കിലും പണമടച്ചിട്ടുണ്ടെങ്കിൽ മാത്രം കുടിശ്ശികയായി കൂട്ടുക
+    if (monthData[month] && monthData[month].paid > 0) {
+        monthData[month].pending += monthlyFee;
+        targetClass.pendingAmt += monthlyFee;
+        targetClass.pendingStudents.push({ id: doc.id, name: s.name, amt: monthlyFee });
+        totalPending += monthlyFee;
+    }
+}
+});
+ });
 
         // 1. മുകളിലെ സമ്മറി കാർഡുകൾ (ഈ മാസത്തെ പ്രാധാന്യം നൽകുന്നു)
         const currentMonthName = monthsOrder[currentMonthIdx];

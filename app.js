@@ -792,24 +792,35 @@ async function showCollectionReport() {
                     targetClass.paidAmt += monthlyFee;
                     totalReceived += monthlyFee;
                 // പുതിയ കോഡ് (ഇത് ചേർക്കുക)
-                } else {
-                    // 1. നിലവിലെ മാസം (Current Month) എപ്പോഴും കാണിക്കണം
+
+                                   } else {
+                    // --- പുതിയ തിരുത്തൽ താഴെ ---
+                    
+                    // 1. നിലവിലെ മാസം (Current Month) എപ്പോഴും കണക്കിൽ വരണം
                     const currentMonthName = monthsOrder[currentMonthIdx];
                     const isCurrentMonth = (month === currentMonthName); 
                     
-                    // 2. പഴയ മാസമാണെങ്കിൽ ആരെങ്കിലും പണമടച്ചിട്ടുണ്ടെങ്കിൽ മാത്രം വരിക
+                    // 2. പഴയ മാസമാണെങ്കിൽ ആരെങ്കിലും പണമടച്ചിട്ടുണ്ടെങ്കിൽ മാത്രം ലിസ്റ്റിൽ വരിക
                     const hasStarted = (monthData[month] && monthData[month].paid > 0);
 
                     if (isCurrentMonth || hasStarted) {
                         monthData[month].pending += monthlyFee;
                         targetClass.pendingAmt += monthlyFee;
-                        targetClass.pendingStudents.push({ id: doc.id, name: s.name, amt: monthlyFee });
+                        
+                        // Pay Month ബട്ടൺ വർക്ക് ആകാൻ ആവശ്യമായ വിവരങ്ങൾ ഇവിടെ ചേർക്കുന്നു
+                        targetClass.pendingStudents.push({ 
+                            id: doc.id, 
+                            name: s.name, 
+                            amt: monthlyFee,
+                            month: month // ഏത് മാസത്തെ പണമാണെന്ന് വ്യക്തമാക്കുന്നു
+                        });
+                        
                         totalPending += monthlyFee;
                     }
                 }
-});
- });
-
+            }); // monthsOrder ലൂപ്പ് അവസാനിക്കുന്നു
+        }); // studentsSnap ലൂപ്പ് അവസാനിക്കുന്നു
+ 
         // 1. മുകളിലെ സമ്മറി കാർഡുകൾ (ഈ മാസത്തെ പ്രാധാന്യം നൽകുന്നു)
         const currentMonthName = monthsOrder[currentMonthIdx];
         const currentMonthStats = monthData[currentMonthName] || { paid: 0, pending: 0 };

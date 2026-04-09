@@ -766,11 +766,17 @@ async function showCollectionReport() {
 
         let monthData = {}; let totalReceived = 0; let totalPending = 0;
 
-        studentsSnap.forEach(doc => {
+                studentsSnap.forEach(doc => {
             const s = doc.data();
+            const cls = s.class || "Unassigned";
+
+            // --- സദർ അല്ലെങ്കിൽ, ലോഗിൻ ചെയ്ത ഉസ്താദിന്റെ ക്ലാസ്സ് മാത്രം ഫിൽട്ടർ ചെയ്യുന്നു ---
+            if (user.role !== 'Sadhar' && String(cls) !== String(user.assignedClass)) {
+                return; 
+            }
+
             const monthlyFee = 250 + ((s.siblings ? s.siblings.length : 0) * 50);
             const mStatus = s.monthStatus || {};
-            const cls = s.class || "Unassigned";
 
             monthsOrder.forEach((month, idx) => {
                 if (idx > currentMonthIdx) return;
@@ -793,6 +799,7 @@ async function showCollectionReport() {
                 }
             });
         });
+      
 
         document.getElementById('grand-summary').innerHTML = `
             <div style="background:#fff; padding:15px; border-radius:12px; border-bottom:4px solid #28a745; text-align:center;">

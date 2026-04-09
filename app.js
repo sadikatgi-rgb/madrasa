@@ -383,7 +383,7 @@ async function loadStudents(filterClass = 'all') {
                 </div>
 
                 <div style="display:flex; gap:5px; margin-top:10px;">
-                    <button onclick="updateFees('${doc.id}', '${s.parentPhone}', '${s.name}')" style="flex:1; background:#28a745; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer; font-size:12px;">Pay Month</button>
+                    <button onclick="payFee('${doc.id}')" style="flex:1; background:#28a745; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer; font-size:12px;">Pay Month</button>
                     <button onclick="sendCustomWA('${s.parentPhone}', '${s.name}')" style="background:#25d366; flex:1; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer; font-size:12px;">Chat</button>
                 </div>
             </div>`;

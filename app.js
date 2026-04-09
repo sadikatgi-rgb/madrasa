@@ -1260,7 +1260,6 @@ async function payFee(id) {
         const startMonthName = s.startMonth || "May";
         const startMonthIdx = monthsOrder.indexOf(startMonthName);
 
-        // കുടിശ്ശികയുള്ള ആദ്യത്തെ മാസം കണ്ടെത്തുന്നു
         let targetMonth = null;
         for (let i = startMonthIdx; i <= currentMonthIdx; i++) {
             const m = monthsOrder[i];
@@ -1270,17 +1269,15 @@ async function payFee(id) {
             }
         }
 
-        if (!targetMonth) {
-            alert("എല്ലാ മാസത്തെയും ഫീസ് അടച്ചു കഴിഞ്ഞു!");
-            return;
-        }
+        if (!targetMonth) { alert("എല്ലാ മാസത്തെയും ഫീസ് അടച്ചു കഴിഞ്ഞു!"); return; }
 
         const amt = s.monthlyFee || 250;
-        const confirmPay = confirm(`${targetMonth} മാസത്തെ ഫീസ് (₹${amt}) സ്വീകരിച്ചോ?`);
         
-        if (confirmPay) {
+        // മാറ്റം: മാനുവലായി റെസീപ്റ്റ് നമ്പർ ചോദിക്കുന്നു
+        const receiptNo = prompt(`${targetMonth} മാസത്തെ ഫീസ് (₹${amt}) - റെസീപ്റ്റ് നമ്പർ നൽകുക:`);
+        
+        if (receiptNo) {
             const today = new Date().toLocaleDateString('en-GB');
-            const receiptNo = "R" + Math.floor(1000 + Math.random() * 9000);
 
             await studentRef.update({
                 [`monthStatus.${targetMonth}`]: {
@@ -1291,10 +1288,13 @@ async function payFee(id) {
                 }
             });
 
-            // പേയ്‌മെന്റ് ഹിസ്റ്ററിയിലേക്കും മാറ്റുന്നു
+            // പെയ്‌മെന്റ് ഹിസ്റ്ററി സേവ് ചെയ്യുന്നു (പ്രിന്റിംഗിന് ആവശ്യമായ എല്ലാ വിവരങ്ങളും ഉൾപ്പെടുത്തി)
             await db.collection("payments").add({
                 studentId: id,
                 studentName: s.name,
+                fatherName: s.fatherName || "-", // പിതാവിൻ്റെ പേര്
+                houseName: s.houseName || "-",     // വീട്ടുപേര്
+                parentPhone: s.parentPhone || "-", // ഫോൺ നമ്പർ
                 studentID: s.studentID,
                 amountPaid: amt,
                 months: [targetMonth],
@@ -1303,15 +1303,15 @@ async function payFee(id) {
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
 
-            alert(`${targetMonth} മാസത്തെ ഫീസ് വിജയകരമായി അടച്ചു.`);
-            loadStudents(); // ലിസ്റ്റ് പുതുക്കുന്നു
+            alert(`വിജയകരമായി അടച്ചു!`);
+            loadStudents(); 
             
             if (confirm("രസീത് പ്രിന്റ് ചെയ്യണോ?")) {
-                printReceipt(s.name, amt, targetMonth, today, receiptNo, s.studentID);
+                // പ്രിന്റ് ചെയ്യുമ്പോൾ എല്ലാ വിവരങ്ങളും അയക്കുന്നു
+                printReceipt(s.name, amt, targetMonth, today, receiptNo, s.studentID, s.fatherName, s.houseName, s.parentPhone);
             }
         }
     } catch (e) {
-        console.error("Payment Error: ", e);
         alert("പിശക് സംഭവിച്ചു: " + e.message);
     }
 }

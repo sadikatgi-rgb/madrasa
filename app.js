@@ -819,6 +819,7 @@ async function showCollectionReport() {
         monthsOrder.slice(0, currentMonthIdx + 1).forEach(month => {
             if (!monthData[month]) return;
             const m = monthData[month];
+            if (m.paid === 0) return;
             
             const totalExpected = m.paid + m.pending; // ആ മാസം ആകെ ലഭിക്കേണ്ടത്
             const isCompleted = m.pending === 0; // കുടിശ്ശിക തീർന്നോ എന്ന് നോക്കുന്നു

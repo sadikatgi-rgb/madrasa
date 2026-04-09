@@ -202,7 +202,10 @@ async function saveStudent() {
     const phone = document.getElementById('n-phone').value.trim();
     const oldFees = Number(document.getElementById('n-fees').value) || 0;
     
-    // --- പുതിയ മാറ്റം: സെലക്ട് ചെയ്ത മാസങ്ങൾ എടുക്കുന്നു ---
+    // --- മാറ്റം 1: അധ്യയന വർഷം തുടങ്ങുന്ന മാസം കൂടി ഇവിടെ എടുക്കുന്നു ---
+    const startMonthInput = document.getElementById('n-start-month');
+    const startMonth = startMonthInput ? startMonthInput.value : "May"; 
+
     const feeMonthsInput = document.getElementById('n-fee-months');
     const feeMonths = feeMonthsInput ? Number(feeMonthsInput.value) : 12; 
 
@@ -226,7 +229,8 @@ async function saveStudent() {
     const mFee = 250 + (siblingsList.length * 50);
 
     let monthStatus = {};
-    allMonths.forEach(m => { 
+    // ശ്രദ്ധിക്കുക: ഇവിടെ monthsOrder എന്ന് മാറ്റുന്നത് നന്നായിരിക്കും
+    monthsOrder.forEach(m => { 
         monthStatus[m] = { paid: false, date: "-", amount: 0, rcpt: "-" }; 
     });
 
@@ -242,7 +246,11 @@ async function saveStudent() {
             parentPhone: phone, 
             studentID: sid,
             monthlyFee: mFee,
-            feeMonths: feeMonths, // --- ഫയർബേസിലേക്ക് മാസങ്ങളുടെ എണ്ണം സേവ് ചെയ്യുന്നു ---
+            
+            // --- മാറ്റം 2: ഈ രണ്ട് വിവരങ്ങൾ ഫയർബേസിലേക്ക് അയക്കുന്നു ---
+            startMonth: startMonth, // ക്ലാസ് തുടങ്ങുന്ന മാസം
+            feeMonths: feeMonths,   // ആകെ ഫീസ് മാസങ്ങൾ
+            
             balance: oldFees, 
             monthStatus: monthStatus, 
             addedDate: new Date().toLocaleDateString('en-IN'),
@@ -250,8 +258,6 @@ async function saveStudent() {
         });
 
         alert(`വിജയകരമായി ചേർത്തു! ID: ${sid}`);
-        
-        const user = JSON.parse(localStorage.getItem("activeUser"));
         showSection('student-list');
         
     } catch(e) { 

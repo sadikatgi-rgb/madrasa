@@ -734,7 +734,7 @@ async function showCollectionReport() {
     const currentMonthIdx = now.getMonth(); 
     const monthsOrder = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-    content.innerHTML = `
+        content.innerHTML = `
         <div style="padding:15px; background:#f8f9fa; min-height:100vh; border-radius:12px;">
             <h3 style="color:#1a73e8; text-align:center; margin-bottom:20px;">📊 മാസവരി സംഖ്യ - മാസ്റ്റർ റിപ്പോർട്ട്</h3>
             
@@ -744,7 +744,7 @@ async function showCollectionReport() {
 
             <div id="report-area">വിവരങ്ങൾ ശേഖരിക്കുന്നു...</div>
             
-            <div id="payment-entry-section" style="margin-top:30px; padding:15px; background:white; border-radius:12px; border:2px solid #e2e8f0; box-shadow:0 4px 10px rgba(0,0,0,0.05);">
+            <div id="payment-entry-section" style="display: ${user.role === 'Sadhar' ? 'block' : 'none'}; margin-top:30px; padding:15px; background:white; border-radius:12px; border:2px solid #e2e8f0; box-shadow:0 4px 10px rgba(0,0,0,0.05);">
                 <h3 style="color:#2d3748; margin-top:0; font-size:16px;">💸 ഉസ്താദുമാർക്ക് തുക കൈമാറാൻ</h3>
                 <div style="display:flex; gap:10px; margin-top:10px;">
                     <button onclick="showPaymentEntry()" style="flex:1; padding:12px; background:#28a745; color:white; border:none; border-radius:8px; font-weight:bold;">➕ പുതിയ എൻട്രി</button>

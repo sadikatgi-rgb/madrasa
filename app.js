@@ -799,40 +799,70 @@ async function showCollectionReport() {
                 }
             });
         });
-      
 
+        // 1. മുകളിലെ സമ്മറി കാർഡുകൾ (ഈ മാസത്തെ പ്രാധാന്യം നൽകുന്നു)
+        const currentMonthName = monthsOrder[currentMonthIdx];
+        const currentMonthStats = monthData[currentMonthName] || { paid: 0, pending: 0 };
+        
         document.getElementById('grand-summary').innerHTML = `
-            <div style="background:#fff; padding:15px; border-radius:12px; border-bottom:4px solid #28a745; text-align:center;">
-                <small>ആകെ ലഭിച്ചത്</small><br><b style="font-size:20px; color:#28a745;">₹${totalReceived}</b>
+            <div style="background:#fff; padding:15px; border-radius:12px; border-bottom:4px solid #28a745; text-align:center; box-shadow:0 2px 5px rgba(0,0,0,0.05);">
+                <small style="color:#666;">ഈ മാസം (${currentMonthName}) ലഭിച്ചത്</small><br>
+                <b style="font-size:20px; color:#28a745;">₹${currentMonthStats.paid}</b>
             </div>
-            <div style="background:#fff; padding:15px; border-radius:12px; border-bottom:4px solid #dc3545; text-align:center;">
-                <small>നിലവിലെ കുടിശ്ശിക</small><br><b style="font-size:20px; color:#dc3545;">₹${totalPending}</b>
+            <div style="background:#fff; padding:15px; border-radius:12px; border-bottom:4px solid #dc3545; text-align:center; box-shadow:0 2px 5px rgba(0,0,0,0.05);">
+                <small style="color:#666;">ആകെ ലഭിക്കാനുള്ള കുടിശ്ശിക</small><br>
+                <b style="font-size:20px; color:#dc3545;">₹${totalPending}</b>
             </div>`;
 
+        // 2. മാസവരി റിപ്പോർട്ട് ലിസ്റ്റ് (പുതിയ ഡിസൈനിൽ)
         let html = "";
         monthsOrder.slice(0, currentMonthIdx + 1).forEach(month => {
             if (!monthData[month]) return;
             const m = monthData[month];
+            
+            const totalExpected = m.paid + m.pending; // ആ മാസം ആകെ ലഭിക്കേണ്ടത്
+            const isCompleted = m.pending === 0; // കുടിശ്ശിക തീർന്നോ എന്ന് നോക്കുന്നു
+
             html += `
-                <div style="background:#fff; border:1px solid #eee; margin-bottom:12px; border-radius:10px; overflow:hidden;">
-                    <div onclick="window.toggleMonth('${month}')" style="padding:15px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; border-left:5px solid #1a73e8;">
-                        <div><b>${month}</b><br><small style="color:#28a745;">Paid: ₹${m.paid}</small> | <small style="color:#dc3545;">Pending: ₹${m.pending}</small></div>
-                        <span style="color:#1a73e8; font-size:12px;">ക്ലാസ്സുകൾ ▾</span>
+                <div style="background:#fff; border:1px solid #eee; margin-bottom:12px; border-radius:10px; overflow:hidden; border-left: 5px solid ${isCompleted ? '#28a745' : '#1a73e8'}; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+                    <div onclick="window.toggleMonth('${month}')" style="padding:15px; cursor:pointer;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <b style="color:#2d3748;">📅 ${month} - മാസത്തെ കണക്ക്</b>
+                            <span style="background:${isCompleted ? '#e9f7ef' : '#fef9e7'}; color:${isCompleted ? '#28a745' : '#f39c12'}; padding:4px 10px; border-radius:20px; font-size:10px; font-weight:bold;">
+                                ${isCompleted ? '✅ പൂർത്തിയായി' : '⏳ കുടിശ്ശികയുണ്ട്'}
+                            </span>
+                        </div>
+                        
+                        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px; margin-top:12px; font-size:11px; text-align:center;">
+                            <div style="background:#f8f9fa; padding:8px 5px; border-radius:8px;">
+                                <span style="color:#718096;">ലഭിക്കേണ്ടത്</span><br>
+                                <b style="color:#2d3748; font-size:13px;">₹${totalExpected}</b>
+                            </div>
+                            <div style="background:#e9f7ef; padding:8px 5px; border-radius:8px; border:1px solid #b7e4c7;">
+                                <span style="color:#2d6a4f;">ലഭിച്ചത്</span><br>
+                                <b style="color:#28a745; font-size:13px;">₹${m.paid}</b>
+                            </div>
+                            <div style="background:#fff5f5; padding:8px 5px; border-radius:8px; border:1px solid #feb2b2;">
+                                <span style="color:#c53030;">ബാക്കി</span><br>
+                                <b style="color:#dc3545; font-size:13px;">₹${m.pending}</b>
+                            </div>
+                        </div>
                     </div>
-                    <div id="m-report-${month}" style="display:none; padding:10px; background:#fcfcfc;">
+
+                    <div id="m-report-${month}" style="display:none; padding:10px; background:#fcfcfc; border-top:1px solid #f0f0f0;">
                         ${Object.keys(m.classes).sort().map(cls => {
                             const c = m.classes[cls];
                             return `
                                 <div style="margin-bottom:8px; border:1px solid #f0f0f0; border-radius:8px; background:white;">
                                     <div onclick="window.toggleClass('${month}', '${cls}')" style="padding:10px; cursor:pointer; display:flex; justify-content:space-between; font-size:14px;">
-                                        <span><b>Class ${cls}</b></span>
+                                        <span><b>ക്ലാസ്സ്: ${cls}</b></span>
                                         <b style="color:#dc3545;">₹${c.pendingAmt}</b>
                                     </div>
-                                    <div id="c-report-${month}-${cls}" style="display:none; padding:8px 12px; font-size:12px;">
+                                    <div id="c-report-${month}-${cls}" style="display:none; padding:8px 12px; font-size:12px; border-top:1px dashed #eee;">
                                         ${c.pendingStudents.map(st => `
-                                            <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                                                 <span>${st.name}</span>
-                                                <button onclick="paySpecificMonth('${st.id}', '${month}', ${st.amt})" style="background:#28a745; color:white; border:none; padding:2px 6px; border-radius:4px;">Pay ₹${st.amt}</button>
+                                                <button onclick="paySpecificMonth('${st.id}', '${month}', ${st.amt})" style="background:#28a745; color:white; border:none; padding:4px 10px; border-radius:6px; font-weight:bold; cursor:pointer;">Pay ₹${st.amt}</button>
                                             </div>`).join('')}
                                     </div>
                                 </div>`;
@@ -840,8 +870,9 @@ async function showCollectionReport() {
                     </div>
                 </div>`;
         });
-        document.getElementById('report-area').innerHTML = html || "<p>ഡാറ്റ ലഭ്യമല്ല.</p>";
 
+        document.getElementById('report-area').innerHTML = html || "<p style='text-align:center; color:#999;'>വിവരങ്ങൾ ലഭ്യമല്ല.</p>";
+        
         if (user.role === 'Sadhar') {
             loadRemittanceTable(monthData, remittanceSnap);
         }

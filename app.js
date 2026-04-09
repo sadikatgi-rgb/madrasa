@@ -14,6 +14,11 @@ if (!firebase.apps.length) {
 }
 const auth = firebase.auth();
 const db = firebase.firestore();
+// സ്ക്രിപ്റ്റിന്റെ ഏറ്റവും മുകളിൽ നൽകുക
+const monthsOrder = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const now = new Date();
+const currentMonthIdx = now.getMonth(); 
+const currentMonthName = monthsOrder[currentMonthIdx];
 
 // 1. പേജ് തുറക്കുമ്പോൾ തന്നെ ലോഗിൻ പരിശോധിക്കാൻ (One-Time Login)
 window.onload = function() {
@@ -100,7 +105,6 @@ function applyPermissions(user) {
         studentView.style.display = 'block';
     }
 }
-
 
 // 5. സെക്ഷൻ സ്വിച്ചർ
 function showSection(section) {
@@ -477,7 +481,7 @@ async function saveEdit(id) {
             monthlyFee: Number(document.getElementById('e-fee').value), siblings: siblings
         });
         alert("വിവരങ്ങൾ പുതുക്കി!"); loadStudents();
-    } catch(e) { alert("পিശക്: " + e.message); }
+    } catch(e) { alert("പിശക്: " + e.message); }
 }
 
 function recalcEditFee() { const sibs = document.getElementById('e-siblings').value.split(',').filter(x => x.trim() !== ""); document.getElementById('e-fee').value = 250 + (sibs.length * 50); }
@@ -729,11 +733,7 @@ async function showCollectionReport() {
         alert("അനുമതിയില്ല!");
         return; 
     }
-
-    const now = new Date();
-    const currentMonthIdx = now.getMonth(); 
-    const monthsOrder = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
+   
         content.innerHTML = `
         <div style="padding:15px; background:#f8f9fa; min-height:100vh; border-radius:12px;">
             <h3 style="color:#1a73e8; text-align:center; margin-bottom:20px;">📊 മാസവരി സംഖ്യ - മാസ്റ്റർ റിപ്പോർട്ട്</h3>
@@ -793,34 +793,28 @@ async function showCollectionReport() {
                     totalReceived += monthlyFee;
                 // പുതിയ കോഡ് (ഇത് ചേർക്കുക)
 
-                                   } else {
-                    // --- പുതിയ തിരുത്തൽ താഴെ ---
-                    
-                    // 1. നിലവിലെ മാസം (Current Month) എപ്പോഴും കണക്കിൽ വരണം
-                    const currentMonthName = monthsOrder[currentMonthIdx];
+                  } else {
+                    // മുകളിൽ ഗ്ലോബൽ ആയി നൽകിയത് കൊണ്ട് ഇവിടെ currentMonthName നേരിട്ട് ലഭിക്കും
                     const isCurrentMonth = (month === currentMonthName); 
-                    
-                    // 2. പഴയ മാസമാണെങ്കിൽ ആരെങ്കിലും പണമടച്ചിട്ടുണ്ടെങ്കിൽ മാത്രം ലിസ്റ്റിൽ വരിക
                     const hasStarted = (monthData[month] && monthData[month].paid > 0);
 
                     if (isCurrentMonth || hasStarted) {
                         monthData[month].pending += monthlyFee;
                         targetClass.pendingAmt += monthlyFee;
                         
-                        // Pay Month ബട്ടൺ വർക്ക് ആകാൻ ആവശ്യമായ വിവരങ്ങൾ ഇവിടെ ചേർക്കുന്നു
                         targetClass.pendingStudents.push({ 
                             id: doc.id, 
                             name: s.name, 
                             amt: monthlyFee,
-                            month: month // ഏത് മാസത്തെ പണമാണെന്ന് വ്യക്തമാക്കുന്നു
+                            month: month 
                         });
                         
                         totalPending += monthlyFee;
                     }
                 }
-            }); // monthsOrder ലൂപ്പ് അവസാനിക്കുന്നു
+ }); // monthsOrder ലൂപ്പ് അവസാനിക്കുന്നു
         }); // studentsSnap ലൂപ്പ് അവസാനിക്കുന്നു
- 
+
         // 1. മുകളിലെ സമ്മറി കാർഡുകൾ (ഈ മാസത്തെ പ്രാധാന്യം നൽകുന്നു)
         const currentMonthName = monthsOrder[currentMonthIdx];
         const currentMonthStats = monthData[currentMonthName] || { paid: 0, pending: 0 };

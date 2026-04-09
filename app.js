@@ -14,11 +14,13 @@ if (!firebase.apps.length) {
 }
 const auth = firebase.auth();
 const db = firebase.firestore();
-// സ്ക്രിപ്റ്റിന്റെ ഏറ്റവും മുകളിൽ നൽകുക
+// 1. മാസങ്ങളുടെ ക്രമം (ഇത് മാറില്ല)
 const monthsOrder = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+// 2. ഇന്നത്തെ തീയതിയും മാസവും കൃത്യമായി എടുക്കുന്നു
 const now = new Date();
-const currentMonthIdx = now.getMonth(); 
-const currentMonthName = monthsOrder[currentMonthIdx];
+const currentMonthName = monthsOrder[now.getMonth()]; // ഉദാ: "Apr"
+const currentMonthIdx = now.getMonth(); // ഉദാ: 3 (ഏപ്രിൽ ആണെങ്കിൽ)
 
 // 1. പേജ് തുറക്കുമ്പോൾ തന്നെ ലോഗിൻ പരിശോധിക്കാൻ (One-Time Login)
 window.onload = function() {
@@ -297,31 +299,42 @@ async function loadStudents(filterClass = 'all') {
     const listArea = document.getElementById('list-area');
     listArea.innerHTML = "";
 
-    snap.forEach(doc => {
+        snap.forEach(doc => {
         const s = doc.data();
         let sibCount = s.siblings ? s.siblings.length : 0;
-        let sibHTML = sibCount > 0 ? s.siblings.map(sib => `${sib.name} (${sib.class})`).join(', ') : "ഇല്ല";
 
-        // --- മാസങ്ങൾ കണക്കാക്കുന്ന പുതിയ ലോജിക് ---
-        const totalFeeMonths = s.feeMonths || 12; // ഡാറ്റാബേസിൽ ഇല്ലെങ്കിൽ 12 എന്ന് എടുക്കും
-        let unpaidCount = 0;
+        // --- മാസങ്ങൾ കണക്കാക്കുന്ന പുതിയ ലോജിക് (അറബി മാസം അടിസ്ഥാനപ്പെടുത്തിയത്) ---
         
-        // നിശ്ചയിച്ച മാസങ്ങളിൽ (ഉദാ: 10 മാസം) മാത്രം കുടിശ്ശിക നോക്കുന്നു
-        allMonths.slice(0, totalFeeMonths).forEach(m => {
-            const isPaid = s.monthStatus && s.monthStatus[m]?.paid;
-            if(!isPaid) unpaidCount++;
+        // കുട്ടിയുടെ ഡാറ്റയിൽ നിന്ന് ക്ലാസ് തുടങ്ങിയ മാസം എടുക്കുന്നു (ഇല്ലെങ്കിൽ 'May' എന്ന് കരുതുന്നു)
+        const startMonthName = s.startMonth || "May"; 
+        const startMonthIdx = monthsOrder.indexOf(startMonthName);
+
+        let unpaidCount = 0;
+        let pendingMonthsNames = [];
+
+        // അധ്യയന വർഷം തുടങ്ങിയ മാസം മുതൽ ഈ മാസം വരെയുള്ള കുടിശ്ശിക മാത്രം നോക്കുന്നു
+        monthsOrder.forEach((m, idx) => {
+            // 1. ക്ലാസ് തുടങ്ങിയ മാസത്തിന് മുമ്പുള്ളവ ഒഴിവാക്കുന്നു
+            // 2. നിലവിലെ മാസത്തിന് ശേഷമുള്ളവ (Future Months) ഒഴിവാക്കുന്നു
+            if (idx >= startMonthIdx && idx <= currentMonthIdx) {
+                const isPaid = s.monthStatus && s.monthStatus[m]?.paid;
+                if (!isPaid) {
+                    unpaidCount++;
+                    pendingMonthsNames.push(m);
+                }
+            }
         });
 
-        // മന്ത് ടേബിൾ നിർമ്മാണം
+        // മന്ത് ടേബിൾ നിർമ്മാണം (കാഴ്ചയിൽ മാറ്റം വരുത്താൻ താഴെയുള്ളത് ഉപയോഗിക്കാം)
         let monthTableHTML = `<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin: 10px 0; font-size: 10px;">`;
-        allMonths.forEach((m, index) => {
+        monthsOrder.forEach((m, index) => {
             const isPaid = s.monthStatus && s.monthStatus[m]?.paid;
-            const isExtraMonth = index >= totalFeeMonths; // കണക്കിൽ ഇല്ലാത്ത മാസങ്ങൾ
+            const isAcademicMonth = index >= startMonthIdx && index <= currentMonthIdx;
             
             monthTableHTML += `
-                <div style="border: 1px solid #ddd; padding: 4px; text-align: center; border-radius:3px; background: ${isPaid ? '#e8f5e9' : (isExtraMonth ? '#f5f5f5' : '#fff')}">
-                    <b style="color: ${isPaid ? 'green' : (isExtraMonth ? '#bbb' : '#777')}">${m}</b><br>
-                    <span style="font-size:8px;">${isPaid ? s.monthStatus[m].date : (isExtraMonth ? 'N/A' : '-')}</span>
+                <div style="border: 1px solid #ddd; padding: 4px; text-align: center; border-radius:3px; background: ${isPaid ? '#e8f5e9' : (isAcademicMonth ? '#fff' : '#f5f5f5')}">
+                    <b style="color: ${isPaid ? 'green' : (isAcademicMonth ? '#777' : '#bbb')}">${m}</b><br>
+                    <span style="font-size:8px;">${isPaid ? s.monthStatus[m].date : (isAcademicMonth ? '-' : 'N/A')}</span>
                 </div>`;
         });
         monthTableHTML += `</div>`;

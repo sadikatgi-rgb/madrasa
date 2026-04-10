@@ -394,7 +394,7 @@ async function loadStudents(filterClass = 'all') {
 }
 
 // 6. പ്രിന്റ് ഫങ്ക്ഷൻ (Colorful & Large JPG/PDF)
-function printReceipt(name, amount, months, date, rcptNo, sid) {
+function printReceipt(name, amount, months, date, rcptNo, sid, father, house, phone) {
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
         <html>
@@ -406,7 +406,7 @@ function printReceipt(name, amount, months, date, rcptNo, sid) {
                     .receipt-card { width: 450px; background: white; padding: 35px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); border-top: 12px solid #1a73e8; position: relative; }
                     .header { text-align: center; margin-bottom: 25px; }
                     .header h2 { color: #1a73e8; margin: 0; font-size: 26px; font-weight: 600; }
-                    .header .sub-info { font-size: 13px; color: #666; margin: 5px 0 10px 0; font-weight: 400; }
+                    .header .sub-info { font-size: 13px; color: #666; margin: 5px 0 10px 0; }
                     .header .receipt-label { margin: 5px 0; font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 2px; border-top: 1px solid #eee; border-bottom: 1px solid #eee; padding: 5px 0; }
                     .info-section { margin-top: 20px; }
                     .info-row { display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 8px; }
@@ -436,14 +436,16 @@ function printReceipt(name, amount, months, date, rcptNo, sid) {
                         <div class="info-row"><span class="label">രസീത് നം:</span><span class="value">#${rcptNo}</span></div>
                         <div class="info-row"><span class="label">തീയതി:</span><span class="value">${date}</span></div>
                         <div class="info-row"><span class="label">വിദ്യാർത്ഥി:</span><span class="value">${name}</span></div>
-                        <div class="info-row"><span class="label">സ്റ്റുഡന്റ് ID:</span><span class="value">${sid || '-'}</span></div>
-                        <div class="info-row"><span class="label">മാസങ്ങൾ:</span><span class="value">${Array.isArray(months) ? months.join(', ') : months}</span></div>
+                        <div class="info-row"><span class="label">പിതാവ്:</span><span class="value">${father || '-'}</span></div>
+                        <div class="info-row"><span class="label">വീട്ടുപേര്:</span><span class="value">${house || '-'}</span></div>
+                        <div class="info-row"><span class="label">ഫോൺ:</span><span class="value">${phone || '-'}</span></div>
+                        <div class="info-row"><span class="label">മാസം:</span><span class="value">${months}</span></div>
                     </div>
                     <div class="amount-container"><span>ആകെ തുക (Total Amount)</span><h1>₹${amount}</h1></div>
-                    <div class="footer"><p>ഫിസബീലില്ലാഹ് - നന്ദി!</p><div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px; font-size: 10px; color: #bbb;">Computer Generated Digital Receipt</div></div>
+                    <div class="footer"><p>ഫിസബീലില്ലാഹ് - നന്ദി!</p></div>
                 </div>
                 <div class="btn-group no-print">
-                    <button class="btn btn-download" onclick="downloadImage()">Download JPG (Photo)</button>
+                    <button class="btn btn-download" onclick="downloadImage()">Download Photo</button>
                     <button class="btn btn-print" onclick="window.print()">Print PDF</button>
                 </div>
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>

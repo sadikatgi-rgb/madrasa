@@ -509,21 +509,55 @@ async function saveEdit(id) {
 
 function recalcEditFee() { const sibs = document.getElementById('e-siblings').value.split(',').filter(x => x.trim() !== ""); document.getElementById('e-fee').value = 250 + (sibs.length * 50); }
 
-// 8. ഹിസ്റ്ററി & റീ-പ്രിന്റ് (Payments)
+// 8. ഹിസ്റ്ററി & റീ-പ്രിന്റ് (Payments) - Updated
 async function viewHistory(studentId, studentName) {
     const content = document.getElementById('dynamic-content');
-    content.innerHTML = `<h4>History: ${studentName}</h4><button onclick="loadStudents()" style="margin-bottom:10px;">Back</button><div id="hist-list"></div>`;
-    const snap = await db.collection("payments").where("studentId", "==", studentId).orderBy("timestamp", "desc").get();
-    if(snap.empty) { document.getElementById('hist-list').innerHTML = "വിവരങ്ങളില്ല"; return; }
-    snap.forEach(doc => {
-        const p = doc.data(); const monthsStr = Array.isArray(p.months) ? p.months.join(', ') : p.months;
-        document.getElementById('hist-list').innerHTML += `
-            <div style="background:#f0f7ff; padding:10px; margin-bottom:8px; border-radius:8px; font-size:12px; display:flex; justify-content:space-between; align-items:center;">
-                <div><b>No: ${p.receiptNo || '-'}</b> | ${p.date}<br>₹${p.amountPaid} (${monthsStr})</div>
-                <button onclick="printReceipt('${p.studentName}', ${p.amountPaid}, '${monthsStr}', '${p.date}', '${p.receiptNo}', '${p.studentID || ''}')" style="...">Print</button>
-            </div>`;
-    });
+    // ബാക്ക് ബട്ടണും ഹെഡിങ്ങും നൽകുന്നു
+    content.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h4 style="margin:0;">History: ${studentName}</h4>
+            <button onclick="loadStudents()" style="padding:5px 15px; background:#1a73e8; color:white; border:none; border-radius:5px; cursor:pointer;">Back</button>
+        </div>
+        <div id="hist-list">Loading...</div>
+    `;
+
+    try {
+        const snap = await db.collection("payments")
+            .where("studentId", "==", studentId)
+            .orderBy("timestamp", "desc")
+            .get();
+
+        if(snap.empty) { 
+            document.getElementById('hist-list').innerHTML = "<p style='text-align:center; color:#888;'>വിവരങ്ങളില്ല</p>"; 
+            return; 
+        }
+
+        let html = "";
+        snap.forEach(doc => {
+            const p = doc.data(); 
+            const monthsStr = Array.isArray(p.months) ? p.months.join(', ') : p.months;
+            
+            // ശ്രദ്ധിക്കുക: എല്ലാ വിവരങ്ങളും (fatherName, houseName, phone) printReceipt-ലേക്ക് അയക്കുന്നു
+            html += `
+                <div style="background:#f0f7ff; padding:12px; margin-bottom:10px; border-radius:12px; font-size:12px; display:flex; justify-content:space-between; align-items:center; border: 1px solid #e0eefb;">
+                    <div>
+                        <b style="color: #1a73e8; font-size:13px;">No: ${p.receiptNo || '-'}</b> | ${p.date}<br>
+                        <span style="font-size: 15px; font-weight: bold; color: #222;">₹${p.amountPaid}</span> 
+                        <span style="color: #666; margin-left:5px;">(${monthsStr})</span>
+                    </div>
+                    <button onclick="printReceipt('${p.studentName}', ${p.amountPaid}, '${monthsStr}', '${p.date}', '${p.receiptNo}', '${p.studentID || ''}', '${p.fatherName || ''}', '${p.houseName || ''}', '${p.parentPhone || ''}')" 
+                            style="background:#6c757d; color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600;">
+                        Print
+                    </button>
+                </div>`;
+        });
+        document.getElementById('hist-list').innerHTML = html;
+    } catch (e) {
+        console.error("History Error:", e);
+        document.getElementById('hist-list').innerHTML = "Error loading history: " + e.message;
+    }
 }
+
 
 function sendCustomWA(phone, name) { window.open(`https://wa.me/${phone}?text=${encodeURIComponent('അസ്സലാമു അലൈക്കും, ' + name + '-ന്റെ കാര്യവുമായി ബന്ധപ്പെട്ട്...')}`, '_blank'); }
 async function deleteStudent(id) { if (confirm("ഒഴിവാക്കണോ?")) { await db.collection("students").doc(id).delete(); loadStudents(); } }

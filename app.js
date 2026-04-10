@@ -267,6 +267,7 @@ async function saveStudent() {
 }
 
 // 4. സ്റ്റുഡന്റ് ലിസ്റ്റ് (Old Balance ഫീച്ചർ ഉൾപ്പെടെ)
+
 async function loadStudents(filterClass = 'all') {
     const savedUser = localStorage.getItem("activeUser");
     if (!savedUser) return;
@@ -276,7 +277,7 @@ async function loadStudents(filterClass = 'all') {
     let query = db.collection("students");
     let showFilter = false;
 
-    // 1. റോൾ അനുസരിച്ചുള്ള ഫിൽട്ടർ (സദർ vs ഉസ്താദ്)
+    // 1. റോൾ അനുസരിച്ചുള്ള ഫിൽട്ടർ
     if (user.role === 'Usthad') {
         filterClass = user.assignedClass; 
         query = query.where("class", "==", filterClass);
@@ -287,7 +288,7 @@ async function loadStudents(filterClass = 'all') {
         }
     }
 
-    // 2. ഹെഡർ ഭാഗം (ക്ലാസ് സെലക്ഷൻ മെനു)
+    // 2. ഹെഡർ ഭാഗം
     let headerHTML = '';
     if (showFilter) {
         headerHTML = `
@@ -305,23 +306,21 @@ async function loadStudents(filterClass = 'all') {
     const listArea = document.getElementById('list-area');
     listArea.innerHTML = "";
 
-        snap.forEach(doc => {
+    // പുതിയ ലിസ്റ്റുകൾ ഇവിടെ നിർവചിക്കുന്നു
+    let paidList = [];
+    let unpaidList = [];
+
+    snap.forEach(doc => {
         const s = doc.data();
         let sibCount = s.siblings ? s.siblings.length : 0;
 
-        // --- മാസങ്ങൾ കണക്കാക്കുന്ന പുതിയ ലോജിക് (അറബി മാസം അടിസ്ഥാനപ്പെടുത്തിയത്) ---
-        
-        // കുട്ടിയുടെ ഡാറ്റയിൽ നിന്ന് ക്ലാസ് തുടങ്ങിയ മാസം എടുക്കുന്നു (ഇല്ലെങ്കിൽ 'May' എന്ന് കരുതുന്നു)
         const startMonthName = s.startMonth || "May"; 
         const startMonthIdx = monthsOrder.indexOf(startMonthName);
 
         let unpaidCount = 0;
         let pendingMonthsNames = [];
 
-        // അധ്യയന വർഷം തുടങ്ങിയ മാസം മുതൽ ഈ മാസം വരെയുള്ള കുടിശ്ശിക മാത്രം നോക്കുന്നു
         monthsOrder.forEach((m, idx) => {
-            // 1. ക്ലാസ് തുടങ്ങിയ മാസത്തിന് മുമ്പുള്ളവ ഒഴിവാക്കുന്നു
-            // 2. നിലവിലെ മാസത്തിന് ശേഷമുള്ളവ (Future Months) ഒഴിവാക്കുന്നു
             if (idx >= startMonthIdx && idx <= currentMonthIdx) {
                 const isPaid = s.monthStatus && s.monthStatus[m]?.paid;
                 if (!isPaid) {
@@ -331,7 +330,14 @@ async function loadStudents(filterClass = 'all') {
             }
         });
 
-        // മന്ത് ടേബിൾ നിർമ്മാണം (കാഴ്ചയിൽ മാറ്റം വരുത്താൻ താഴെയുള്ളത് ഉപയോഗിക്കാം)
+        // കുട്ടികളെ ലിസ്റ്റുകളിലേക്ക് തരംതിരിക്കുന്നു
+        if (unpaidCount === 0) {
+            paidList.push(s.name);
+        } else {
+            unpaidList.push(s.name);
+        }
+
+        // മന്ത് ടേബിൾ ഡിസൈൻ
         let monthTableHTML = `<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin: 10px 0; font-size: 10px;">`;
         monthsOrder.forEach((m, index) => {
             const isPaid = s.monthStatus && s.monthStatus[m]?.paid;
@@ -345,13 +351,12 @@ async function loadStudents(filterClass = 'all') {
         });
         monthTableHTML += `</div>`;
 
-        // കുടിശ്ശിക കണക്കുകൂട്ടൽ
         const mFee = s.monthlyFee || (250 + (sibCount * 50));
         const pendingMonthsFee = unpaidCount * mFee;
         const oldBal = Number(s.balance) || 0;
         const totalPending = pendingMonthsFee + oldBal;
 
-        // 3. ഓരോ കുട്ടിയുടെയും കാർഡ് ഡിസൈൻ
+        // 3. ഓരോ കുട്ടിയുടെയും കാർഡ്
         listArea.innerHTML += `
             <div class="student-item" style="position:relative; background:white; padding:15px; margin-bottom:15px; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.1); border-left:5px solid #1a73e8;">
                 <div style="position:absolute; right:10px; top:10px;">
@@ -383,14 +388,78 @@ async function loadStudents(filterClass = 'all') {
                 </div>
 
                 <div style="display:flex; gap:5px; margin-top:10px;">
-    <button onclick="payFee('${doc.id}')" style="flex:1; background:#28a745; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer; font-size:12px;">Pay Month</button>
-    
-    <button onclick="viewHistory('${doc.id}', '${s.name}')" style="flex:1; background:#1a73e8; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer; font-size:12px;">History</button>
-    
-    <button onclick="sendCustomWA('${s.parentPhone}', '${s.name}')" style="background:#25d366; flex:1; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer; font-size:12px;">Chat</button>
-</div>
-  </div>`;
+                    <button onclick="payFee('${doc.id}')" style="flex:1; background:#28a745; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer; font-size:12px;">Pay Month</button>
+                    <button onclick="viewHistory('${doc.id}', '${s.name}')" style="flex:1; background:#1a73e8; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer; font-size:12px;">History</button>
+                    <button onclick="sendCustomWA('${s.parentPhone}', '${s.name}')" style="background:#25d366; flex:1; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer; font-size:12px;">Chat</button>
+                </div>
+            </div>`;
     });
+
+    // ഇവിടെ പുതിയ റിപ്പോർട്ട് ഫങ്ക്ഷൻ വിളിക്കുന്നു
+    updateExtendedReport(paidList, unpaidList);
+}
+
+// ---------------------------------------------------------
+// പുതിയ സപ്പോർട്ടിംഗ് ഫങ്ക്ഷനുകൾ (ഇവ താഴെ ചേർക്കുക)
+// ---------------------------------------------------------
+
+function updateExtendedReport(paidList, unpaidList) {
+    const mainContainer = document.getElementById('masterReportContainer');
+    if(!mainContainer) return; // മാസ്റ്റർ റിപ്പോർട്ട് ഇല്ലെങ്കിൽ മാത്രം തിരിച്ചു പോകുക
+
+    const extendedHTML = `
+        <div id="extended-stats" style="margin-top: 20px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                <div onclick="showDetailedList('അടച്ചവർ', ${JSON.stringify(paidList)})" 
+                     style="background: #f1f8e9; border: 1px solid #81c784; padding: 15px; border-radius: 12px; text-align: center; cursor: pointer;">
+                    <div style="font-size: 11px; color: #2e7d32;">പണമടച്ചവർ</div>
+                    <div style="font-size: 20px; font-weight: bold; color: #1b5e20;">${paidList.length} പേർ</div>
+                </div>
+
+                <div onclick="showDetailedList('ബാക്കിയുള്ളവർ', ${JSON.stringify(unpaidList)})" 
+                     style="background: #fff8e1; border: 1px solid #ffb74d; padding: 15px; border-radius: 12px; text-align: center; cursor: pointer;">
+                    <div style="font-size: 11px; color: #e65100;">അടയ്ക്കാനുള്ളവർ</div>
+                    <div style="font-size: 20px; font-weight: bold; color: #e65100;">${unpaidList.length} പേർ</div>
+                </div>
+            </div>
+
+            <div id="names-list-container" style="display:none; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-top: 10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h5 id="list-title" style="margin:0; color:#333;"></h5>
+                    <span onclick="document.getElementById('names-list-container').style.display='none'" style="cursor:pointer; color:red; font-weight:bold; padding:5px;">X</span>
+                </div>
+                <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
+                <div id="names-list-content" style="max-height: 200px; overflow-y: auto; font-size: 13px;"></div>
+            </div>
+        </div>
+    `;
+
+    let existingExtended = document.getElementById('extended-stats');
+    if (existingExtended) {
+        existingExtended.outerHTML = extendedHTML;
+    } else {
+        mainContainer.insertAdjacentHTML('beforeend', extendedHTML);
+    }
+}
+
+function showDetailedList(title, list) {
+    const container = document.getElementById('names-list-container');
+    const titleElem = document.getElementById('list-title');
+    const contentElem = document.getElementById('names-list-content');
+
+    titleElem.innerText = title;
+    container.style.display = 'block';
+
+    if (list.length === 0) {
+        contentElem.innerHTML = "<p style='color:#999; text-align:center;'>ലിസ്റ്റ് ലഭ്യമല്ല.</p>";
+    } else {
+        let html = "<div style='display:flex; flex-direction:column; gap:8px;'>";
+        list.forEach((name, idx) => {
+            html += `<div style='padding:5px; border-bottom:1px solid #f9f9f9; color:#444;'>${idx+1}. ${name}</div>`;
+        });
+        html += "</div>";
+        contentElem.innerHTML = html;
+    }
 }
 
 // 6. പ്രിന്റ് ഫങ്ക്ഷൻ (Colorful & Large JPG/PDF)

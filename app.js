@@ -1174,30 +1174,38 @@ async function deleteRemittance(id) {
 }
 
 // ---  ശമ്പള മാനേജ്‌മെന്റ് ഫങ്ക്ഷനുകൾ ഇവിടെ തുടങ്ങുന്നു (മാറ്റമില്ലാതെ) ---
-// 1. സദറിനുള്ള പ്രധാന ഫങ്ക്ഷൻ
+// --- പരിഷ്കരിച്ച ശമ്പള മാനേജ്‌മെന്റ് ഫങ്ക്ഷനുകൾ ---
+
 async function showSalaryManagement() {
     const user = JSON.parse(localStorage.getItem("activeUser"));
     const content = document.getElementById('dynamic-content');
 
-    // സദർ അല്ലാത്തവർക്ക് ഈ പേജ് കാണിക്കില്ല
+    // 1. സദർ അല്ലാത്തവർക്ക് (ഉസ്താദുമാർക്ക്) ശമ്പള വിവരം മാത്രം കാണിക്കുന്നു
     if (user.role !== 'Sadhar') {
-        content.innerHTML = `<p style="text-align:center; padding:20px;">ഈ പേജ് സദറിന് മാത്രമുള്ളതാണ്.</p>`;
+        content.innerHTML = `
+            <div style="padding:20px; text-align:center;">
+                <h3>💰 എന്റെ ശമ്പള വിവരം</h3>
+                <div style="background:white; padding:30px; border-radius:15px; box-shadow:0 5px 15px rgba(0,0,0,0.1);">
+                    <p style="color:#666;">അടിസ്ഥാന ശമ്പളം: ₹${user.baseSalary || 0}</p>
+                    <p style="font-size:12px; color:#999;">സദർ ശമ്പളം ഫൈനൽ ചെയ്ത ശേഷം ഇവിടെ തുക കാണാൻ സാധിക്കും.</p>
+                    <button onclick="showCollectionReport()" style="padding:10px 20px; background:#6c757d; color:white; border:none; border-radius:8px; margin-top:15px;">തിരികെ</button>
+                </div>
+            </div>`;
         return;
     }
 
-    // ഉസ്താദുമാരുടെ ലിസ്റ്റ് ഫയർബേസിൽ നിന്ന് എടുക്കുന്നു
+    // 2. സദറിനുള്ള മാനേജ്‌മെന്റ് ഭാഗം
     const usersSnap = await db.collection("users").where("role", "==", "Usthad").get();
     let usthadOptions = `<option value="">ഉസ്താദിനെ തിരഞ്ഞെടുക്കുക</option>`;
     
     usersSnap.forEach(doc => {
         const u = doc.data();
-        // പേരും ഓരോ ഉസ്താദിന്റെയും അടിസ്ഥാന ശമ്പളവും ഡാറ്റാ ആട്രിബ്യൂട്ടായി നൽകുന്നു
         usthadOptions += `<option value="${doc.id}" data-base="${u.baseSalary || 15000}" data-allowance="${u.allowance || 1000}">${u.name}</option>`;
     });
 
     content.innerHTML = `
         <div style="padding:20px; background:white; border-radius:15px; box-shadow:0 5px 20px rgba(0,0,0,0.1); max-width:500px; margin:auto; font-family:inherit;">
-            <h3 style="text-align:center; color:#1a73e8; margin-bottom:20px;">💰 ശമ്പളവും ലീവ് കണക്കും (Sadr)</h3>
+            <h3 style="text-align:center; color:#1a73e8; margin-bottom:20px;">💰 സാലറി മാനേജർ (Sadr)</h3>
             
             <div style="background:#f8f9fa; padding:15px; border-radius:10px;">
                 <div style="margin-bottom:15px;">
@@ -1221,46 +1229,45 @@ async function showSalaryManagement() {
                 <h5 style="margin:10px 0 5px 0; font-size:13px; color:#555; border-bottom:1px solid #eee; padding-bottom:5px;">ലീവ് വിവരങ്ങൾ</h5>
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom:15px;">
                     <div>
-                        <label style="font-size:10px;">CL (എടുത്തത്)</label>
-                        <input id="sal-cl" type="number" value="0" step="0.5" oninput="calculateNetSalary()" style="width:100%; padding:8px; border:1px solid #ddd;">
+                        <label style="font-size:10px; font-weight:bold; color:red;">CL (എടുത്തത്)</label>
+                        <input id="sal-cl" type="number" value="0" step="0.5" oninput="calculateNetSalary()" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:5px;">
                     </div>
                     <div>
-                        <label style="font-size:10px;">HPL</label>
-                        <input id="sal-hpl" type="number" value="0" oninput="calculateNetSalary()" style="width:100%; padding:8px; border:1px solid #ddd;">
+                        <label style="font-size:10px; font-weight:bold;">HPL</label>
+                        <input id="sal-hpl" type="number" value="0" oninput="calculateNetSalary()" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:5px;">
                     </div>
                     <div>
-                        <label style="font-size:10px;">LSW</label>
-                        <input id="sal-lsw" type="number" value="0" oninput="calculateNetSalary()" style="width:100%; padding:8px; border:1px solid #ddd;">
+                        <label style="font-size:10px; font-weight:bold;">LSW</label>
+                        <input id="sal-lsw" type="number" value="0" oninput="calculateNetSalary()" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:5px;">
                     </div>
                 </div>
 
                 <div style="background:white; padding:15px; border-radius:10px; border:1px solid #eee;">
                     <p style="margin:0; font-size:12px; color:#666;">അനുവദനീയമായ CL: <b>1.5</b> (രണ്ട് മാസത്തിൽ 3)</p>
-                    <p id="cl-bonus-text" style="margin:5px 0; font-size:12px; color:#28a745; display:none;">CL ബോണസ്: <b id="cl-bonus-amt">₹0</b></p>
+                    <p id="cl-bonus-text" style="margin:5px 0; font-size:12px; color:#28a745; display:none;">CL ബോണസ് (ബാക്കി): <b id="cl-bonus-amt">₹0</b></p>
                     <p style="margin:5px 0; font-size:12px; color:red;">ലീവ് കുറവ്: <b id="deduction-amt">₹0</b></p>
-                    <h3 style="margin:10px 0 0 0; color:#1a73e8; text-align:center;">ആകെ ശമ്പളം: <span id="net-salary">₹0</span></h3>
+                    <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
+                    <h3 style="margin:0; color:#1a73e8; text-align:center;">നൽകാനുള്ള തുക: <span id="net-salary">₹0</span></h3>
                 </div>
             </div>
 
             <div style="display:flex; gap:10px; margin-top:20px;">
                 <button onclick="showCollectionReport()" style="flex:1; padding:12px; background:#6c757d; color:white; border:none; border-radius:8px;">തിരികെ</button>
-                <button onclick="saveSalaryToDB()" style="flex:2; padding:12px; background:#1a73e8; color:white; border:none; border-radius:8px;">സേവ് ചെയ്യുക</button>
+                <button onclick="saveSalaryToDB()" style="flex:2; padding:12px; background:#1a73e8; color:white; border:none; border-radius:8px; font-weight:bold;">സേവ് ചെയ്യുക</button>
             </div>
         </div>`;
 }
 
-// 2. ഓരോ ഉസ്താദിനെ മാറ്റുമ്പോഴും ഫീൽഡുകൾ അപ്ഡേറ്റ് ചെയ്യാൻ
 function updateUsthadFields() {
     const select = document.getElementById('sal-usthad-select');
     const selectedOption = select.options[select.selectedIndex];
+    if(!selectedOption.value) return;
     
     document.getElementById('sal-base').value = selectedOption.getAttribute('data-base') || 0;
     document.getElementById('sal-allowance').value = selectedOption.getAttribute('data-allowance') || 0;
-    
     calculateNetSalary();
 }
 
-// 3. സാലറി കണക്കാക്കുന്ന ലോജിക് (1.5 CL കണക്ക് ഉൾപ്പെടെ)
 function calculateNetSalary() {
     const base = Number(document.getElementById('sal-base').value) || 0;
     const allowance = Number(document.getElementById('sal-allowance').value) || 0;
@@ -1270,52 +1277,46 @@ function calculateNetSalary() {
 
     const dailyWage = base / 30;
     let netAddition = base + allowance;
-    let netDeduction = (hplTaken * dailyWage) + (lswTaken * dailyWage);
+    let totalDeduction = (hplTaken * dailyWage) + (lswTaken * dailyWage);
     
     let clBonus = 0;
     let clDeduction = 0;
 
-    // 1.5 CL ലോജിക്
+    // 1.5 CL Logic: എടുത്തത് 1.5-ൽ കുറവാണെങ്കിൽ പണം കൂട്ടുന്നു, കൂടുതലാണെങ്കിൽ കുറയ്ക്കുന്നു
     if (clTaken < 1.5) {
-        // എടുത്തത് ഒന്നരയിൽ കുറവാണെങ്കിൽ ബാക്കിയുള്ളതിന് പണം നൽകുന്നു
         clBonus = (1.5 - clTaken) * dailyWage;
         document.getElementById('cl-bonus-text').style.display = 'block';
     } else {
-        // ഒന്നരയിൽ കൂടുതൽ എടുത്താൽ ശമ്പളം കുറയ്ക്കുന്നു
         clDeduction = (clTaken - 1.5) * dailyWage;
         document.getElementById('cl-bonus-text').style.display = 'none';
     }
 
-    netDeduction += clDeduction;
-    const finalNet = Math.round((netAddition + clBonus) - netDeduction);
+    totalDeduction += clDeduction;
+    const finalNet = Math.round((netAddition + clBonus) - totalDeduction);
 
     document.getElementById('cl-bonus-amt').innerText = "₹" + Math.round(clBonus);
-    document.getElementById('deduction-amt').innerText = "₹" + Math.round(netDeduction);
+    document.getElementById('deduction-amt').innerText = "₹" + Math.round(totalDeduction);
     document.getElementById('net-salary').innerText = "₹" + finalNet;
 }
 
-// 4. ഡാറ്റാബേസിലേക്ക് സേവ് ചെയ്യൽ
 async function saveSalaryToDB() {
     const usthadID = document.getElementById('sal-usthad-select').value;
-    if (!usthadID) {
-        alert("ദയവായി ഒരു ഉസ്താദിനെ തിരഞ്ഞെടുക്കുക.");
-        return;
-    }
-
-    const salaryData = {
-        totalAmount: document.getElementById('net-salary').innerText,
-        date: new Date().toLocaleDateString(),
-        status: "Calculated"
-    };
+    const finalAmt = document.getElementById('net-salary').innerText;
+    if (!usthadID) { alert("ഉസ്താദിനെ തിരഞ്ഞെടുക്കുക!"); return; }
 
     try {
-        await db.collection("salaries").doc(usthadID).set(salaryData, { merge: true });
+        await db.collection("salaries").doc(usthadID).set({
+            totalAmount: finalAmt,
+            date: new Date().toLocaleDateString(),
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            status: "Finalized"
+        }, { merge: true });
         alert("ശമ്പള വിവരം വിജയകരമായി സേവ് ചെയ്തു.");
-    } catch (e) {
-        console.error("Error saving salary:", e);
-        alert("സേവ് ചെയ്യുന്നതിൽ പരാജയം.");
-    }
+    } catch (e) { alert("Error: " + e.message); }
 }
+
+// --- ശമ്പള മാനേജ്‌മെന്റ് ഫങ്ക്ഷനുകൾ ഇവിടെ അവസാനിക്കുന്നു ---
+
 
 async function loadSadharSalaryTracker(totalCollection) {
     const tracker = document.getElementById('usthad-salary-summary');
@@ -1395,57 +1396,8 @@ async function confirmPaymentSave() {
     } catch (e) { alert("Error saving data!"); }
 }
 
-async function showSalaryManagement() {
-    const user = JSON.parse(localStorage.getItem("activeUser"));
-    const content = document.getElementById('dynamic-content');
-    const baseVal = user.baseSalary || 15000;
-    const allowVal = user.allowance || 1000;
-    content.innerHTML = `
-        <div style="padding:20px; background:white; border-radius:15px; box-shadow:0 5px 20px rgba(0,0,0,0.1); max-width:500px; margin:auto;">
-            <h3 style="text-align:center; color:#1a73e8; margin-bottom:20px;">💰 ശമ്പളവും ലീവ് കണക്കും</h3>
-            <div style="background:#f8f9fa; padding:15px; border-radius:10px;">
-                <div style="margin-bottom:15px;"><label style="font-size:12px;">അടിസ്ഥാന ശമ്പളം:</label><input id="sal-base" type="number" value="${baseVal}" oninput="calculateNetSalary()" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ddd;"></div>
-                <div style="margin-bottom:15px;"><label style="font-size:12px;">അലവൻസുകൾ:</label><input id="sal-allowance" type="number" value="${allowVal}" oninput="calculateNetSalary()" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ddd;"></div>
-                <div style="margin-bottom:15px;"><label style="font-size:12px;">എടുത്ത ലീവ്:</label><input id="sal-leaves" type="number" value="0" step="0.5" oninput="calculateNetSalary()" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ddd;"></div>
-                <div style="background:white; padding:15px; border-radius:10px; border:1px solid #eee; margin-top:10px;">
-                    <p style="margin:0; font-size:13px;">അനുവദനീയമായ ലീവ്: 1.5</p>
-                    <p style="margin:5px 0; font-size:13px; color:red;">ലീവ് കാരണം കുറയുന്നത്: <b id="deduction-amt">₹0</b></p>
-                    <h3 style="margin:10px 0 0 0; color:#28a745; text-align:center;">നൽകാനുള്ള തുക: <span id="net-salary">₹0</span></h3>
-                </div>
-            </div>
-            <div style="display:flex; gap:10px; margin-top:20px;">
-                <button onclick="showCollectionReport()" style="flex:1; padding:12px; background:#6c757d; color:white; border:none; border-radius:8px;">തിриകെ</button>
-                ${user.role === 'Sadhar' ? `<button onclick="saveSalaryRecord()" style="flex:2; padding:12px; background:#1a73e8; color:white; border:none; border-radius:8px;">സേവ് ചെയ്യുക</button>` : ''}
-            </div>
-        </div>`;
-    calculateNetSalary();
-}
 
-function calculateNetSalary() {
-    const base = Number(document.getElementById('sal-base').value) || 0;
-    const allowance = Number(document.getElementById('sal-allowance').value) || 0;
-    const leaves = Number(document.getElementById('sal-leaves').value) || 0;
-    let deduction = 0;
-    if (leaves > 1.5) deduction = (leaves - 1.5) * (base / 30);
-    const net = (base + allowance) - deduction;
-    document.getElementById('deduction-amt').innerText = "₹" + Math.round(deduction);
-    document.getElementById('net-salary').innerText = "₹" + Math.round(net);
-}
 
-async function saveSalaryRecord() {
-    alert("ശമ്പള വിവരം താൽക്കാലികമായി കണക്കാക്കി. ഡാറ്റാബേസിലേക്ക് സേവ് ചെയ്യാനുള്ള സൗകര്യം ഉടൻ ലഭ്യമാകും.");
-}
-function updateBaseSalary() {
-    const select = document.getElementById('sal-usthad-select');
-    const baseInput = document.getElementById('sal-base');
-    const selectedOption = select.options[select.selectedIndex];
-    
-    // users കളക്ഷനിൽ നിന്ന് ലഭിക്കുന്ന baseSalary ഇവിടെ നൽകുന്നു
-    baseInput.value = selectedOption.getAttribute('data-base') || 0;
-    
-    // തുക മാറുമ്പോൾ നെറ്റ് സാലറിയും റീ-കാൽക്കുലേറ്റ് ചെയ്യണം
-    calculateNetSalary(); 
-}
 // --- ഫീസ് പേയ്‌മെന്റ് നടത്താനുള്ള ഫങ്ക്ഷൻ ---
 async function payFee(id) {
     try {

@@ -711,78 +711,79 @@ async function saveGurunidhiBox() {
         showGurunidhiSection();
     } catch(e) { alert("Error: " + e.message); }
 }
-
-// 2. ലിസ്റ്റ് ലോഡ് ചെയ്യുമ്പോൾ (പുതിയ ബട്ടണുകൾ സഹിതം)
+// 1. ലിസ്റ്റ് ലോഡ് ചെയ്യുന്ന പ്രധാന ഫങ്ക്ഷൻ (Search ഒഴിവാക്കി)
 async function loadGurunidhiList() {
     const listArea = document.getElementById('gurunidhi-list-area');
-    const searchVal = document.getElementById('g-search').value.toLowerCase();
-    
-    // ലോഗിൻ ചെയ്ത യൂസറുടെ വിവരങ്ങൾ എടുക്കുന്നു
     const user = JSON.parse(localStorage.getItem("activeUser"));
+
+    if (!listArea) return;
+    listArea.innerHTML = "<p style='text-align:center;'>ലോഡിംഗ്...</p>";
 
     try {
         let query = db.collection("gurunidhi");
 
-        // പുതിയ മാറ്റം: ഉസ്താദ് ആണെങ്കിൽ സ്വന്തം ക്ലാസ്സ് മാത്രം കാണിക്കുന്നു
-        if (user && user.role === 'Usthad') {
+        // ഉസ്താദ് ആണെങ്കിൽ സ്വന്തം ക്ലാസ്സ് മാത്രം കാണിക്കുന്നു
+        if (user && user.role === 'Usthad' && user.assignedClass) {
             query = query.where("studentClass", "==", user.assignedClass);
         }
 
-        // സമയം അനുസരിച്ച് ക്രമീകരിക്കുന്നു
+        // ഇൻഡക്സ് റെഡി ആയതുകൊണ്ട് സമയം അനുസരിച്ച് ക്രമീകരിക്കുന്നു
         const snap = await query.orderBy("timestamp", "desc").get();
+        
         listArea.innerHTML = "";
         
-        snap.forEach(doc => {
-            const g = doc.data();
-            
-            // സെർച്ച് ഫിൽട്ടർ
-            if(g.studentName.toLowerCase().includes(searchVal) || g.boxID.toLowerCase().includes(searchVal)) {
-                
-                // സദർ ആണെങ്കിൽ മാത്രം ഡിലീറ്റ് ബട്ടൺ കാണിക്കാൻ
-                const deleteBtn = (user && user.role === 'Sadhar') ? 
-                    `<button onclick="deleteGBox('${doc.id}')" style="background:#ff4d4d; color:white; border:none; padding:8px; border-radius:4px; font-size:11px;">ഡിലീറ്റ്</button>` : '';
-
-                listArea.innerHTML += `
-                    <div style="border:1px solid #eee; padding:12px; margin-bottom:10px; border-radius:10px; background:#fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-                        <div style="display:flex; justify-content:space-between;">
-                            <b style="color:#d32f2f;">${g.studentName} (${g.studentClass})</b>
-                            <span style="font-size:10px; background:#f0f0f0; padding:2px 5px; border-radius:5px;">ID: ${g.boxID}</span>
-                        </div>
-                        <div style="font-size:12px; color:#555; margin:5px 0;">
-                            വീട്: ${g.houseName || '-'} | നൽകിയത്: ${g.givenDate || '-'}<br>
-                            ആകെ ലഭിച്ച തുക: <b style="color:green; font-size:14px;">₹${g.totalAmount || 0}</b>
-                        </div>
-                        <div style="margin-top:10px; display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
-                            <button onclick="addGPayment('${doc.id}', '${g.studentName}', '${g.boxID}')" style="background:#28a745; color:white; border:none; padding:8px; border-radius:4px; font-size:11px;">തുക ചേർക്കുക</button>
-                            <button onclick="viewGHistory('${doc.id}', '${g.studentName}')" style="background:#1a73e8; color:white; border:none; padding:8px; border-radius:4px; font-size:11px;">History</button>
-                            <button onclick="reissueGBox('${doc.id}')" style="background:#ff9800; color:white; border:none; padding:8px; border-radius:4px; font-size:11px;">Re-Issue (തീയതി മാറ്റുക)</button>
-                            ${deleteBtn}
-                        </div>
-                    </div>
-                `;
-            }
-        });
-
-        if (listArea.innerHTML === "") {
-            listArea.innerHTML = "<p style='text-align:center; font-size:12px; color:#888;'>വിവരങ്ങൾ ലഭ്യമല്ല.</p>";
+        if (snap.empty) {
+            listArea.innerHTML = "<p style='text-align:center; padding:20px; color:#888;'>നിലവിൽ വിവരങ്ങൾ ഒന്നുമില്ല.</p>";
+            return;
         }
 
+        snap.forEach(doc => {
+            const g = doc.data();
+            const name = g.studentName || "പേരില്ലാത്ത കുട്ടി";
+            const id = g.boxID || "ID ഇല്ല";
+
+            // സദർ ആണെങ്കിൽ മാത്രം ഡിലീറ്റ് ബട്ടൺ
+            const deleteBtn = (user && user.role === 'Sadhar') ? 
+                `<button onclick="deleteGBox('${doc.id}')" style="background:#ff4d4d; color:white; border:none; padding:8px; border-radius:4px; font-size:11px; cursor:pointer;">ഡിലീറ്റ്</button>` : '';
+
+            listArea.innerHTML += `
+                <div style="border:1px solid #eee; padding:12px; margin-bottom:10px; border-radius:10px; background:#fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <b style="color:#d32f2f; font-size:15px;">${name} (${g.studentClass || '-'})</b>
+                        <span style="font-size:10px; background:#f0f0f0; padding:2px 6px; border-radius:5px; border:1px solid #ddd;">ID: ${id}</span>
+                    </div>
+                    <div style="font-size:12px; color:#555; margin:8px 0; line-height:1.4;">
+                        🏠 വീട്: ${g.houseName || '-'}<br>
+                        📅 നൽകിയത്: ${g.givenDate || '-'}<br>
+                        💰 ആകെ തുക: <b style="color:#28a745; font-size:14px;">₹${g.totalAmount || 0}</b>
+                    </div>
+                    <div style="margin-top:10px; display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
+                        <button onclick="addGPayment('${doc.id}', '${name}', '${id}')" style="background:#28a745; color:white; border:none; padding:9px; border-radius:5px; font-size:11px; cursor:pointer;">തുക ചേർക്കുക</button>
+                        <button onclick="viewGHistory('${doc.id}', '${name}')" style="background:#1a73e8; color:white; border:none; padding:9px; border-radius:5px; font-size:11px; cursor:pointer;">History</button>
+                        <button onclick="reissueGBox('${doc.id}')" style="background:#ff9800; color:white; border:none; padding:9px; border-radius:5px; font-size:11px; cursor:pointer;">Re-Issue</button>
+                        ${deleteBtn}
+                    </div>
+                </div>`;
+        });
+
     } catch(e) { 
-        console.error("Error loading list: ", e);
-        listArea.innerHTML = "വിവരങ്ങൾ ലഭിക്കുന്നതിൽ തടസ്സം നേരിട്ടു."; 
+        console.error("Gurunidhi Load Error: ", e);
+        listArea.innerHTML = `<div style="color:red; text-align:center; padding:10px; font-size:12px;">വിവരങ്ങൾ ലഭിക്കുന്നതിൽ തടസ്സം നേരിട്ടു.</div>`; 
     }
 }
 
-// 3. തുക ചേർക്കാനും റെസീപ്റ്റ് നമ്പർ നൽകാനും
+// 2. തുക ചേർക്കാനും റെസീപ്റ്റ് ജനറേറ്റ് ചെയ്യാനും
 async function addGPayment(docId, name, boxID) {
     const amt = prompt("ലഭിച്ച തുക:");
-    if(!amt) return;
+    if(!amt || isNaN(amt)) return;
+    
     const rcpt = prompt("റെസീപ്റ്റ് നമ്പർ (Receipt No):");
-    if(!rcpt) { alert("റെസീപ്റ്റ് നമ്പർ നൽകണം!"); return; }
+    if(!rcpt) { alert("റെസീപ്റ്റ് നമ്പർ നിർബന്ധമാണ്!"); return; }
+    
     const date = new Date().toLocaleDateString('en-IN');
 
     try {
-        // ഹിസ്റ്ററിയിലേക്ക് സേവ് ചെയ്യുന്നു
+        // 1. ഹിസ്റ്ററിയിലേക്ക് (Sub-collection) ചേർക്കുന്നു
         await db.collection("gurunidhi").doc(docId).collection("payments").add({
             amount: Number(amt),
             receiptNo: rcpt,
@@ -790,7 +791,7 @@ async function addGPayment(docId, name, boxID) {
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        // ആകെ തുക അപ്‌ഡേറ്റ് ചെയ്യുന്നു
+        // 2. മെയിൻ ഡോക്യുമെന്റിലെ ആകെ തുക അപ്‌ഡേറ്റ് ചെയ്യുന്നു
         const ref = db.collection("gurunidhi").doc(docId);
         const gDoc = await ref.get();
         const currentTotal = gDoc.data().totalAmount || 0;
@@ -800,57 +801,71 @@ async function addGPayment(docId, name, boxID) {
             lastPaymentDate: date
         });
 
-        alert("സേവ് ചെയ്തു!");
-        loadGurunidhiList();
+        alert("തുക വിജയകരമായി ചേർത്തു!");
+        loadGurunidhiList(); // ലിസ്റ്റ് പുതുക്കുന്നു
         
         if(confirm("രസീപ്റ്റ് പ്രിന്റ് ചെയ്യണോ?")) {
-            printReceipt(name, amt, "Gurunidhi Box Contribution", date, "GN-"+rcpt, boxID);
+            // പ്രിന്റ് ഫങ്ക്ഷൻ ഉണ്ടെന്ന് ഉറപ്പുവരുത്തുക
+            if(typeof printReceipt === 'function') {
+                printReceipt(name, amt, "Gurunidhi Box Contribution", date, "GN-"+rcpt, boxID);
+            }
         }
-    } catch(e) { alert("Error updating payment!"); }
+    } catch(e) { alert("Error: " + e.message); }
 }
 
-// 4. ഓരോ കുട്ടിയുടെയും ഹിസ്റ്ററി കാണാൻ
+// 3. ഹിസ്റ്ററി കാണാൻ
 async function viewGHistory(docId, name) {
     const listArea = document.getElementById('gurunidhi-list-area');
-    listArea.innerHTML = `<h4>History: ${name}</h4><button onclick="loadGurunidhiList()" style="margin-bottom:10px;">Back</button><div id="gh-list"></div>`;
+    listArea.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h4 style="margin:0; color:#d32f2f;">History: ${name}</h4>
+            <button onclick="loadGurunidhiList()" style="padding:5px 15px; background:#6c757d; color:white; border:none; border-radius:5px;">തിരികെ</button>
+        </div>
+        <div id="gh-list">ലോഡിംഗ്...</div>`;
     
-    const snap = await db.collection("gurunidhi").doc(docId).collection("payments").orderBy("timestamp", "desc").get();
-    const ghList = document.getElementById('gh-list');
-    
-    if(snap.empty) { ghList.innerHTML = "ഹിസ്റ്ററി ലഭ്യമല്ല."; return; }
+    try {
+        const snap = await db.collection("gurunidhi").doc(docId).collection("payments").orderBy("timestamp", "desc").get();
+        const ghList = document.getElementById('gh-list');
+        
+        if(snap.empty) { ghList.innerHTML = "<p style='text-align:center; color:#888;'>ഹിസ്റ്ററി ലഭ്യമല്ല.</p>"; return; }
 
-    snap.forEach(doc => {
-        const p = doc.data();
-        ghList.innerHTML += `
-            <div style="background:#f9f9f9; padding:10px; border-bottom:1px solid #ddd; display:flex; justify-content:space-between; font-size:12px;">
-                <div><b>₹${p.amount}</b><br><small>${p.date}</small></div>
-                <div>Rcpt No: ${p.receiptNo}</div>
-            </div>`;
-    });
+        ghList.innerHTML = "";
+        snap.forEach(doc => {
+            const p = doc.data();
+            ghList.innerHTML += `
+                <div style="background:#f9f9f9; padding:12px; border-bottom:1px solid #ddd; display:flex; justify-content:space-between; font-size:13px; border-radius:8px; margin-bottom:5px;">
+                    <div><b style="color:#28a745;">₹${p.amount}</b><br><small style="color:#666;">${p.date}</small></div>
+                    <div style="text-align:right;">Rcpt: <b>${p.receiptNo}</b></div>
+                </div>`;
+        });
+    } catch(e) { alert("Error loading history: " + e.message); }
 }
 
-// 5. ബോക്സ് തിരിച്ചെടുക്കാനും പുതിയ തീയതിയിൽ നൽകാനും
+// 4. ബോക്സ് റീ-ഇഷ്യൂ ചെയ്യാൻ
 async function reissueGBox(id) {
     const newDate = prompt("പുതിയ തീയതി (DD/MM/YYYY):", new Date().toLocaleDateString('en-IN'));
     if(!newDate) return;
 
     try {
         await db.collection("gurunidhi").doc(id).update({
-            givenDate: newDate,
-            // ആവശ്യമുണ്ടെങ്കിൽ ഇവിടെ ആകെ തുക റീസെറ്റ് ചെയ്യാം (totalAmount: 0)
+            givenDate: newDate
         });
-        alert("പുതുക്കി!");
+        alert("വിവരങ്ങൾ പുതുക്കി!");
         loadGurunidhiList();
     } catch(e) { alert("Error!"); }
 }
 
-// 6. ഡിലീറ്റ് ചെയ്യാൻ
+// 5. ഡിലീറ്റ് ചെയ്യാൻ
 async function deleteGBox(id) {
-    if(confirm("ഈ കുട്ടിയുടെ എല്ലാ ഗുരുനിധി വിവരങ്ങളും ഒഴിവാക്കണോ?")) {
-        await db.collection("gurunidhi").doc(id).delete();
-        loadGurunidhiList();
+    if(confirm("ഈ കുട്ടിയുടെ എല്ലാ ഗുരുനിധി വിവരങ്ങളും സ്ഥിരമായി ഒഴിവാക്കണോ?")) {
+        try {
+            await db.collection("gurunidhi").doc(id).delete();
+            alert("ഒഴിവാക്കി!");
+            loadGurunidhiList();
+        } catch(e) { alert("ഡിലീറ്റ് ചെയ്യുന്നതിൽ പരാജയപ്പെട്ടു."); }
     }
 }
+
 // 10. കളക്ഷൻ റിപ്പോർട്ട് (Collection Summary)
 
   // --- റിപ്പോർട്ട് സെക്ഷൻ ആരംഭം ---

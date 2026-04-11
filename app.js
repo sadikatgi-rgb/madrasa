@@ -831,47 +831,58 @@ async function addGPayment(docId, name, boxID, father, house, phone) {
 async function viewGHistory(docId, name) {
     const listArea = document.getElementById('gurunidhi-list-area');
     
-    // 1. പ്രിന്റിംഗിന് ആവശ്യമായ കുട്ടിയുടെ മെയിൻ വിവരങ്ങൾ ആദ്യം എടുക്കുന്നു
-    const mainDoc = await db.collection("gurunidhi").doc(docId).get();
-    const g = mainDoc.data();
-    const boxID = g.boxID || "";
-    const father = g.fatherName || "-";
-    const house = g.houseName || "-";
-    const phone = g.phone || "-";
-
-    listArea.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; background:#f8f9fa; padding:10px; border-radius:8px;">
-            <h4 style="margin:0; color:#d32f2f;">History: ${name}</h4>
-            <button onclick="loadGurunidhiList()" style="padding:6px 15px; background:#6c757d; color:white; border:none; border-radius:6px; cursor:pointer;">തിരികെ</button>
-        </div>
-        <div id="gh-list">ലോഡിംഗ്...</div>`;
-    
     try {
+        // 1. പ്രിന്റിംഗിന് ആവശ്യമായ കുട്ടിയുടെ വിവരങ്ങൾ എടുക്കുന്നു
+        const mainDoc = await db.collection("gurunidhi").doc(docId).get();
+        const g = mainDoc.data();
+        const boxID = g.boxID || "";
+        const father = g.fatherName || "-";
+        const house = g.houseName || "-";
+        const phone = g.phone || "-";
+
+        listArea.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; background:#f8f9fa; padding:10px; border-radius:8px;">
+                <h4 style="margin:0; color:#d32f2f;">History: ${name}</h4>
+                <button onclick="loadGurunidhiList()" style="padding:6px 15px; background:#6c757d; color:white; border:none; border-radius:6px; cursor:pointer;">തിരികെ</button>
+            </div>
+            <div id="gh-list">ലോഡിംഗ്...</div>`;
+        
         const snap = await db.collection("gurunidhi").doc(docId).collection("payments").orderBy("timestamp", "desc").get();
         const ghList = document.getElementById('gh-list');
         
-        if(snap.empty) { ghList.innerHTML = "<p style='text-align:center; color:#888;'>ഹിസ്റ്ററി ലഭ്യമല്ല.</p>"; return; }
+        if(snap.empty) { 
+            ghList.innerHTML = "<p style='text-align:center; color:#888;'>ഹിസ്റ്ററി ലഭ്യമല്ല.</p>"; 
+            return; 
+        }
 
-        ghList.innerHTML += `
-    <div style="background:#ffffff; padding:15px; border:1px solid #d32f2f; display:flex; justify-content:space-between; align-items:center; border-radius:12px; margin-bottom:10px; box-shadow: 0 4px 8px rgba(211, 47, 47, 0.1);">
-        <div style="flex-grow: 1;">
-            <div style="display:flex; align-items:center; margin-bottom:5px;">
-                <span style="background:#e8f5e9; color:#2e7d32; padding:4px 10px; border-radius:20px; font-weight:bold; font-size:16px;">₹${p.amount}</span>
-                <span style="margin-left:10px; color:#666; font-size:12px;">📅 ${p.date}</span>
-            </div>
-            <div style="font-size:13px; color:#333;">
-                രസീത് നമ്പർ: <b style="color:#d32f2f;">${p.receiptNo}</b>
-            </div>
-        </div>
-        <div style="margin-left:10px;">
-            <button onclick="printReceipt('${name}', '${p.amount}', 'Gurunidhi Box Contribution', '${p.date}', 'GN-${p.receiptNo}', '${boxID}', '${father}', '${house}', '${phone}')" 
-                    style="background:#d32f2f; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold; display:flex; align-items:center; gap:5px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-                <span>Print</span> 🖨️
-            </button>
-        </div>
-    </div>`;
+        ghList.innerHTML = ""; // പഴയ ലിസ്റ്റ് കളയുന്നു
+
+        // ഇവിടെയാണ് പിശക് വന്നിരുന്നത് - snap.forEach ചേർത്തു
+        snap.forEach(doc => {
+            const p = doc.data();
+            ghList.innerHTML += `
+                <div style="background:#ffffff; padding:15px; border:1px solid #d32f2f; display:flex; justify-content:space-between; align-items:center; border-radius:12px; margin-bottom:10px; box-shadow: 0 4px 8px rgba(211, 47, 47, 0.1);">
+                    <div style="flex-grow: 1;">
+                        <div style="display:flex; align-items:center; margin-bottom:5px;">
+                            <span style="background:#e8f5e9; color:#2e7d32; padding:4px 10px; border-radius:20px; font-weight:bold; font-size:16px;">₹${p.amount}</span>
+                            <span style="margin-left:10px; color:#666; font-size:12px;">📅 ${p.date}</span>
+                        </div>
+                        <div style="font-size:13px; color:#333;">
+                            രസീത് നമ്പർ: <b style="color:#d32f2f;">${p.receiptNo}</b>
+                        </div>
+                    </div>
+                    <div style="margin-left:10px;">
+                        <button onclick="printReceipt('${name}', '${p.amount}', 'Gurunidhi Box Contribution', '${p.date}', 'GN-${p.receiptNo}', '${boxID}', '${father}', '${house}', '${phone}')" 
+                                style="background:#d32f2f; color:white !important; border:none; padding:10px 15px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold; display:flex; align-items:center; gap:5px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                            Print 🖨️
+                        </button>
+                    </div>
+                </div>`;
         });
-    } catch(e) { alert("Error: " + e.message); }
+    } catch(e) { 
+        console.error("Error:", e);
+        alert("Error: " + e.message); 
+    }
 }
 
 // 4. ബോക്സ് റീ-ഇഷ്യൂ ചെയ്യാൻ

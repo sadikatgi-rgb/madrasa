@@ -830,10 +830,19 @@ async function addGPayment(docId, name, boxID, father, house, phone) {
 // 3. ഹിസ്റ്ററി കാണാൻ
 async function viewGHistory(docId, name) {
     const listArea = document.getElementById('gurunidhi-list-area');
+    
+    // 1. പ്രിന്റിംഗിന് ആവശ്യമായ കുട്ടിയുടെ മെയിൻ വിവരങ്ങൾ ആദ്യം എടുക്കുന്നു
+    const mainDoc = await db.collection("gurunidhi").doc(docId).get();
+    const g = mainDoc.data();
+    const boxID = g.boxID || "";
+    const father = g.fatherName || "-";
+    const house = g.houseName || "-";
+    const phone = g.phone || "-";
+
     listArea.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; background:#f8f9fa; padding:10px; border-radius:8px;">
             <h4 style="margin:0; color:#d32f2f;">History: ${name}</h4>
-            <button onclick="loadGurunidhiList()" style="padding:5px 15px; background:#6c757d; color:white; border:none; border-radius:5px;">തിരികെ</button>
+            <button onclick="loadGurunidhiList()" style="padding:6px 15px; background:#6c757d; color:white; border:none; border-radius:6px; cursor:pointer;">തിരികെ</button>
         </div>
         <div id="gh-list">ലോഡിംഗ്...</div>`;
     
@@ -847,12 +856,21 @@ async function viewGHistory(docId, name) {
         snap.forEach(doc => {
             const p = doc.data();
             ghList.innerHTML += `
-                <div style="background:#f9f9f9; padding:12px; border-bottom:1px solid #ddd; display:flex; justify-content:space-between; font-size:13px; border-radius:8px; margin-bottom:5px;">
-                    <div><b style="color:#28a745;">₹${p.amount}</b><br><small style="color:#666;">${p.date}</small></div>
-                    <div style="text-align:right;">Rcpt: <b>${p.receiptNo}</b></div>
+                <div style="background:#fff; padding:12px; border:1px solid #eee; display:flex; justify-content:space-between; align-items:center; border-radius:8px; margin-bottom:8px; box-shadow: 0 2px 4px rgba(0,0,0,0.03);">
+                    <div>
+                        <b style="color:#2e7d32; font-size:15px;">₹${p.amount}</b><br>
+                        <small style="color:#888;">${p.date}</small><br>
+                        <small style="color:#555;">Rcpt No: <b>${p.receiptNo}</b></small>
+                    </div>
+                    <div style="text-align:right;">
+                        <button onclick="printReceipt('${name}', '${p.amount}', 'Gurunidhi Box Contribution', '${p.date}', 'GN-${p.receiptNo}', '${boxID}', '${father}', '${house}', '${phone}')" 
+                                style="background:#f0f0f0; border:1px solid #ddd; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:11px;">
+                            Print 🖨️
+                        </button>
+                    </div>
                 </div>`;
         });
-    } catch(e) { alert("Error loading history: " + e.message); }
+    } catch(e) { alert("Error: " + e.message); }
 }
 
 // 4. ബോക്സ് റീ-ഇഷ്യൂ ചെയ്യാൻ

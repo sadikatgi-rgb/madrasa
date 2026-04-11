@@ -479,7 +479,7 @@ function showDetailedList(title, list) {
 }
 
 // 6. പ്രിന്റ് ഫങ്ക്ഷൻ (Colorful & Large JPG/PDF)
-function printReceipt(name, amount, months, date, rcptNo, sid, father, house, phone) {
+function printReceipt(name, amount, months, date, rcptNo, sid, father, house, phone, type = "fees") {
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
         <html>
@@ -511,24 +511,32 @@ function printReceipt(name, amount, months, date, rcptNo, sid, father, house, ph
                 </style>
             </head>
             <body>
-                <div id="receipt-area" class="receipt-card">
-                    <div class="header">
-                        <h2>ഇസ്‌ലാഹുൽ ഉലൂം മദ്റസ</h2>
-                        <div class="sub-info"><span>രജി. നം: <b>1205</b></span> | <span><b>AR NAGAR</b></span></div>
-                        <div class="receipt-label">ഫീസ് രസീത് (OFFICIAL RECEIPT)</div>
-                    </div>
-                    <div class="info-section">
-                        <div class="info-row"><span class="label">രസീത് നം:</span><span class="value">#${rcptNo}</span></div>
-                        <div class="info-row"><span class="label">തീയതി:</span><span class="value">${date}</span></div>
-                        <div class="info-row"><span class="label">വിദ്യാർത്ഥി:</span><span class="value">${name}</span></div>
-                        <div class="info-row"><span class="label">പിതാവ്:</span><span class="value">${father || '-'}</span></div>
-                        <div class="info-row"><span class="label">വീട്ടുപേര്:</span><span class="value">${house || '-'}</span></div>
-                        <div class="info-row"><span class="label">ഫോൺ:</span><span class="value">${phone || '-'}</span></div>
-                        <div class="info-row"><span class="label">മാസം:</span><span class="value">${months}</span></div>
-                    </div>
-                    <div class="amount-container"><span>ആകെ തുക (Total Amount)</span><h1>₹${amount}</h1></div>
-                    <div class="footer"><p>ഫിസബീലില്ലാഹ് - നന്ദി!</p></div>
-                </div>
+                // printReceipt ഫങ്ക്ഷനിലെ HTML ഭാഗം ഇപ്രകാരം പുതുക്കുക:
+
+<div id="receipt-area" class="receipt-card">
+    <div class="header">
+        <h2>ഇസ്‌ലാഹുൽ ഉലൂം മദ്റസ</h2>
+        <div class="sub-info"><span>രജി. നം: <b>1205</b></span> | <span><b>AR NAGAR</b></span></div>
+        
+        <div class="receipt-label">${type === 'gurunidhi' ? 'ഗുരുനിധി രസീത്' : 'ഫീസ് രസീത്'} (OFFICIAL RECEIPT)</div>
+    </div>
+    
+    <div class="info-section">
+        <div class="info-row"><span class="label">രസീത് നം:</span><span class="value">#${rcptNo}</span></div>
+        <div class="info-row"><span class="label">തീയതി:</span><span class="value">${date}</span></div>
+        <div class="info-row"><span class="label">വിദ്യാർത്ഥി:</span><span class="value">${name}</span></div>
+        <div class="info-row"><span class="label">പിതാവ്:</span><span class="value">${father || '-'}</span></div>
+        <div class="info-row"><span class="label">വീട്ടുപേര്:</span><span class="value">${house || '-'}</span></div>
+        <div class="info-row"><span class="label">ഫോൺ:</span><span class="value">${phone || '-'}</span></div>
+        
+        ${type !== 'gurunidhi' ? `
+        <div class="info-row"><span class="label">മാസം:</span><span class="value">${months}</span></div>
+        ` : ''}
+    </div>
+    
+    <div class="amount-container"><span>ആകെ തുക (Total Amount)</span><h1>₹${amount}</h1></div>
+    <div class="footer"><p>ഫിസബീലില്ലാഹ് - നന്ദി!</p></div>
+</div>
                 <div class="btn-group no-print">
                     <button class="btn btn-download" onclick="downloadImage()">Download Photo</button>
                     <button class="btn btn-print" onclick="window.print()">Print PDF</button>

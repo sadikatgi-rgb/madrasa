@@ -511,8 +511,6 @@ function printReceipt(name, amount, months, date, rcptNo, sid, father, house, ph
                 </style>
             </head>
             <body>
-                // printReceipt ഫങ്ക്ഷനിലെ HTML ഭാഗം ഇപ്രകാരം പുതുക്കുക:
-
 <div id="receipt-area" class="receipt-card">
     <div class="header">
         <h2>ഇസ്‌ലാഹുൽ ഉലൂം മദ്റസ</h2>
@@ -880,10 +878,10 @@ async function viewGHistory(docId, name) {
                         </div>
                     </div>
                     <div style="margin-left:10px;">
-                        <button onclick="printReceipt('${name}', '${p.amount}', 'Gurunidhi Box Contribution', '${p.date}', 'GN-${p.receiptNo}', '${boxID}', '${father}', '${house}', '${phone}')" 
-                                style="background:#d32f2f; color:white !important; border:none; padding:10px 15px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold; display:flex; align-items:center; gap:5px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-                            Print 🖨️
-                        </button>
+                        <button onclick="printReceipt('${name}', '${p.amount}', '', '${p.date}', 'GN-${p.receiptNo}', '${boxID}', '${father}', '${house}', '${phone}', 'gurunidhi')" 
+        style="background:#d32f2f; color:white !important; border:none; padding:10px 15px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold; display:flex; align-items:center; gap:5px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+    Print 🖨️
+</button>
                     </div>
                 </div>`;
         });

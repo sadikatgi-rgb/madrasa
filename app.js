@@ -852,23 +852,24 @@ async function viewGHistory(docId, name) {
         
         if(snap.empty) { ghList.innerHTML = "<p style='text-align:center; color:#888;'>ഹിസ്റ്ററി ലഭ്യമല്ല.</p>"; return; }
 
-        ghList.innerHTML = "";
-        snap.forEach(doc => {
-            const p = doc.data();
-            ghList.innerHTML += `
-                <div style="background:#fff; padding:12px; border:1px solid #eee; display:flex; justify-content:space-between; align-items:center; border-radius:8px; margin-bottom:8px; box-shadow: 0 2px 4px rgba(0,0,0,0.03);">
-                    <div>
-                        <b style="color:#2e7d32; font-size:15px;">₹${p.amount}</b><br>
-                        <small style="color:#888;">${p.date}</small><br>
-                        <small style="color:#555;">Rcpt No: <b>${p.receiptNo}</b></small>
-                    </div>
-                    <div style="text-align:right;">
-                        <button onclick="printReceipt('${name}', '${p.amount}', 'Gurunidhi Box Contribution', '${p.date}', 'GN-${p.receiptNo}', '${boxID}', '${father}', '${house}', '${phone}')" 
-                                style="background:#f0f0f0; border:1px solid #ddd; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:11px;">
-                            Print 🖨️
-                        </button>
-                    </div>
-                </div>`;
+        ghList.innerHTML += `
+    <div style="background:#ffffff; padding:15px; border:1px solid #d32f2f; display:flex; justify-content:space-between; align-items:center; border-radius:12px; margin-bottom:10px; box-shadow: 0 4px 8px rgba(211, 47, 47, 0.1);">
+        <div style="flex-grow: 1;">
+            <div style="display:flex; align-items:center; margin-bottom:5px;">
+                <span style="background:#e8f5e9; color:#2e7d32; padding:4px 10px; border-radius:20px; font-weight:bold; font-size:16px;">₹${p.amount}</span>
+                <span style="margin-left:10px; color:#666; font-size:12px;">📅 ${p.date}</span>
+            </div>
+            <div style="font-size:13px; color:#333;">
+                രസീത് നമ്പർ: <b style="color:#d32f2f;">${p.receiptNo}</b>
+            </div>
+        </div>
+        <div style="margin-left:10px;">
+            <button onclick="printReceipt('${name}', '${p.amount}', 'Gurunidhi Box Contribution', '${p.date}', 'GN-${p.receiptNo}', '${boxID}', '${father}', '${house}', '${phone}')" 
+                    style="background:#d32f2f; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold; display:flex; align-items:center; gap:5px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                <span>Print</span> 🖨️
+            </button>
+        </div>
+    </div>`;
         });
     } catch(e) { alert("Error: " + e.message); }
 }

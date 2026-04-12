@@ -213,6 +213,88 @@ function showSection(section) {
         showCollectionReport(); 
     }
 }
+function openSadarSection() {
+    hideAllSections();
+    const contentArea = document.getElementById('dynamic-content'); // അല്ലെങ്കിൽ നിങ്ങളുടെ മെയിൻ കണ്ടന്റ് ഏരിയ
+    contentArea.style.display = 'block';
+
+    // HTML സ്ട്രക്ചർ JavaScript-ൽ നിർമ്മിക്കുന്നു
+    contentArea.innerHTML = `
+        <div id="sadar-wrapper" style="padding: 10px;">
+            <div class="sadar-container">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+                    <h3 style="margin:0;">ഉസ്താദുമാരുടെ വിഹിതം (Sadar Only)</h3>
+                    <button onclick="closeSadarSection()" style="background:#6c757d; color:white; border:none; padding:8px 15px; border-radius:5px; cursor:pointer;">
+                        <i class="fas fa-arrow-left"></i> തിരികെ
+                    </button>
+                </div>
+                
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label>വിഹിതം ഇനം:</label>
+                        <select id="contribution-type">
+                            <option value="District">ജില്ലാ വിഹിതം</option>
+                            <option value="State">സ്റ്റേറ്റ് വിഹിതം</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>തീയതി:</label>
+                        <input type="date" id="m-date">
+                    </div>
+                    <div class="input-group">
+                        <label>Reg. No:</label>
+                        <input type="text" id="m-reg" placeholder="Reg. No">
+                    </div>
+                    <div class="input-group">
+                        <label>MSR No:</label>
+                        <input type="text" id="m-msr" placeholder="MSR No">
+                    </div>
+                    <div class="input-group full-width">
+                        <label>ഉസ്താദിന്റെ പേര്:</label>
+                        <input type="text" id="m-name" placeholder="Name of Mu-allim">
+                    </div>
+                    <div class="input-group">
+                        <label>Monthly Salary:</label>
+                        <input type="number" id="m-salary" oninput="calculateContribution()" placeholder="ശമ്പളം">
+                    </div>
+                    <div class="input-group">
+                        <label>Muallim Contribution (Daily):</label>
+                        <input type="number" id="m-contribution" placeholder="വിഹിതം" readonly class="readonly-field">
+                    </div>
+                </div>
+                <div class="input-group full-width" style="margin-top: 15px;">
+                    <label>Remarks:</label>
+                    <textarea id="m-remarks" rows="2" placeholder="കുറിപ്പുകൾ ഉണ്ടെങ്കിൽ ഇവിടെ നൽകാം"></textarea>
+                </div>
+                <button onclick="saveMuallimData()" id="save-btn" class="save-btn" style="width:100%; margin-top:15px;">വിവരങ്ങൾ സേവ് ചെയ്യുക</button>
+            </div>
+
+            <div class="history-container" style="margin-top: 30px;">
+                <div class="history-header" style="display:flex; justify-content:space-between; align-items:center;">
+                    <h3>വിഹിതം ഹിസ്റ്ററി</h3>
+                    <select id="history-year-filter" onchange="loadMuallimHistory()" style="padding:5px; border-radius:5px;">
+                       <option value="2026">2026</option>
+                       <option value="2027">2027</option>
+                       <option value="2028">2028</option>
+                    </select>
+                </div>
+                <div id="muallim-history-list">
+                    </div>
+            </div>
+        </div>
+    `;
+
+    // ഫോം ലോഡ് ചെയ്ത ശേഷം ഹിസ്റ്ററി കൂടി ലോഡ് ചെയ്യുന്നു
+    loadMuallimHistory();
+}
+
+// തിരികെ പോകാനുള്ള ഫംഗ്ഷൻ
+function closeSadarSection() {
+    const contentArea = document.getElementById('dynamic-content');
+    contentArea.innerHTML = ''; // കണ്ടന്റ് ക്ലിയർ ചെയ്യുന്നു
+    // ഇവിടെ ഡാഷ്ബോർഡ് തിരികെ കാണിക്കാനുള്ള ഫംഗ്ഷൻ വിളിക്കാം
+    showDashboard(); 
+}
 
 // 6. സഹോദരങ്ങളെ ചേർക്കാനുള്ള ഫീൽഡ്
 function addSiblingField() {

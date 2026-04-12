@@ -64,66 +64,6 @@
         <i class="fas fa-chart-line"></i><span>കളക്ഷൻ റിപ്പോർട്ട്</span>
     </div>
 </div>
-<div id="sadar-wrapper" style="display: none; padding: 10px;">
-    <div class="sadar-container">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h3>ഉസ്താദുമാരുടെ വിഹിതം (Sadar Only)</h3>
-            <button onclick="closeSadarSection()" style="background:#6c757d; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">തിരികെ</button>
-        </div>
-        
-        <div class="input-grid">
-            <div class="input-group">
-                <label>വിഹിതം ഇനം:</label>
-                <select id="contribution-type">
-                    <option value="District">ജില്ലാ വിഹിതം</option>
-                    <option value="State">സ്റ്റേറ്റ് വിഹിതം</option>
-                </select>
-            </div>
-            <div class="input-group">
-                <label>തീയതി:</label>
-                <input type="date" id="m-date">
-            </div>
-            <div class="input-group">
-                <label>Reg. No:</label>
-                <input type="text" id="m-reg" placeholder="Reg. No">
-            </div>
-            <div class="input-group">
-                <label>MSR No:</label>
-                <input type="text" id="m-msr" placeholder="MSR No">
-            </div>
-            <div class="input-group full-width">
-                <label>ഉസ്താദിന്റെ പേര്:</label>
-                <input type="text" id="m-name" placeholder="Name of Mu-allim">
-            </div>
-            <div class="input-group">
-                <label>Monthly Salary:</label>
-                <input type="number" id="m-salary" oninput="calculateContribution()" placeholder="ശമ്പളം">
-            </div>
-            <div class="input-group">
-                <label>Muallim Contribution (Daily):</label>
-                <input type="number" id="m-contribution" placeholder="വിഹിതം" readonly class="readonly-field">
-            </div>
-        </div>
-        <div class="input-group full-width" style="margin-top: 15px;">
-            <label>Remarks:</label>
-            <textarea id="m-remarks" rows="2" placeholder="കുറിപ്പുകൾ ഉണ്ടെങ്കിൽ ഇവിടെ നൽകാം"></textarea>
-        </div>
-        <button onclick="saveMuallimData()" id="save-btn" class="save-btn">വിവരങ്ങൾ സേവ് ചെയ്യുക</button>
-    </div>
-
-    <div class="history-container">
-        <div class="history-header">
-            <h3>വിഹിതം ഹിസ്റ്ററി</h3>
-            <select id="history-year-filter" onchange="loadMuallimHistory()">
-               <option value="2028">2028</option>
-                <option value="2027">2027</option>
-                <option value="2026">2026</option>
-                
-            </select>
-        </div>
-        <div id="muallim-history-list"></div>
-    </div>
-</div>
 
                 <div id="dynamic-content" class="content-area"></div>
             </div>

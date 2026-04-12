@@ -72,7 +72,6 @@ async function checkUser(uid) {
     }
 }
 
-// 4. ഓരോരുത്തർക്കും വേണ്ട അധികാരങ്ങൾ നൽകാൻ
 // 1. ലോഗിൻ ചെയ്ത ഉടനെ റോൾ അനുസരിച്ച് നിയന്ത്രണങ്ങൾ നൽകാൻ
 function applyPermissions(user) {
     document.getElementById('login-page').style.display = 'none';
@@ -88,8 +87,8 @@ function applyPermissions(user) {
     // HTML-ൽ നൽകിയ muallim-btn id ഇവിടെ എടുക്കുന്നു
     const muallimBtn = document.getElementById('muallim-btn');
 
-    // റോൾ 'Sadhar' ആണോ എന്ന് നോക്കുന്നു (സ്പെല്ലിംഗ് ശ്രദ്ധിക്കുക)
-    const isSadhar = user.role === 'Sadhar';
+    // റോൾ 'Sadhar' ആണോ എന്ന് നോക്കുന്നു
+    const isSadhar = (user.role === 'Sadhar');
 
     if (isSadhar || user.role === 'Usthad') {
         usthadView.style.display = 'block';
@@ -106,11 +105,11 @@ function applyPermissions(user) {
         const guruBtn = document.getElementById('gurunidhi-btn');
         if (guruBtn) guruBtn.style.display = 'block';
 
-        // ഉസ്താദിന് സ്വന്തം ക്ലാസ്സും സദറിന് എല്ലാ ക്ലാസ്സും ലോഡ് ചെയ്യുന്നു
+        // ലോഡിംഗ് ലോജിക്
         if (user.role === 'Usthad') {
-            loadStudents(user.assignedClass);
+            if (typeof loadStudents === "function") loadStudents(user.assignedClass);
         } else {
-            loadStudents(); 
+            if (typeof loadStudents === "function") loadStudents('all'); 
         }
     } else {
         usthadView.style.display = 'none';
@@ -118,31 +117,16 @@ function applyPermissions(user) {
     }
 }
 
-// 2. ബാക്ക് ബട്ടൺ ക്ലിക്ക് ചെയ്യുമ്പോൾ ഡാഷ്ബോർഡ് തിരികെ കാണിക്കാൻ
-function closeSadarSection() {
-    const content = document.getElementById('dynamic-content');
-    const dashboard = document.getElementById('usthad-dashboard');
-    
-    if (content) {
-        content.style.display = 'none';
-        content.innerHTML = ''; // മുൻപ് ലോഡ് ചെയ്ത കാര്യങ്ങൾ ഒഴിവാക്കുന്നു
-    }
-    if (dashboard) {
-        dashboard.style.display = 'block'; // മെയിൻ കാർഡുകൾ തിരികെ കാണിക്കുന്നു
-    }
-}
-
-
- 1. എല്ലാ സെക്ഷനുകളും മറയ്ക്കാനുള്ള ഫംഗ്ഷൻ
+// 2. എല്ലാ സെക്ഷനുകളും മറയ്ക്കാനുള്ള ഫംഗ്ഷൻ
 function hideAllSections() {
-    const sections = ['dynamic-content', 'usthad-dashboard', 'sadhar-wrapper'];
+    const sections = ['dynamic-content', 'usthad-dashboard', 'sadar-wrapper'];
     sections.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
     });
 }
 
-// 2. മെയിൻ സെക്ഷൻ സ്വിച്ചർ (റോൾ അടിസ്ഥാനത്തിൽ നിയന്ത്രിച്ചത്)
+// 3. മെയിൻ സെക്ഷൻ സ്വിച്ചർ
 function showSection(section) {
     hideAllSections(); 
     
@@ -158,7 +142,7 @@ function showSection(section) {
         content.innerHTML = ''; 
     }
 
-    // എല്ലാ പേജിലും കാണേണ്ട "തിരികെ" ബട്ടൺ
+    // എല്ലാ പേജിലും കാണേണ്ട "തിരികെ" ബട്ടൺ (പേര് closeSadharSection എന്ന് ഏകീകരിച്ചു)
     const backBtnHTML = `
         <div style="display:flex; justify-content:flex-end; padding: 10px 15px;">
             <button onclick="closeSadharSection()" style="background:#6c757d; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-weight:bold;">
@@ -166,37 +150,25 @@ function showSection(section) {
             </button>
         </div>`;
 
-    // --- ലോജിക് നിയന്ത്രണം ---
-
-    // 1. മുഅല്ലിം വിഹിതം (Sadar-ന് മാത്രം)
-    if (section === 'sadhar') {
+    if (section === 'sadar') {
         if (user.role === 'Sadhar' || user.role === 'Admin') {
-            openSadarSection(); 
+            openSadharSection(); 
         } else {
             content.innerHTML = `<div style="padding:20px; text-align:center; color:red;">ഈ സെക്ഷൻ സദറിന് മാത്രമുള്ളതാണ്!</div>` + backBtnHTML;
         }
-        return;
     }
-
-    // 2. കുട്ടികളുടെ ലിസ്റ്റ് (ഉസ്താദുമാർക്ക് അവരുടെ ക്ലാസ് മാത്രം)
-    if (section === 'student-list') {
-        content.innerHTML = backBtnHTML + `<div id="list-area"></div>`;
-        loadStudents(user.role === 'Sadhar' ? null : user.assignedClass);
+    else if (section === 'student-list') {
+        content.innerHTML = backBtnHTML + `<div id="list-area">ലോഡിംഗ്...</div>`;
+        if (typeof loadStudents === "function") loadStudents(user.role === 'Sadhar' ? 'all' : user.assignedClass);
     }
-    
-    // 3. ഗുരുനിധി (ഉസ്താദുമാർക്ക് ഉപയോഗിക്കാം)
     else if (section === 'gurunidhi') {
         content.innerHTML = backBtnHTML + `<div id="gurunidhi-container"></div>`;
-        showGurunidhiSection(); 
+        if (typeof showGurunidhiSection === "function") showGurunidhiSection(); 
     }
-    
-    // 4. കളക്ഷൻ റിപ്പോർട്ട്
     else if (section === 'report') {
         content.innerHTML = backBtnHTML + `<div id="report-container"></div>`;
-        showCollectionReport(); 
+        if (typeof showCollectionReport === "function") showCollectionReport(); 
     }
-    
-    // 5. പുതിയ കുട്ടിയെ ചേർക്കൽ (സദറിന് മാത്രം നൽകുന്നതാണ് ഉചിതം)
     else if (section === 'add-student') {
         content.innerHTML = backBtnHTML + `
             <div style="padding:15px; background:white; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1); margin:10px;">
@@ -209,7 +181,7 @@ function showSection(section) {
     }
 }
 
-// 3. മുഅല്ലിം വിഹിതം (Sadar Only) ലോഡ് ചെയ്യുന്ന ഭാഗം
+// 4. മുഅല്ലിം വിഹിതം (Sadhar Only) ലോഡ് ചെയ്യുന്ന ഭാഗം
 function openSadharSection() {
     const contentArea = document.getElementById('dynamic-content');
     contentArea.innerHTML = `
@@ -235,9 +207,12 @@ function openSadharSection() {
     if (typeof loadMuallimHistory === "function") loadMuallimHistory();
 }
 
+// 5. തിരികെ വരാനുള്ള ഫംഗ്ഷൻ (ഏകീകരിച്ചത്)
 function closeSadharSection() {
     hideAllSections();
     document.getElementById('usthad-dashboard').style.display = 'block';
+    const content = document.getElementById('dynamic-content');
+    if(content) content.style.display = 'none';
 }
            
 // 6. സഹോദരങ്ങളെ ചേർക്കാനുള്ള ഫീൽഡ്

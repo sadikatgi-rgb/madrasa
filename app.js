@@ -107,154 +107,113 @@ function applyPermissions(user) {
         studentView.style.display = 'block';
     }
 }
-
-// 1. എല്ലാ സെക്ഷനുകളും മറയ്ക്കാനുള്ള ഫംഗ്ഷൻ (നവീകരിച്ചത്)
+ // 1. എല്ലാ സെക്ഷനുകളും മറയ്ക്കാനുള്ള ഫംഗ്ഷൻ
 function hideAllSections() {
-    const sections = [
-        'dynamic-content', 
-        'usthad-dashboard',
-        'sadar-wrapper'
-    ];
+    const sections = ['dynamic-content', 'usthad-dashboard', 'sadhar-wrapper'];
     sections.forEach(id => {
         const el = document.getElementById(id);
-        if (el) {
-            el.style.display = 'none';
-        }
+        if (el) el.style.display = 'none';
     });
-    // ഓരോ തവണയും മാറുമ്പോൾ dynamic-content ക്ലീൻ ചെയ്യുന്നു
-    const content = document.getElementById('dynamic-content');
-    if (content) content.innerHTML = '';
 }
 
-// 2. മെയിൻ സെക്ഷൻ സ്വിച്ചർ (showSection)
+// 2. മെയിൻ സെക്ഷൻ സ്വിച്ചർ (റോൾ അടിസ്ഥാനത്തിൽ നിയന്ത്രിച്ചത്)
 function showSection(section) {
     hideAllSections(); 
+    
     const content = document.getElementById('dynamic-content');
     const dashboard = document.getElementById('usthad-dashboard');
-    const user = JSON.parse(localStorage.getItem("activeUser")) || { role: 'Usthad' };
+    
+    // ലോഗിൻ ചെയ്ത യൂസറുടെ വിവരങ്ങൾ എടുക്കുന്നു
+    const user = JSON.parse(localStorage.getItem("activeUser")) || { role: 'Guest' };
 
-    // ഡാഷ്ബോർഡ് മറച്ച് dynamic-content കാണിക്കുന്നു
     if (dashboard) dashboard.style.display = 'none';
-    if (content) content.style.display = 'block';
+    if (content) {
+        content.style.display = 'block';
+        content.innerHTML = ''; 
+    }
 
-    // എല്ലാ സെക്ഷനിലും കാണേണ്ട പൊതുവായ "തിരികെ" ബട്ടൺ
-    const backBtnHeader = `
-        <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
-            <button onclick="closeSadarSection()" style="background:#6c757d; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer;">
+    // എല്ലാ പേജിലും കാണേണ്ട "തിരികെ" ബട്ടൺ
+    const backBtnHTML = `
+        <div style="display:flex; justify-content:flex-end; padding: 10px 15px;">
+            <button onclick="closeSadharSection()" style="background:#6c757d; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-weight:bold;">
                 <i class="fas fa-arrow-left"></i> തിരികെ
             </button>
-        </div>
-    `;
+        </div>`;
 
-    if (section === 'sadar') {
-        openSadarSection();
+    // --- ലോജിക് നിയന്ത്രണം ---
+
+    // 1. മുഅല്ലിം വിഹിതം (Sadar-ന് മാത്രം)
+    if (section === 'sadhar') {
+        if (user.role === 'Sadhar' || user.role === 'Admin') {
+            openSadarSection(); 
+        } else {
+            content.innerHTML = `<div style="padding:20px; text-align:center; color:red;">ഈ സെക്ഷൻ സദറിന് മാത്രമുള്ളതാണ്!</div>` + backBtnHTML;
+        }
+        return;
     }
-    else if (section === 'student-list') {
-        content.innerHTML = backBtnHeader + `<div id="list-area"></div>`;
-        loadStudents(user.role === 'Usthad' ? user.assignedClass : null);
+
+    // 2. കുട്ടികളുടെ ലിസ്റ്റ് (ഉസ്താദുമാർക്ക് അവരുടെ ക്ലാസ് മാത്രം)
+    if (section === 'student-list') {
+        content.innerHTML = backBtnHTML + `<div id="list-area"></div>`;
+        loadStudents(user.role === 'Sadhar' ? null : user.assignedClass);
     }
-    else if (section === 'add-student') {
-        content.innerHTML = backBtnHeader + `
-            <div style="padding:15px; background:white; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
-                <h3 style="color:#1a73e8; text-align:center; border-bottom:2px solid #eef2f7; padding-bottom:10px;">🆕 പുതിയ വിദ്യാർത്ഥി</h3>
-                <input id="n-name" placeholder="കുട്ടിയുടെ പേര്" style="width:100%; padding:12px; margin-bottom:12px; border:1px solid #dee2e6; border-radius:8px;">
-                <input id="n-class" placeholder="ക്ലാസ്സ് (eg: 1, 2..)" style="width:100%; padding:12px; margin-bottom:12px; border:1px solid #dee2e6; border-radius:8px;">
-                <input id="n-phone" placeholder="വാട്ട്സാപ്പ് നമ്പർ (91xxxx)" style="width:100%; padding:12px; margin-bottom:12px; border:1px solid #dee2e6; border-radius:8px;">
-                <button onclick="saveStudent()" style="width:100%; padding:15px; background:#1a73e8; color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">സേവ് ചെയ്യുക</button>
-            </div>
-        `;
-    }
+    
+    // 3. ഗുരുനിധി (ഉസ്താദുമാർക്ക് ഉപയോഗിക്കാം)
     else if (section === 'gurunidhi') {
-        content.innerHTML = backBtnHeader + `<div id="gurunidhi-container"></div>`;
+        content.innerHTML = backBtnHTML + `<div id="gurunidhi-container"></div>`;
         showGurunidhiSection(); 
     }
+    
+    // 4. കളക്ഷൻ റിപ്പോർട്ട്
     else if (section === 'report') {
-        content.innerHTML = backBtnHeader + `<div id="report-container"></div>`;
+        content.innerHTML = backBtnHTML + `<div id="report-container"></div>`;
         showCollectionReport(); 
+    }
+    
+    // 5. പുതിയ കുട്ടിയെ ചേർക്കൽ (സദറിന് മാത്രം നൽകുന്നതാണ് ഉചിതം)
+    else if (section === 'add-student') {
+        content.innerHTML = backBtnHTML + `
+            <div style="padding:15px; background:white; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1); margin:10px;">
+                <h3 style="color:#1a73e8; text-align:center; border-bottom:2px solid #eef2f7; padding-bottom:10px;">🆕 പുതിയ വിദ്യാർത്ഥി</h3>
+                <input id="n-name" placeholder="കുട്ടിയുടെ പേര്" style="width:100%; padding:12px; margin-bottom:12px; border:1px solid #dee2e6; border-radius:8px; box-sizing:border-box;">
+                <input id="n-class" placeholder="ക്ലാസ്സ്" style="width:100%; padding:12px; margin-bottom:12px; border:1px solid #dee2e6; border-radius:8px; box-sizing:border-box;">
+                <input id="n-phone" placeholder="വാട്ട്സാപ്പ് നമ്പർ" style="width:100%; padding:12px; margin-bottom:12px; border:1px solid #dee2e6; border-radius:8px; box-sizing:border-box;">
+                <button onclick="saveStudent()" style="width:100%; padding:15px; background:#1a73e8; color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">സേവ് ചെയ്യുക</button>
+            </div>`;
     }
 }
 
-// 3. മുഅല്ലിം വിഹിതം സെക്ഷൻ തുറക്കാൻ
-function openSadarSection() {
+// 3. മുഅല്ലിം വിഹിതം (Sadar Only) ലോഡ് ചെയ്യുന്ന ഭാഗം
+function openSadharSection() {
     const contentArea = document.getElementById('dynamic-content');
-    contentArea.style.display = 'block';
-
     contentArea.innerHTML = `
         <div id="sadar-wrapper" style="padding: 10px;">
-            <div class="sadar-container">
+            <div class="sadhar-container">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
-                    <h3 style="margin:0;">ഉസ്താദുമാരുടെ വിഹിതം (Sadar Only)</h3>
-                    <button onclick="closeSadarSection()" style="background:#6c757d; color:white; border:none; padding:8px 15px; border-radius:5px; cursor:pointer;">
+                    <h3 style="margin:0;">ഉസ്താദുമാരുടെ വിഹിതം (Sadhar)</h3>
+                    <button onclick="closeSadharSection()" style="background:#6c757d; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer;">
                         <i class="fas fa-arrow-left"></i> തിരികെ
                     </button>
                 </div>
-                
                 <div class="input-grid">
-                    <div class="input-group">
-                        <label>വിഹിതം ഇനം:</label>
-                        <select id="contribution-type">
-                            <option value="District">ജില്ലാ വിഹിതം</option>
-                            <option value="State">സ്റ്റേറ്റ് വിഹിതം</option>
-                        </select>
-                    </div>
-                    <div class="input-group">
-                        <label>തീയതി:</label>
-                        <input type="date" id="m-date">
-                    </div>
-                    <div class="input-group">
-                        <label>Reg. No:</label>
-                        <input type="text" id="m-reg" placeholder="Reg. No">
-                    </div>
-                    <div class="input-group">
-                        <label>MSR No:</label>
-                        <input type="text" id="m-msr" placeholder="MSR No">
-                    </div>
-                    <div class="input-group full-width">
-                        <label>ഉസ്താദിന്റെ പേര്:</label>
-                        <input type="text" id="m-name" placeholder="Name of Mu-allim">
-                    </div>
-                    <div class="input-group">
-                        <label>Monthly Salary:</label>
-                        <input type="number" id="m-salary" oninput="calculateContribution()" placeholder="ശമ്പളം">
-                    </div>
-                    <div class="input-group">
-                        <label>വിഹിതം (Daily):</label>
-                        <input type="number" id="m-contribution" placeholder="വിഹിതം" readonly class="readonly-field">
-                    </div>
+                    <div class="input-group"><label>ഇനം:</label><select id="contribution-type"><option value="District">ജില്ലാ വിഹിതം</option><option value="State">സ്റ്റേറ്റ് വിഹിതം</option></select></div>
+                    <div class="input-group"><label>പേര്:</label><input type="text" id="m-name" placeholder="ഉസ്താദിന്റെ പേര്"></div>
+                    <div class="input-group"><label>ശമ്പളം:</label><input type="number" id="m-salary" oninput="calculateContribution()" placeholder="ശമ്പളം"></div>
+                    <div class="input-group"><label>വിഹിതം:</label><input type="number" id="m-contribution" readonly class="readonly-field"></div>
                 </div>
-
-                <div class="input-group full-width" style="margin-top: 15px;">
-                    <label>Remarks:</label>
-                    <textarea id="m-remarks" rows="2" placeholder="കുറിപ്പുകൾ ഉണ്ടെങ്കിൽ ഇവിടെ നൽകാം"></textarea>
-                </div>
-
-                <button onclick="saveMuallimData()" id="save-btn" style="width:100%; margin-top:15px; background:#1a73e8; color:white; padding:12px; border:none; border-radius:8px; font-weight:bold;">വിവരങ്ങൾ സേവ് ചെയ്യുക</button>
+                <button onclick="saveMuallimData()" style="width:100%; margin-top:15px; background:#1a73e8; color:white; padding:12px; border:none; border-radius:8px; font-weight:bold;">സേവ് ചെയ്യുക</button>
             </div>
-
-            <div class="history-container" style="margin-top: 30px;">
-                <div class="history-header" style="display:flex; justify-content:space-between; align-items:center;">
-                    <h3>വിഹിതം ഹിസ്റ്ററി</h3>
-                    <select id="history-year-filter" onchange="loadMuallimHistory()" style="padding:5px; border-radius:5px;">
-                       <option value="2026">2026</option>
-                       <option value="2027">2027</option>
-                    </select>
-                </div>
-                <div id="muallim-history-list"></div>
-            </div>
-        </div>
-    `;
-
-    if (typeof loadMuallimHistory === "function") {
-        loadMuallimHistory();
-    }
+            <div id="muallim-history-list" style="margin-top:20px;"></div>
+        </div>`;
+    
+    if (typeof loadMuallimHistory === "function") loadMuallimHistory();
 }
 
-// ഹോം ഡാഷ്ബോർഡിലേക്ക് തിരികെ പോകാൻ
-function closeSadarSection() {
-    hideAllSections(); 
+function closeSadharSection() {
+    hideAllSections();
     document.getElementById('usthad-dashboard').style.display = 'block';
 }
-              
+           
 // 6. സഹോദരങ്ങളെ ചേർക്കാനുള്ള ഫീൽഡ്
 function addSiblingField() {
     const container = document.getElementById('sibling-container');

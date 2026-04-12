@@ -108,7 +108,7 @@ function applyPermissions(user) {
     }
 }
 
-// 1. എല്ലാ സെക്ഷനുകളും മറയ്ക്കാനുള്ള ഫംഗ്ഷൻ
+// 1. എല്ലാ സെക്ഷനുകളും മറയ്ക്കാനുള്ള ഫംഗ്ഷൻ (നവീകരിച്ചത്)
 function hideAllSections() {
     const sections = [
         'dynamic-content', 
@@ -117,8 +117,13 @@ function hideAllSections() {
     ];
     sections.forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.style.display = 'none';
+        if (el) {
+            el.style.display = 'none';
+        }
     });
+    // ഓരോ തവണയും മാറുമ്പോൾ dynamic-content ക്ലീൻ ചെയ്യുന്നു
+    const content = document.getElementById('dynamic-content');
+    if (content) content.innerHTML = '';
 }
 
 // 2. മെയിൻ സെക്ഷൻ സ്വിച്ചർ (showSection)
@@ -128,21 +133,28 @@ function showSection(section) {
     const dashboard = document.getElementById('usthad-dashboard');
     const user = JSON.parse(localStorage.getItem("activeUser")) || { role: 'Usthad' };
 
-    // മുഅല്ലിം വിഹിതം (Sadar)
-    if (section === 'sadar') {
-        openSadarSection();
-        return;
-    }
-
     // ഡാഷ്ബോർഡ് മറച്ച് dynamic-content കാണിക്കുന്നു
     if (dashboard) dashboard.style.display = 'none';
     if (content) content.style.display = 'block';
 
-    if (section === 'student-list') {
+    // എല്ലാ സെക്ഷനിലും കാണേണ്ട പൊതുവായ "തിരികെ" ബട്ടൺ
+    const backBtnHeader = `
+        <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+            <button onclick="closeSadarSection()" style="background:#6c757d; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer;">
+                <i class="fas fa-arrow-left"></i> തിരികെ
+            </button>
+        </div>
+    `;
+
+    if (section === 'sadar') {
+        openSadarSection();
+    }
+    else if (section === 'student-list') {
+        content.innerHTML = backBtnHeader + `<div id="list-area"></div>`;
         loadStudents(user.role === 'Usthad' ? user.assignedClass : null);
     }
     else if (section === 'add-student') {
-        content.innerHTML = `
+        content.innerHTML = backBtnHeader + `
             <div style="padding:15px; background:white; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
                 <h3 style="color:#1a73e8; text-align:center; border-bottom:2px solid #eef2f7; padding-bottom:10px;">🆕 പുതിയ വിദ്യാർത്ഥി</h3>
                 <input id="n-name" placeholder="കുട്ടിയുടെ പേര്" style="width:100%; padding:12px; margin-bottom:12px; border:1px solid #dee2e6; border-radius:8px;">
@@ -153,24 +165,20 @@ function showSection(section) {
         `;
     }
     else if (section === 'gurunidhi') {
+        content.innerHTML = backBtnHeader + `<div id="gurunidhi-container"></div>`;
         showGurunidhiSection(); 
     }
     else if (section === 'report') {
+        content.innerHTML = backBtnHeader + `<div id="report-container"></div>`;
         showCollectionReport(); 
     }
 }
 
 // 3. മുഅല്ലിം വിഹിതം സെക്ഷൻ തുറക്കാൻ
-  // --- ഈ ഭാഗം മുതൽ താഴോട്ട് മാറ്റുക ---
-
 function openSadarSection() {
-    const dashboard = document.getElementById('usthad-dashboard');
-    if(dashboard) dashboard.style.display = 'none';
-    
     const contentArea = document.getElementById('dynamic-content');
     contentArea.style.display = 'block';
 
-    // കൃത്യമായ HTML സ്ട്രക്ചർ
     contentArea.innerHTML = `
         <div id="sadar-wrapper" style="padding: 10px;">
             <div class="sadar-container">
@@ -241,9 +249,9 @@ function openSadarSection() {
     }
 }
 
-// തിരികെ മെയിൻ ഡാഷ്ബോർഡിലേക്ക് പോകാൻ
+// ഹോം ഡാഷ്ബോർഡിലേക്ക് തിരികെ പോകാൻ
 function closeSadarSection() {
-    document.getElementById('dynamic-content').style.display = 'none';
+    hideAllSections(); 
     document.getElementById('usthad-dashboard').style.display = 'block';
 }
               

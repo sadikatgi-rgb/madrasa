@@ -181,11 +181,8 @@ function showSection(section) {
     }
 }
 
-// മുഅല്ലിം വിഹിതം പേജ് ഓപ്പൺ ചെയ്യാനുള്ള ഫംഗ്ഷൻ
 function openSadharSection() {
     const contentArea = document.getElementById('dynamic-content');
-    
-    // ഡാഷ്‌ബോർഡിലേക്ക് തിരികെ പോകാനുള്ള ബട്ടൺ (യൂണിഫോം ഡിസൈൻ)
     const backBtnHTML = `
         <div style="display:flex; justify-content:center; padding: 25px 10px; margin-top: 20px;">
             <button onclick="closeSadharSection()" style="background:#6c757d; color:white; border:none; padding:15px; border-radius:12px; cursor:pointer; font-weight:bold; width:100%; max-width:400px; display:flex; align-items:center; justify-content:center; gap:10px; font-size:16px;">
@@ -196,56 +193,52 @@ function openSadharSection() {
     contentArea.innerHTML = `
         <div id="sadhar-wrapper" style="padding: 5px;">
             <div class="sadar-container" style="background:white; padding:20px; border-radius:15px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; border-bottom:1px solid #eee; padding-bottom:10px;">
-                    <h3 style="margin:0; color:#1a73e8;">ഉസ്താദുമാരുടെ വിഹിതം (Sadhar)</h3>
-                </div>
+                <h3 style="color:#1a73e8; border-bottom:1px solid #eee; padding-bottom:15px; margin-bottom:15px;">ഉസ്താദുമാരുടെ വിഹിതം (Sadhar Only)</h3>
                 
                 <div class="input-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                    <div class="input-group">
-                        <label style="display:block; font-weight:bold; margin-bottom:5px; font-size:13px;">വിഹിതം ഇനം:</label>
+                    <div>
+                        <label style="display:block; font-weight:bold; font-size:12px; margin-bottom:5px;">വിഹിതം ഇനം:</label>
                         <select id="contribution-type" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
                             <option value="District">ജില്ലാ വിഹിതം</option>
                             <option value="State">സ്റ്റേറ്റ് വിഹിതം</option>
                         </select>
                     </div>
-                    <div class="input-group">
-                        <label style="display:block; font-weight:bold; margin-bottom:5px; font-size:13px;">തീയതി:</label>
+                    <div>
+                        <label style="display:block; font-weight:bold; font-size:12px; margin-bottom:5px;">തീയതി:</label>
                         <input type="date" id="m-date" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
                     </div>
-                    <div class="input-group">
-                        <label style="display:block; font-weight:bold; margin-bottom:5px; font-size:13px;">Reg. No:</label>
+                    <div>
+                        <label style="display:block; font-weight:bold; font-size:12px; margin-bottom:5px;">Reg. No:</label>
                         <input type="text" id="m-reg" placeholder="Reg. No" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
                     </div>
-                    <div class="input-group">
-                        <label style="display:block; font-weight:bold; margin-bottom:5px; font-size:13px;">MSR No:</label>
+                    <div>
+                        <label style="display:block; font-weight:bold; font-size:12px; margin-bottom:5px;">MSR No:</label>
                         <input type="text" id="m-msr" placeholder="MSR No" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
                     </div>
-                    <div class="input-group" style="grid-column: span 2;">
-                        <label style="display:block; font-weight:bold; margin-bottom:5px; font-size:13px;">ഉസ്താദിന്റെ പേര്:</label>
+                    <div style="grid-column: span 2;">
+                        <label style="display:block; font-weight:bold; font-size:12px; margin-bottom:5px;">ഉസ്താദിന്റെ പേര്:</label>
                         <input type="text" id="m-name" placeholder="Name" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
                     </div>
-                    <div class="input-group">
-                        <label style="display:block; font-weight:bold; margin-bottom:5px; font-size:13px;">ശമ്പളം:</label>
+                    <div>
+                        <label style="display:block; font-weight:bold; font-size:12px; margin-bottom:5px;">ശമ്പളം (Monthly):</label>
                         <input type="number" id="m-salary" oninput="calculateContribution()" placeholder="Salary" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
                     </div>
-                    <div class="input-group">
-                        <label style="display:block; font-weight:bold; margin-bottom:5px; font-size:13px;">വിഹിതം:</label>
+                    <div>
+                        <label style="display:block; font-weight:bold; font-size:12px; margin-bottom:5px;">വിഹിതം (Daily):</label>
                         <input type="number" id="m-contribution" readonly style="width:100%; padding:10px; border:1px solid #f44336; border-radius:8px; background:#fff5f5; color:#f44336; font-weight:bold;">
                     </div>
                 </div>
 
-                <div class="input-group" style="margin-top: 15px;">
-                    <label style="display:block; font-weight:bold; margin-bottom:5px; font-size:13px;">Remarks:</label>
-                    <textarea id="m-remarks" rows="2" placeholder="കുറിപ്പുകൾ ഉണ്ടെങ്കിൽ..." style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;"></textarea>
+                <div style="margin-top: 15px;">
+                    <label style="display:block; font-weight:bold; font-size:12px; margin-bottom:5px;">Remarks:</label>
+                    <textarea id="m-remarks" rows="2" placeholder="കുറിപ്പുകൾ ഉണ്ടെങ്കിൽ ഇവിടെ നൽകാം" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;"></textarea>
                 </div>
 
-                <button onclick="saveMuallimData()" id="save-btn" style="width:100%; margin-top:20px; background:#1a73e8; color:white; padding:15px; border:none; border-radius:10px; font-weight:bold; cursor:pointer; font-size:16px;">
-                    വിവരങ്ങൾ സേവ് ചെയ്യുക
-                </button>
+                <button onclick="saveMuallimData()" id="save-btn" style="width:100%; margin-top:20px; background:#1a73e8; color:white; padding:15px; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">വിവരങ്ങൾ സേവ് ചെയ്യുക</button>
             </div>
 
             <div class="history-container" style="margin-top: 25px; background:white; padding:15px; border-radius:15px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
-                <div class="history-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:10px; margin-bottom:10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:10px; margin-bottom:10px;">
                     <h3 style="margin:0; font-size:15px;">വിഹിതം ഹിസ്റ്ററി</h3>
                     <select id="history-year-filter" onchange="loadMuallimHistory()" style="padding:5px; border-radius:5px; border:1px solid #ddd;">
                        <option value="2026">2026</option>
@@ -260,7 +253,7 @@ function openSadharSection() {
     
     if (typeof loadMuallimHistory === "function") loadMuallimHistory();
 }
-
+                
 // ബാക്ക് ബട്ടൺ ഫംഗ്ഷൻ
 function closeSadharSection() {
     const dashboard = document.getElementById('usthad-dashboard');

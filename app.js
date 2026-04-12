@@ -182,29 +182,87 @@ function showSection(section) {
 }
 
 // 4. മുഅല്ലിം വിഹിതം (Sadhar Only) ലോഡ് ചെയ്യുന്ന ഭാഗം
-function openSadharSection() {
+function openSadarSection() {
     const contentArea = document.getElementById('dynamic-content');
+    
+    // എല്ലാ പേജിലും താഴെ കാണേണ്ട ബാക്ക് ബട്ടൺ
+    const backBtnHTML = `
+        <div style="display:flex; justify-content:center; padding: 25px 10px; margin-top: 20px;">
+            <button onclick="closeSadarSection()" style="background:#6c757d; color:white; border:none; padding:15px; border-radius:12px; cursor:pointer; font-weight:bold; width:100%; max-width:400px; display:flex; align-items:center; justify-content:center; gap:10px; font-size:16px;">
+                <i class="fas fa-arrow-left"></i> ഡാഷ്‌ബോർഡിലേക്ക് തിരികെ
+            </button>
+        </div>`;
+
     contentArea.innerHTML = `
         <div id="sadar-wrapper" style="padding: 10px;">
-            <div class="sadhar-container">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
-                    <h3 style="margin:0;">ഉസ്താദുമാരുടെ വിഹിതം (Sadhar)</h3>
-                    <button onclick="closeSadharSection()" style="background:#6c757d; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer;">
-                        <i class="fas fa-arrow-left"></i> തിരികെ
-                    </button>
+            <div class="sadar-container" style="background:white; padding:20px; border-radius:15px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; border-bottom:1px solid #eee; padding-bottom:10px;">
+                    <h3 style="margin:0; color:#1a73e8;">ഉസ്താദുമാരുടെ വിഹിതം (Sadar Only)</h3>
                 </div>
-                <div class="input-grid">
-                    <div class="input-group"><label>ഇനം:</label><select id="contribution-type"><option value="District">ജില്ലാ വിഹിതം</option><option value="State">സ്റ്റേറ്റ് വിഹിതം</option></select></div>
-                    <div class="input-group"><label>പേര്:</label><input type="text" id="m-name" placeholder="ഉസ്താദിന്റെ പേര്"></div>
-                    <div class="input-group"><label>ശമ്പളം:</label><input type="number" id="m-salary" oninput="calculateContribution()" placeholder="ശമ്പളം"></div>
-                    <div class="input-group"><label>വിഹിതം:</label><input type="number" id="m-contribution" readonly class="readonly-field"></div>
+                
+                <div class="input-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="input-group">
+                        <label style="display:block; font-weight:bold; margin-bottom:5px;">വിഹിതം ഇനം:</label>
+                        <select id="contribution-type" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
+                            <option value="District">ജില്ലാ വിഹിതം</option>
+                            <option value="State">സ്റ്റേറ്റ് വിഹിതം</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label style="display:block; font-weight:bold; margin-bottom:5px;">തീയതി:</label>
+                        <input type="date" id="m-date" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
+                    </div>
+                    <div class="input-group">
+                        <label style="display:block; font-weight:bold; margin-bottom:5px;">Reg. No:</label>
+                        <input type="text" id="m-reg" placeholder="Reg. No" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
+                    </div>
+                    <div class="input-group">
+                        <label style="display:block; font-weight:bold; margin-bottom:5px;">MSR No:</label>
+                        <input type="text" id="m-msr" placeholder="MSR No" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
+                    </div>
+                    <div class="input-group" style="grid-column: span 2;">
+                        <label style="display:block; font-weight:bold; margin-bottom:5px;">ഉസ്താദിന്റെ പേര്:</label>
+                        <input type="text" id="m-name" placeholder="Name of Mu-allim" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
+                    </div>
+                    <div class="input-group">
+                        <label style="display:block; font-weight:bold; margin-bottom:5px;">Monthly Salary:</label>
+                        <input type="number" id="m-salary" oninput="calculateContribution()" placeholder="ശമ്പളം" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;">
+                    </div>
+                    <div class="input-group">
+                        <label style="display:block; font-weight:bold; margin-bottom:5px;">വിഹിതം (Daily):</label>
+                        <input type="number" id="m-contribution" placeholder="വിഹിതം" readonly style="width:100%; padding:10px; border:1px solid #f44336; border-radius:8px; background:#fff5f5; color:#f44336; font-weight:bold;">
+                    </div>
                 </div>
-                <button onclick="saveMuallimData()" style="width:100%; margin-top:15px; background:#1a73e8; color:white; padding:12px; border:none; border-radius:8px; font-weight:bold;">സേവ് ചെയ്യുക</button>
+
+                <div class="input-group" style="margin-top: 15px;">
+                    <label style="display:block; font-weight:bold; margin-bottom:5px;">Remarks:</label>
+                    <textarea id="m-remarks" rows="2" placeholder="കുറിപ്പുകൾ ഉണ്ടെങ്കിൽ ഇവിടെ നൽകാം" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;"></textarea>
+                </div>
+
+                <button onclick="saveMuallimData()" id="save-btn" style="width:100%; margin-top:20px; background:#1a73e8; color:white; padding:15px; border:none; border-radius:10px; font-weight:bold; cursor:pointer; font-size:16px;">
+                    വിവരങ്ങൾ സേവ് ചെയ്യുക
+                </button>
             </div>
-            <div id="muallim-history-list" style="margin-top:20px;"></div>
+
+            <div class="history-container" style="margin-top: 30px; background:white; padding:15px; border-radius:15px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
+                <div class="history-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #f8f9fa; padding-bottom:10px; margin-bottom:15px;">
+                    <h3 style="margin:0; font-size:16px;">വിഹിതം ഹിസ്റ്ററി</h3>
+                    <select id="history-year-filter" onchange="loadMuallimHistory()" style="padding:8px; border-radius:8px; border:1px solid #ddd;">
+                       <option value="2026">2026</option>
+                       <option value="2027">2027</option>
+                    </select>
+                </div>
+                <div id="muallim-history-list">
+                    </div>
+            </div>
+
+            ${backBtnHTML}
         </div>`;
     
-    if (typeof loadMuallimHistory === "function") loadMuallimHistory();
+    // ഹിസ്റ്ററി ലോഡ് ചെയ്യാനുള്ള ഫംഗ്ഷൻ വിളിക്കുന്നു
+    if (typeof loadMuallimHistory === "function") {
+        loadMuallimHistory();
+    }
 }
 
 // 5. തിരികെ വരാനുള്ള ഫംഗ്ഷൻ (ഏകീകരിച്ചത്)

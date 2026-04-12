@@ -4,18 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Islahul Uloom - Smart Madrasa</title>
-    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-
     <div class="app-container">
         <div id="login-page" class="page">
             <div class="auth-header">
@@ -42,36 +37,33 @@
                 </div>
                 <button onclick="logout()" class="logout-btn"><i class="fas fa-power-off"></i></button>
             </header>
-<div id="usthad-view" style="display:none;">
-    <div id="usthad-dashboard">
-        <div class="stats-grid">
-            <div class="stat-card" onclick="showSection('student-list')">
-                <i class="fas fa-users"></i><span>കുട്ടികൾ</span>
+
+            <div id="usthad-view" style="display:none;">
+                <div id="usthad-dashboard">
+                    <div class="stats-grid">
+                        <div class="stat-card" onclick="showSection('student-list')">
+                            <i class="fas fa-users"></i><span>കുട്ടികൾ</span>
+                        </div>
+                        <div class="stat-card" onclick="showSection('add-student')">
+                            <i class="fas fa-user-plus"></i><span>പുതിയ കുട്ടി</span>
+                        </div>
+                        <div id="gurunidhi-btn" class="stat-card" onclick="showSection('gurunidhi')" style="cursor:pointer; background: #fff8e1;">
+                            <i class="fas fa-box-open" style="color: #ffa000;"></i><span>ഗുരുനിധി ബോക്സ്</span>
+                        </div>
+                        <div id="muallim-btn" class="stat-card" onclick="showSection('sadar')" style="background: #e3f2fd; cursor: pointer; display: none;">
+                            <div style="font-size: 24px; margin-bottom: 5px;">👨‍🏫</div>
+                            <span style="color: #1a73e8; font-weight: bold;">മുഅല്ലിം വിഹിതം</span>
+                        </div>
+                        <div id="report-btn" class="stat-card" onclick="showSection('report')" style="cursor:pointer; background: #e3f2fd;">
+                            <i class="fas fa-chart-line" style="color: #1a73e8;"></i>
+                            <span style="color: #1a73e8; font-weight: bold;">കളക്ഷൻ റിപ്പോർട്ട്</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="dynamic-content" class="content-area" style="display:none; margin-top: 20px;"></div>
             </div>
 
-            <div class="stat-card" onclick="showSection('add-student')">
-                <i class="fas fa-user-plus"></i><span>പുതിയ കുട്ടി</span>
-            </div>
-
-            <div id="gurunidhi-btn" class="stat-card" onclick="showSection('gurunidhi')" style="cursor:pointer; background: #fff8e1;">
-                <i class="fas fa-box-open" style="color: #ffa000;"></i><span>ഗുരുനിധി ബോക്സ്</span>
-            </div>
-
-            <div id="muallim-btn" class="stat-card" onclick="showSection('sadar')" style="background: #e3f2fd; cursor: pointer; display: none;">
-                <div style="font-size: 24px; margin-bottom: 5px;">👨‍🏫</div>
-                <span style="color: #1a73e8; font-weight: bold;">മുഅല്ലിം വിഹിതം</span>
-            </div>
-
-            <div id="report-btn" class="stat-card" onclick="showSection('report')" style="cursor:pointer; background: #e3f2fd;">
-                <i class="fas fa-chart-line" style="color: #1a73e8;"></i>
-                <span style="color: #1a73e8; font-weight: bold;">കളക്ഷൻ റിപ്പോർട്ട്</span>
-            </div>
-        </div>
-    </div>
-</div> <div id="dynamic-content" class="content-area" style="display:none; margin-top: 20px;"></div>
-
-<div id="student-view" style="display:none;" class="content-area">
-    </div>
+            <div id="student-view" style="display:none;" class="content-area">
                 <div class="info-card">
                     <h3>എന്റെ പ്രൊഫൈൽ</h3>
                     <hr>

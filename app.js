@@ -196,6 +196,42 @@ function showSection(section) {
                     <div style="font-size:20px; font-weight:bold; color:#856404;">₹ <span id="display-calculated-fee">250</span></div>
                     <input id="n-monthly-fee" type="hidden" value="250">
                 </div>
+                // 1. സഹോദരങ്ങളെ ചേർക്കാനുള്ള ഫീൽഡുകൾ നിർമ്മിക്കുന്ന ഫങ്ക്ഷൻ
+function addSiblingFieldWithFee() {
+    const container = document.getElementById('sibling-list');
+    const siblingDiv = document.createElement('div');
+    
+    // പുതിയ ഇൻപുട്ട് ഫീൽഡുകൾ സ്റ്റൈൽ സഹിതം
+    siblingDiv.style = "display: grid; grid-template-columns: 2fr 1fr auto; gap: 8px; margin-bottom: 10px; align-items: center;";
+    
+    siblingDiv.innerHTML = `
+        <input class="sib-name-input" placeholder="പേര്" style="padding:10px; border:1px solid #dee2e6; border-radius:6px; font-size:13px;">
+        <input type="number" class="sib-class-input" placeholder="ക്ലാസ്" style="padding:10px; border:1px solid #dee2e6; border-radius:6px; font-size:13px;">
+        <button onclick="removeSibling(this)" style="background:#dc3545; color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer;"><i class="fas fa-trash"></i></button>
+    `;
+    
+    container.appendChild(siblingDiv);
+    updateCalculatedFee(); // ഫീസ് അപ്ഡേറ്റ് ചെയ്യാൻ
+}
+
+// 2. ഫീസ് കണക്കാക്കുന്ന ഫങ്ക്ഷൻ (ബേസ് ഫീസ് 250 + ഓരോ സഹോദരനും 50 വീതം)
+function updateCalculatedFee() {
+    const siblingCount = document.querySelectorAll('.sib-name-input').length;
+    const baseFee = 250;
+    const totalFee = baseFee + (siblingCount * 50);
+    
+    // സ്ക്രീനിൽ കാണിക്കാൻ
+    document.getElementById('display-calculated-fee').innerText = totalFee;
+    // ഹിഡൻ ഇൻപുട്ടിൽ സേവ് ചെയ്യാൻ
+    document.getElementById('n-monthly-fee').value = totalFee;
+}
+
+// 3. ഒരു സഹോദരനെ ലിസ്റ്റിൽ നിന്ന് ഒഴിവാക്കുമ്പോൾ ഫീസും കുറയ്ക്കാൻ
+function removeSibling(btn) {
+    btn.parentElement.remove();
+    updateCalculatedFee();
+}
+
 
                 <div style="background:#f8f9fa; padding:15px; border-radius:10px; margin-bottom:15px; border:1px solid #e9ecef;">
                     <p style="font-size:13px; font-weight:bold; color:#495057; margin-bottom:8px;">📅 അധ്യയന വർഷം ക്രമീകരണം:</p>

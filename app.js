@@ -117,18 +117,21 @@ function applyPermissions(user) {
     }
 }
 
-// 2. എല്ലാ സെക്ഷനുകളും മറയ്ക്കാനുള്ള ഫംഗ്ഷൻ
+// 1. എല്ലാ സെക്ഷനുകളും മറയ്ക്കാനുള്ള ഫംഗ്ഷൻ (പേര് കൃത്യമായി ശ്രദ്ധിക്കുക)
 function hideAllSections() {
     const sections = ['dynamic-content', 'usthad-dashboard', 'sadar-wrapper'];
     sections.forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.style.display = 'none';
+        if (el) {
+            el.style.display = 'none';
+        }
     });
 }
 
-// 3. മെയിൻ സെക്ഷൻ സ്വിച്ചർ
+// 2. മെയിൻ സെക്ഷൻ സ്വിച്ചർ
 function showSection(section) {
-    HideAllSections(); 
+    // ഇവിടെ ചെറിയ അക്ഷരത്തിൽ തന്നെ വിളിക്കുക
+    hideAllSections(); 
     
     const content = document.getElementById('dynamic-content');
     const dashboard = document.getElementById('usthad-dashboard');
@@ -136,25 +139,25 @@ function showSection(section) {
     // ലോഗിൻ ചെയ്ത യൂസറുടെ വിവരങ്ങൾ എടുക്കുന്നു
     const user = JSON.parse(localStorage.getItem("activeUser")) || { role: 'Guest' };
 
-    // സെക്ഷനുകൾ നിയന്ത്രിക്കുന്നു
     if (dashboard) dashboard.style.display = 'none';
+    
     if (content) {
         content.style.display = 'block';
+        content.style.pointerEvents = 'auto'; // ടച്ച് ഉറപ്പാക്കാൻ
         content.innerHTML = ''; 
     }
 
     // എല്ലാ പേജിലും കാണേണ്ട പൊതുവായ "തിരികെ" ബട്ടൺ
     const backBtnHTML = `
-        <div style="display:flex; justify-content:flex-end; padding: 10px 15px;">
-            <button onclick="closeSadharSection()" style="background:#6c757d; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-weight:bold; display:flex; align-items:center; gap:5px;">
+        <div style="display:flex; justify-content:flex-end; padding: 10px 15px; position: relative; z-index: 1001;">
+            <button onclick="closeSadharSection()" style="background:#6c757d; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:bold; display:flex; align-items:center; gap:5px; pointer-events: auto;">
                 <i class="fas fa-arrow-left"></i> തിരികെ
             </button>
         </div>`;
 
-    // ഓരോ വിഭാഗം ലോഡ് ചെയ്യുന്നു
     if (section === 'sadhar') {
         if (user.role === 'Sadhar' || user.role === 'Admin') {
-            openSadharSection(); 
+            if (typeof openSadharSection === "function") openSadharSection(); 
         } else {
             content.innerHTML = backBtnHTML + `<div style="padding:20px; text-align:center; color:red; font-weight:bold;">ഈ സെക്ഷൻ സദറിന് മാത്രമുള്ളതാണ്!</div>`;
         }
@@ -172,9 +175,9 @@ function showSection(section) {
         if (typeof showCollectionReport === "function") showCollectionReport(); 
     }
     else if (section === 'add-student') {
-        // പുതിയ വിദ്യാർത്ഥി ഫോമിനും ബാക്ക് ബട്ടൺ മുകളിൽ നൽകുന്നു
+        // ഇവിടെ backBtnHTML മുകളിൽ നൽകി, അപ്പോൾ എളുപ്പത്തിൽ ടച്ച് ചെയ്യാം
         content.innerHTML = backBtnHTML + `
-            <div style="padding:15px; background:white; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1); margin:10px;">
+            <div style="padding:15px; background:white; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1); margin:10px; position: relative; z-index: 1000;">
                 <h3 style="color:#1a73e8; text-align:center; border-bottom:2px solid #eef2f7; padding-bottom:10px;">🆕 പുതിയ വിദ്യാർത്ഥി</h3>
                 
                 <label style="font-size:12px; font-weight:bold; color:#555;">വിദ്യാർത്ഥിയുടെ വിവരം:</label>
@@ -223,9 +226,16 @@ function showSection(section) {
                 <input id="n-fees" type="number" placeholder="0" style="width:100%; padding:12px; margin-bottom:20px; border:1px solid #dee2e6; border-radius:8px; box-sizing:border-box;">
                 
                 <button onclick="saveStudent()" style="width:100%; padding:15px; background:#1a73e8; color:white; border:none; border-radius:10px; font-weight:bold; font-size:16px; cursor:pointer;">സേവ് ചെയ്യുക</button>
-            </div>` + backBtnHTML;
+            </div>`;
     }
-} // <--- showSection ഫങ്ക്ഷന്റെ അവസാനത്തെ ബ്രാക്കറ്റ് ഇവിടെ ആയിരിക്കണം.
+}
+
+// 3. തിരികെ പോകാനുള്ള ഫങ്ക്ഷൻ (ഉണ്ടെന്ന് ഉറപ്പാക്കുക)
+function closeSadharSection() {
+    hideAllSections();
+    const dashboard = document.getElementById('usthad-dashboard');
+    if (dashboard) dashboard.style.display = 'block';
+}
 
 // ഈ താഴെ പറയുന്ന ഫങ്ക്ഷനുകൾ showSection-ന് വെളിയിൽ ആയിരിക്കണം എഴുതേണ്ടത്.
 function addSiblingFieldWithFee() {

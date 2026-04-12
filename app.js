@@ -73,6 +73,7 @@ async function checkUser(uid) {
 }
 
 // 4. ഓരോരുത്തർക്കും വേണ്ട അധികാരങ്ങൾ നൽകാൻ
+// 1. ലോഗിൻ ചെയ്ത ഉടനെ റോൾ അനുസരിച്ച് നിയന്ത്രണങ്ങൾ നൽകാൻ
 function applyPermissions(user) {
     document.getElementById('login-page').style.display = 'none';
     document.getElementById('main-dashboard').style.display = 'block';
@@ -83,31 +84,56 @@ function applyPermissions(user) {
 
     const usthadView = document.getElementById('usthad-view');
     const studentView = document.getElementById('student-view');
+    
+    // HTML-ൽ നൽകിയ muallim-btn id ഇവിടെ എടുക്കുന്നു
+    const muallimBtn = document.getElementById('muallim-btn');
 
-    if (user.role === 'Sadhar' || user.role === 'Usthad') {
+    // റോൾ 'Sadhar' ആണോ എന്ന് നോക്കുന്നു (സ്പെല്ലിംഗ് ശ്രദ്ധിക്കുക)
+    const isSadhar = user.role === 'Sadhar';
+
+    if (isSadhar || user.role === 'Usthad') {
         usthadView.style.display = 'block';
         studentView.style.display = 'none';
 
-        // മാറ്റം വരുത്തിയ ഭാഗം: സദറിനും ഉസ്താദിനും റിപ്പോർട്ട് ബട്ടൺ കാണിക്കുന്നു
-        const reportBtn = document.getElementById('report-btn');
-        if (reportBtn) {
-            reportBtn.style.display = 'block'; // എല്ലാവർക്കും കാണാം
+        // സദറിന് മാത്രം മുഅല്ലിം വിഹിതം കാണിക്കുന്നു
+        if (muallimBtn) {
+            muallimBtn.style.display = isSadhar ? 'block' : 'none';
         }
+
+        const reportBtn = document.getElementById('report-btn');
+        if (reportBtn) reportBtn.style.display = 'block';
 
         const guruBtn = document.getElementById('gurunidhi-btn');
         if (guruBtn) guruBtn.style.display = 'block';
 
+        // ഉസ്താദിന് സ്വന്തം ക്ലാസ്സും സദറിന് എല്ലാ ക്ലാസ്സും ലോഡ് ചെയ്യുന്നു
         if (user.role === 'Usthad') {
             loadStudents(user.assignedClass);
         } else {
-            loadStudents();
+            loadStudents(); 
         }
     } else {
         usthadView.style.display = 'none';
         studentView.style.display = 'block';
     }
 }
- // 1. എല്ലാ സെക്ഷനുകളും മറയ്ക്കാനുള്ള ഫംഗ്ഷൻ
+
+// 2. ബാക്ക് ബട്ടൺ ക്ലിക്ക് ചെയ്യുമ്പോൾ ഡാഷ്ബോർഡ് തിരികെ കാണിക്കാൻ
+function closeSadarSection() {
+    const content = document.getElementById('dynamic-content');
+    const dashboard = document.getElementById('usthad-dashboard');
+    
+    if (content) {
+        content.style.display = 'none';
+        content.innerHTML = ''; // മുൻപ് ലോഡ് ചെയ്ത കാര്യങ്ങൾ ഒഴിവാക്കുന്നു
+    }
+    if (dashboard) {
+        dashboard.style.display = 'block'; // മെയിൻ കാർഡുകൾ തിരികെ കാണിക്കുന്നു
+    }
+}
+
+
+ 1. എല്ലാ സെക്ഷനുകളും മറയ്ക്കാനുള്ള ഫംഗ്ഷൻ
 function hideAllSections() {
     const sections = ['dynamic-content', 'usthad-dashboard', 'sadhar-wrapper'];
     sections.forEach(id => {

@@ -214,11 +214,15 @@ function showSection(section) {
     }
 }
 function openSadarSection() {
-    hideAllSections();
-    const contentArea = document.getElementById('dynamic-content'); // അല്ലെങ്കിൽ നിങ്ങളുടെ മെയിൻ കണ്ടന്റ് ഏരിയ
+    // 1. പഴയ ഡാഷ്‌ബോർഡ് കാർഡുകൾ മറയ്ക്കുന്നു
+    const dashboard = document.getElementById('usthad-dashboard');
+    if(dashboard) dashboard.style.display = 'none';
+    
+    // 2. പുതിയ കണ്ടന്റ് ഏരിയ കാണിക്കുന്നു
+    const contentArea = document.getElementById('dynamic-content');
     contentArea.style.display = 'block';
 
-    // HTML സ്ട്രക്ചർ JavaScript-ൽ നിർമ്മിക്കുന്നു
+    // 3. HTML സ്ട്രക്ചർ ലോഡ് ചെയ്യുന്നു
     contentArea.innerHTML = `
         <div id="sadar-wrapper" style="padding: 10px;">
             <div class="sadar-container">
@@ -228,7 +232,22 @@ function openSadarSection() {
                         <i class="fas fa-arrow-left"></i> തിരികെ
                     </button>
                 </div>
-                
+                </div>
+        </div>
+    `;
+
+    // 4. ഹിസ്റ്ററി ലോഡ് ചെയ്യുന്നു
+    if (typeof loadMuallimHistory === "function") {
+        loadMuallimHistory();
+    }
+}
+
+// തിരികെ മെയിൻ പേജിലേക്ക് വരാനുള്ള ഫംഗ്ഷൻ
+function closeSadarSection() {
+    document.getElementById('dynamic-content').style.display = 'none';
+    document.getElementById('usthad-dashboard').style.display = 'block';
+}
+
                 <div class="input-grid">
                     <div class="input-group">
                         <label>വിഹിതം ഇനം:</label>

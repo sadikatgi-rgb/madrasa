@@ -128,7 +128,7 @@ function hideAllSections() {
 
 // 3. മെയിൻ സെക്ഷൻ സ്വിച്ചർ
 function showSection(section) {
-    hideAllSections(); 
+    HideAllSections(); 
     
     const content = document.getElementById('dynamic-content');
     const dashboard = document.getElementById('usthad-dashboard');
@@ -136,41 +136,44 @@ function showSection(section) {
     // ലോഗിൻ ചെയ്ത യൂസറുടെ വിവരങ്ങൾ എടുക്കുന്നു
     const user = JSON.parse(localStorage.getItem("activeUser")) || { role: 'Guest' };
 
+    // സെക്ഷനുകൾ നിയന്ത്രിക്കുന്നു
     if (dashboard) dashboard.style.display = 'none';
     if (content) {
         content.style.display = 'block';
         content.innerHTML = ''; 
     }
 
-    // എല്ലാ പേജിലും കാണേണ്ട "തിരികെ" ബട്ടൺ (പേര് closeSadharSection എന്ന് ഏകീകരിച്ചു)
+    // എല്ലാ പേജിലും കാണേണ്ട പൊതുവായ "തിരികെ" ബട്ടൺ
     const backBtnHTML = `
         <div style="display:flex; justify-content:flex-end; padding: 10px 15px;">
-            <button onclick="closeSadharSection()" style="background:#6c757d; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-weight:bold;">
+            <button onclick="closeSadharSection()" style="background:#6c757d; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-weight:bold; display:flex; align-items:center; gap:5px;">
                 <i class="fas fa-arrow-left"></i> തിരികെ
             </button>
         </div>`;
 
+    // ഓരോ വിഭാഗം ലോഡ് ചെയ്യുന്നു
     if (section === 'sadhar') {
         if (user.role === 'Sadhar' || user.role === 'Admin') {
             openSadharSection(); 
         } else {
-            content.innerHTML = `<div style="padding:20px; text-align:center; color:red;">ഈ സെക്ഷൻ സദറിന് മാത്രമുള്ളതാണ്!</div>` + backBtnHTML;
+            content.innerHTML = backBtnHTML + `<div style="padding:20px; text-align:center; color:red; font-weight:bold;">ഈ സെക്ഷൻ സദറിന് മാത്രമുള്ളതാണ്!</div>`;
         }
     }
-        else if (section === 'student-list') {
-        content.innerHTML = backBtnHTML + `<div id="list-area">ലോഡിംഗ്...</div>`;
+    else if (section === 'student-list') {
+        content.innerHTML = backBtnHTML + `<div id="list-area" style="padding:10px;">ലോഡിംഗ്...</div>`;
         if (typeof loadStudents === "function") loadStudents(user.role === 'Sadhar' ? 'all' : user.assignedClass);
     }
     else if (section === 'gurunidhi') {
-        content.innerHTML = backBtnHTML + `<div id="gurunidhi-container"></div>`;
+        content.innerHTML = backBtnHTML + `<div id="gurunidhi-container" style="padding:10px;"></div>`;
         if (typeof showGurunidhiSection === "function") showGurunidhiSection(); 
     }
     else if (section === 'report') {
-        content.innerHTML = backBtnHTML + `<div id="report-container"></div>`;
+        content.innerHTML = backBtnHTML + `<div id="report-container" style="padding:10px;"></div>`;
         if (typeof showCollectionReport === "function") showCollectionReport(); 
     }
     else if (section === 'add-student') {
-        content.innerHTML = `
+        // പുതിയ വിദ്യാർത്ഥി ഫോമിനും ബാക്ക് ബട്ടൺ മുകളിൽ നൽകുന്നു
+        content.innerHTML = backBtnHTML + `
             <div style="padding:15px; background:white; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1); margin:10px;">
                 <h3 style="color:#1a73e8; text-align:center; border-bottom:2px solid #eef2f7; padding-bottom:10px;">🆕 പുതിയ വിദ്യാർത്ഥി</h3>
                 

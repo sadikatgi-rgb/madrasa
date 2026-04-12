@@ -169,39 +169,67 @@ function showSection(section) {
         content.innerHTML = backBtnHTML + `<div id="report-container"></div>`;
         if (typeof showCollectionReport === "function") showCollectionReport(); 
     }
-    else if (section === 'add-student') {
-        content.innerHTML = `
-            <div style="padding:15px; background:white; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1); margin:10px;">
-                <h3 style="color:#1a73e8; text-align:center; border-bottom:2px solid #eef2f7; padding-bottom:10px;">🆕 പുതിയ വിദ്യാർത്ഥി</h3>
-                
-                <label style="font-size:12px; font-weight:bold; color:#555;">വിദ്യാർത്ഥിയുടെ വിവരം:</label>
-                <input id="n-name" placeholder="കുട്ടിയുടെ പേര്" style="width:100%; padding:12px; margin-bottom:12px; border:1px solid #dee2e6; border-radius:8px; box-sizing:border-box;">
-                
+    
+// 2. ഫീസ് കണക്കാക്കുന്ന ഫങ്ക്ഷൻ (ബേസ് ഫീസ് 250 + ഓരോ സഹോദരനും 50 വീതം)
+else if (section === 'add-student') {
+    content.innerHTML = `
+        <div style="padding:15px; background:white; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1); margin:10px;">
+            <h3 style="color:#1a73e8; text-align:center; border-bottom:2px solid #eef2f7; padding-bottom:10px;">🆕 പുതിയ വിദ്യാർത്ഥി</h3>
+            
+            <label style="font-size:12px; font-weight:bold; color:#555;">വിദ്യാർത്ഥിയുടെ വിവരം:</label>
+            <input id="n-name" placeholder="കുട്ടിയുടെ പേര്" style="width:100%; padding:12px; margin-bottom:12px; border:1px solid #dee2e6; border-radius:8px; box-sizing:border-box;">
+            
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <input id="n-class" placeholder="ക്ലാസ്സ് (eg: 1, 2..)" style="width:100%; padding:12px; margin-bottom:12px; border:1px solid #dee2e6; border-radius:8px; box-sizing:border-box;">
+                <input id="n-phone" placeholder="വാട്ട്സാപ്പ് നമ്പർ" style="width:100%; padding:12px; margin-bottom:12px; border:1px solid #dee2e6; border-radius:8px; box-sizing:border-box;">
+            </div>
+
+            <input id="n-father" placeholder="പിതാവിന്റെ പേര്" style="width:100%; padding:12px; margin-bottom:12px; border:1px solid #dee2e6; border-radius:8px; box-sizing:border-box;">
+            <input id="n-house" placeholder="വീട്ടുപേര്" style="width:100%; padding:12px; margin-bottom:12px; border:1px solid #dee2e6; border-radius:8px; box-sizing:border-box;">
+
+            <div id="sibling-container" style="background:#f0f7ff; padding:10px; border-radius:10px; margin-bottom:12px; border:1px solid #cfe2ff;">
+                <p style="font-size:12px; color:#084298; margin-bottom:8px; font-weight:bold;">സഹോദരങ്ങൾ (മദ്രസയിൽ പഠിക്കുന്നവർ):</p>
+                <div id="sibling-list"></div>
+                <button onclick="addSiblingFieldWithFee()" style="background:#28a745; margin-top:5px; font-size:12px; padding:10px; color:white; border:none; border-radius:8px; width:100%; cursor:pointer;">+ ഒരാളെ കൂടി ചേർക്കുക</button>
+            </div>
+
+            <div style="background:#fff3cd; padding:10px; border-radius:8px; margin-bottom:15px; border:1px solid #ffeeba; text-align:center;">
+                <label style="font-size:11px; color:#856404; font-weight:bold;">പ്രതിമാസ വരിസംഖ്യ:</label>
+                <div style="font-size:20px; font-weight:bold; color:#856404;">₹ <span id="display-calculated-fee">250</span></div>
+                <input id="n-monthly-fee" type="hidden" value="250">
+            </div>
+
+            <div style="background:#f8f9fa; padding:15px; border-radius:10px; margin-bottom:15px; border:1px solid #e9ecef;">
+                <p style="font-size:13px; font-weight:bold; color:#495057; margin-bottom:8px;">📅 അധ്യയന വർഷം ക്രമീകരണം:</p>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                    <input id="n-class" placeholder="ക്ലാസ്സ് (eg: 1, 2..)" style="width:100%; padding:12px; margin-bottom:12px; border:1px solid #dee2e6; border-radius:8px; box-sizing:border-box;">
-                    <input id="n-phone" placeholder="വാട്ട്സാപ്പ് നമ്പർ" style="width:100%; padding:12px; margin-bottom:12px; border:1px solid #dee2e6; border-radius:8px; box-sizing:border-box;">
+                    <select id="n-fee-months" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ced4da;">
+                        <option value="12" selected>12 മാസം</option>
+                        <option value="11">11 മാസം</option>
+                    </select>
+                    <select id="n-start-month" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ced4da;">
+                        <option value="" disabled selected>തുടങ്ങുന്ന മാസം</option>
+                        <option value="Jan">January</option>
+                        <option value="Feb">February</option>
+                        <option value="Mar">March</option>
+                        <option value="Apr">April</option>
+                        <option value="May">May</option>
+                        <option value="Jun">June</option>
+                    </select>
                 </div>
+            </div>
 
-                <input id="n-father" placeholder="പിതാവിന്റെ പേര്" style="width:100%; padding:12px; margin-bottom:12px; border:1px solid #dee2e6; border-radius:8px; box-sizing:border-box;">
-                <input id="n-house" placeholder="വീട്ടുപേര്" style="width:100%; padding:12px; margin-bottom:12px; border:1px solid #dee2e6; border-radius:8px; box-sizing:border-box;">
+            <label style="font-size:11px; color:#6c757d;">പഴയ ബാക്കി (ഉണ്ടെങ്കിൽ):</label>
+            <input id="n-fees" type="number" placeholder="0" style="width:100%; padding:12px; margin-bottom:20px; border:1px solid #dee2e6; border-radius:8px; box-sizing:border-box;">
+            
+            <button onclick="saveStudent()" style="width:100%; padding:15px; background:#1a73e8; color:white; border:none; border-radius:10px; font-weight:bold; font-size:16px; cursor:pointer;">സേവ് ചെയ്യുക</button>
+        </div>` + backBtnHTML;
+}
 
-                <div id="sibling-container" style="background:#f0f7ff; padding:10px; border-radius:10px; margin-bottom:12px; border:1px solid #cfe2ff;">
-                    <p style="font-size:12px; color:#084298; margin-bottom:8px; font-weight:bold;">സഹോദരങ്ങൾ (മദ്രസയിൽ പഠിക്കുന്നവർ):</p>
-                    <div id="sibling-list"></div>
-                    <button onclick="addSiblingFieldWithFee()" style="background:#28a745; margin-top:5px; font-size:12px; padding:10px; color:white; border:none; border-radius:8px; width:100%; cursor:pointer;">+ ഒരാളെ കൂടി ചേർക്കുക</button>
-                </div>
+// --- ഈ ഫങ്ക്ഷനുകൾ content.innerHTML-ന് വെളിയിൽ (ഏറ്റവും താഴെ) എഴുതുക ---
 
-                <div style="background:#fff3cd; padding:10px; border-radius:8px; margin-bottom:15px; border:1px solid #ffeeba; text-align:center;">
-                    <label style="font-size:11px; color:#856404; font-weight:bold;">പ്രതിമാസ വരിസംഖ്യ:</label>
-                    <div style="font-size:20px; font-weight:bold; color:#856404;">₹ <span id="display-calculated-fee">250</span></div>
-                    <input id="n-monthly-fee" type="hidden" value="250">
-                </div>
-                // 1. സഹോദരങ്ങളെ ചേർക്കാനുള്ള ഫീൽഡുകൾ നിർമ്മിക്കുന്ന ഫങ്ക്ഷൻ
 function addSiblingFieldWithFee() {
     const container = document.getElementById('sibling-list');
     const siblingDiv = document.createElement('div');
-    
-    // പുതിയ ഇൻപുട്ട് ഫീൽഡുകൾ സ്റ്റൈൽ സഹിതം
     siblingDiv.style = "display: grid; grid-template-columns: 2fr 1fr auto; gap: 8px; margin-bottom: 10px; align-items: center;";
     
     siblingDiv.innerHTML = `
@@ -209,56 +237,23 @@ function addSiblingFieldWithFee() {
         <input type="number" class="sib-class-input" placeholder="ക്ലാസ്" style="padding:10px; border:1px solid #dee2e6; border-radius:6px; font-size:13px;">
         <button onclick="removeSibling(this)" style="background:#dc3545; color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer;"><i class="fas fa-trash"></i></button>
     `;
-    
     container.appendChild(siblingDiv);
-    updateCalculatedFee(); // ഫീസ് അപ്ഡേറ്റ് ചെയ്യാൻ
+    updateCalculatedFee();
 }
 
-// 2. ഫീസ് കണക്കാക്കുന്ന ഫങ്ക്ഷൻ (ബേസ് ഫീസ് 250 + ഓരോ സഹോദരനും 50 വീതം)
 function updateCalculatedFee() {
     const siblingCount = document.querySelectorAll('.sib-name-input').length;
     const baseFee = 250;
     const totalFee = baseFee + (siblingCount * 50);
-    
-    // സ്ക്രീനിൽ കാണിക്കാൻ
     document.getElementById('display-calculated-fee').innerText = totalFee;
-    // ഹിഡൻ ഇൻപുട്ടിൽ സേവ് ചെയ്യാൻ
     document.getElementById('n-monthly-fee').value = totalFee;
 }
 
-// 3. ഒരു സഹോദരനെ ലിസ്റ്റിൽ നിന്ന് ഒഴിവാക്കുമ്പോൾ ഫീസും കുറയ്ക്കാൻ
 function removeSibling(btn) {
     btn.parentElement.remove();
     updateCalculatedFee();
 }
 
-
-                <div style="background:#f8f9fa; padding:15px; border-radius:10px; margin-bottom:15px; border:1px solid #e9ecef;">
-                    <p style="font-size:13px; font-weight:bold; color:#495057; margin-bottom:8px;">📅 അധ്യയന വർഷം ക്രമീകരണം:</p>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                        <select id="n-fee-months" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ced4da;">
-                            <option value="12" selected>12 മാസം</option>
-                            <option value="11">11 മാസം</option>
-                        </select>
-                        <select id="n-start-month" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ced4da;">
-                            <option value="" disabled selected>തുടങ്ങുന്ന മാസം</option>
-                            <option value="Jan">January</option>
-                            <option value="Feb">February</option>
-                            <option value="Mar">March</option>
-                            <option value="Apr">April</option>
-                            <option value="May">May</option>
-                            <option value="Jun">June</option>
-                        </select>
-                    </div>
-                </div>
-
-                <label style="font-size:11px; color:#6c757d;">പഴയ ബാക്കി (ഉണ്ടെങ്കിൽ):</label>
-                <input id="n-fees" type="number" placeholder="0" style="width:100%; padding:12px; margin-bottom:20px; border:1px solid #dee2e6; border-radius:8px; box-sizing:border-box;">
-                
-                <button onclick="saveStudent()" style="width:100%; padding:15px; background:#1a73e8; color:white; border:none; border-radius:10px; font-weight:bold; font-size:16px; cursor:pointer;">സേവ് ചെയ്യുക</button>
-            </div>` + backBtnHTML;
-    }
-}
 function openSadharSection() {
     const dashboard = document.getElementById('usthad-dashboard');
     const contentArea = document.getElementById('dynamic-content');

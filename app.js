@@ -169,7 +169,7 @@ function showSection(section) {
         content.innerHTML = backBtnHTML + `<div id="report-container"></div>`;
         if (typeof showCollectionReport === "function") showCollectionReport(); 
     }
-        else if (section === 'add-student') {
+    else if (section === 'add-student') {
         content.innerHTML = `
             <div style="padding:15px; background:white; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1); margin:10px;">
                 <h3 style="color:#1a73e8; text-align:center; border-bottom:2px solid #eef2f7; padding-bottom:10px;">🆕 പുതിയ വിദ്യാർത്ഥി</h3>
@@ -188,40 +188,31 @@ function showSection(section) {
                 <div id="sibling-container" style="background:#f0f7ff; padding:10px; border-radius:10px; margin-bottom:12px; border:1px solid #cfe2ff;">
                     <p style="font-size:12px; color:#084298; margin-bottom:8px; font-weight:bold;">സഹോദരങ്ങൾ (മദ്രസയിൽ പഠിക്കുന്നവർ):</p>
                     <div id="sibling-list"></div>
-                    <button onclick="addSiblingField()" style="background:#28a745; margin-top:5px; font-size:12px; padding:10px; color:white; border:none; border-radius:8px; width:100%; cursor:pointer;">+ ഒരാളെ കൂടി ചേർക്കുക</button>
+                    <button onclick="addSiblingFieldWithFee()" style="background:#28a745; margin-top:5px; font-size:12px; padding:10px; color:white; border:none; border-radius:8px; width:100%; cursor:pointer;">+ ഒരാളെ കൂടി ചേർക്കുക</button>
+                </div>
+
+                <div style="background:#fff3cd; padding:10px; border-radius:8px; margin-bottom:15px; border:1px solid #ffeeba; text-align:center;">
+                    <label style="font-size:11px; color:#856404; font-weight:bold;">പ്രതിമാസ വരിസംഖ്യ:</label>
+                    <div style="font-size:20px; font-weight:bold; color:#856404;">₹ <span id="display-calculated-fee">250</span></div>
+                    <input id="n-monthly-fee" type="hidden" value="250">
                 </div>
 
                 <div style="background:#f8f9fa; padding:15px; border-radius:10px; margin-bottom:15px; border:1px solid #e9ecef;">
                     <p style="font-size:13px; font-weight:bold; color:#495057; margin-bottom:8px;">📅 അധ്യയന വർഷം ക്രമീകരണം:</p>
-                    
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                        <div>
-                            <label style="font-size:11px; color:#6c757d;">ആകെ മാസങ്ങൾ:</label>
-                            <select id="n-fee-months" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ced4da; background:white;">
-                                <option value="12" selected>12 മാസം</option>
-                                <option value="11">11 മാസം</option>
-                                <option value="10">10 മാസം</option>
-                                <option value="9">9 മാസം</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label style="font-size:11px; color:#6c757d;">ആരംഭിക്കുന്ന മാസം (ശവ്വാൽ):</label>
-                            <select id="n-start-month" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ced4da; background:white;">
-                                <option value="" disabled selected>മാസം സെലക്ട് ചെയ്യുക</option>
-                                <option value="Jan">January</option>
-                                <option value="Feb">February</option>
-                                <option value="Mar">March</option>
-                                <option value="Apr">April</option>
-                                <option value="May">May</option>
-                                <option value="Jun">June</option>
-                                <option value="Jul">July</option>
-                                <option value="Aug">August</option>
-                                <option value="Sep">September</option>
-                                <option value="Oct">October</option>
-                                <option value="Nov">November</option>
-                                <option value="Dec">December</option>
-                            </select>
-                        </div>
+                        <select id="n-fee-months" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ced4da;">
+                            <option value="12" selected>12 മാസം</option>
+                            <option value="11">11 മാസം</option>
+                        </select>
+                        <select id="n-start-month" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ced4da;">
+                            <option value="" disabled selected>തുടങ്ങുന്ന മാസം</option>
+                            <option value="Jan">January</option>
+                            <option value="Feb">February</option>
+                            <option value="Mar">March</option>
+                            <option value="Apr">April</option>
+                            <option value="May">May</option>
+                            <option value="Jun">June</option>
+                        </select>
                     </div>
                 </div>
 
@@ -231,7 +222,6 @@ function showSection(section) {
                 <button onclick="saveStudent()" style="width:100%; padding:15px; background:#1a73e8; color:white; border:none; border-radius:10px; font-weight:bold; font-size:16px; cursor:pointer;">സേവ് ചെയ്യുക</button>
             </div>` + backBtnHTML;
     }
-}
 
 function openSadharSection() {
     const contentArea = document.getElementById('dynamic-content');

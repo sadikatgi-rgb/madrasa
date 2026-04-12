@@ -1529,3 +1529,132 @@ async function payFee(id) {
         alert("പിശക് സംഭവിച്ചു: " + e.message);
     }
 }
+let editingDocId = null; // എഡിറ്റ് ചെയ്യുന്ന ഡോക്യുമെന്റ് ഐഡി സൂക്ഷിക്കാൻ
+
+// 1. ശമ്പളം ടൈപ്പ് ചെയ്യുമ്പോൾ 3% (Daily Wage) ഓട്ടോമാറ്റിക് ആയി കണക്കാക്കാൻ
+function calculateContribution() {
+    const salary = document.getElementById('m-salary').value;
+    const contributionField = document.getElementById('m-contribution');
+    
+    if (salary && salary > 0) {
+        // ശമ്പളത്തിന്റെ 3% (30 കൊണ്ട് ഹരിച്ച തുക)
+        const dailyWage = Math.round(salary / 30); 
+        contributionField.value = dailyWage;
+    } else {
+        contributionField.value = '';
+    }
+}
+
+// 2. ഡാറ്റ സേവ് ചെയ്യാനും അപ്‌ഡേറ്റ് ചെയ്യാനും
+async function saveMuallimData() {
+    const data = {
+        type: document.getElementById('contribution-type').value,
+        date: document.getElementById('m-date').value,
+        regNo: document.getElementById('m-reg').value,
+        msrNo: document.getElementById('m-msr').value,
+        name: document.getElementById('m-name').value,
+        salary: Number(document.getElementById('m-salary').value),
+        contribution: Number(document.getElementById('m-contribution').value),
+        remarks: document.getElementById('m-remarks').value,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    if(!data.name || !data.salary || !data.date) {
+        alert("ദയവായി പേര്, ശമ്പളം, തീയതി എന്നിവ നൽകുക.");
+        return;
+    }
+
+    try {
+        if (editingDocId) {
+            // നിലവിലുള്ള വിവരം പുതുക്കുന്നു
+            await db.collection("muallim_contributions").doc(editingDocId).update(data);
+            alert("വിവരങ്ങൾ വിജയകരമായി പുതുക്കി!");
+            editingDocId = null;
+            document.getElementById('save-btn').innerText = "വിവരങ്ങൾ സേവ് ചെയ്യുക";
+        } else {
+            // പുതിയ വിവരം ചേർക്കുന്നു
+            await db.collection("muallim_contributions").add(data);
+            alert("വിവരങ്ങൾ വിജയകരമായി സേവ് ചെയ്തു!");
+        }
+        
+        resetSadarForm();
+        loadMuallimHistory();
+    } catch (error) {
+        console.error("Error:", error);
+        alert("പിശക് സംഭവിച്ചു: " + error.message);
+    }
+}
+
+// 3. ഹിസ്റ്ററി ലിസ്റ്റ് ലോഡ് ചെയ്യാൻ (Year Filter സഹിതം)
+async function loadMuallimHistory() {
+    const year = document.getElementById('history-year-filter').value;
+    const historyList = document.getElementById('muallim-history-list');
+    historyList.innerHTML = "<p style='text-align:center;'>ലോഡിംഗ്...</p>";
+
+    try {
+        const snap = await db.collection("muallim_contributions").orderBy("timestamp", "desc").get();
+        historyList.innerHTML = "";
+        
+        snap.forEach(doc => {
+            const d = doc.data();
+            // തിരഞ്ഞെടുത്ത വർഷം ഫിൽറ്റർ ചെയ്യുന്നു
+            if (d.date && d.date.startsWith(year)) {
+                historyList.innerHTML += `
+                <div class="history-item">
+                    <div class="history-info">
+                        <strong>${d.name}</strong> (${d.type})
+                        <small>📅 ${d.date} | 💰 Salary: ₹${d.salary} | 💸 Contrib: ₹${d.contribution}</small>
+                    </div>
+                    <div class="action-btns">
+                        <button class="btn-edit" onclick="editMuallimEntry('${doc.id}', ${JSON.stringify(d).replace(/"/g, '&quot;')})">Edit ✏️</button>
+                        <button class="btn-delete" onclick="deleteMuallimEntry('${doc.id}')">Del 🗑️</button>
+                    </div>
+                </div>`;
+            }
+        });
+
+        if (historyList.innerHTML === "") historyList.innerHTML = "<p style='color:#999; text-align:center;'>ഈ വർഷത്തെ ഹിസ്റ്ററി ലഭ്യമല്ല.</p>";
+    } catch (error) {
+        console.error("History Error:", error);
+        historyList.innerHTML = "ഹിസ്റ്ററി ലോഡ് ചെയ്യുന്നതിൽ പിശക്.";
+    }
+}
+
+// 4. എഡിറ്റ് ചെയ്യാൻ വിവരങ്ങൾ ഫോമിലേക്ക് മാറ്റുന്നു
+function editMuallimEntry(id, data) {
+    editingDocId = id;
+    document.getElementById('contribution-type').value = data.type;
+    document.getElementById('m-date').value = data.date;
+    document.getElementById('m-reg').value = data.regNo;
+    document.getElementById('m-msr').value = data.msrNo;
+    document.getElementById('m-name').value = data.name;
+    document.getElementById('m-salary').value = data.salary;
+    document.getElementById('m-contribution').value = data.contribution;
+    document.getElementById('m-remarks').value = data.remarks;
+    
+    document.getElementById('save-btn').innerText = "മാറ്റങ്ങൾ സേവ് ചെയ്യുക (Update)";
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// 5. ഡിലീറ്റ് ചെയ്യാൻ
+async function deleteMuallimEntry(id) {
+    if (confirm("ഈ വിവരം ഹിസ്റ്ററിയിൽ നിന്ന് ഒഴിവാക്കട്ടെ?")) {
+        try {
+            await db.collection("muallim_contributions").doc(id).delete();
+            loadMuallimHistory();
+        } catch (error) {
+            alert("Error deleting: " + error.message);
+        }
+    }
+}
+
+// 6. ഫോം റീസെറ്റ് ചെയ്യാൻ
+function resetSadarForm() {
+    const ids = ['m-reg', 'm-msr', 'm-name', 'm-salary', 'm-contribution', 'm-remarks'];
+    ids.forEach(id => document.getElementById(id).value = '');
+    editingDocId = null;
+    document.getElementById('save-btn').innerText = "വിവരങ്ങൾ സേവ് ചെയ്യുക";
+}
+
+// പേജ് ലോഡ് ചെയ്യുമ്പോൾ ഹിസ്റ്ററി ലോഡ് ചെയ്യാൻ
+window.onload = loadMuallimHistory;

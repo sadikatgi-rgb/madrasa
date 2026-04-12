@@ -222,7 +222,7 @@ function showSection(section) {
                 <button onclick="saveStudent()" style="width:100%; padding:15px; background:#1a73e8; color:white; border:none; border-radius:10px; font-weight:bold; font-size:16px; cursor:pointer;">സേവ് ചെയ്യുക</button>
             </div>` + backBtnHTML;
     }
-
+}
 function openSadharSection() {
     const dashboard = document.getElementById('usthad-dashboard');
     const contentArea = document.getElementById('dynamic-content');

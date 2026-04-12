@@ -107,6 +107,40 @@ function applyPermissions(user) {
         studentView.style.display = 'block';
     }
 }
+function hideAllSections() {
+    // നിലവിലുള്ള എല്ലാ പ്രധാന സെക്ഷനുകളുടെയും ID ഇവിടെ നൽകുക
+    const sections = [
+        'dynamic-content', 
+        'sadar-wrapper', 
+        'exam-section', 
+        'mag-section', 
+        'tea-money-section',
+        'list-area'
+    ];
+    
+    sections.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+}
+
+function showSection(section) {
+    hideAllSections(); // ആദ്യം എല്ലാം മറയ്ക്കുന്നു
+    
+    if (section === 'sadar') {
+        document.getElementById('sadar-wrapper').style.display = 'block';
+        loadMuallimHistory();
+    } else if (section === 'tea-money') {
+        document.getElementById('tea-money-section').style.display = 'block';
+        loadTeaMoneyList();
+    } else if (section === 'exams') {
+        document.getElementById('exam-section').style.display = 'block';
+    } else {
+        // പഴയ സെക്ഷനുകൾ dynamic-content ലാണ് വരുന്നത്
+        document.getElementById('dynamic-content').style.display = 'block';
+        // ബാക്കി ലോജിക് (loadStudents etc...)
+    }
+}
 
 // 5. സെക്ഷൻ സ്വിച്ചർ
 function showSection(section) {

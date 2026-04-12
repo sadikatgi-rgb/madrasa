@@ -150,7 +150,7 @@ function showSection(section) {
             </button>
         </div>`;
 
-    if (section === 'sadar') {
+    if (section === 'sadhar') {
         if (user.role === 'Sadhar' || user.role === 'Admin') {
             openSadharSection(); 
         } else {
@@ -182,19 +182,19 @@ function showSection(section) {
 }
 
 // 4. മുഅല്ലിം വിഹിതം (Sadhar Only) ലോഡ് ചെയ്യുന്ന ഭാഗം
-function openSadarSection() {
+function openSadharSection() {
     const contentArea = document.getElementById('dynamic-content');
     
     // എല്ലാ പേജിലും താഴെ കാണേണ്ട ബാക്ക് ബട്ടൺ
     const backBtnHTML = `
         <div style="display:flex; justify-content:center; padding: 25px 10px; margin-top: 20px;">
-            <button onclick="closeSadarSection()" style="background:#6c757d; color:white; border:none; padding:15px; border-radius:12px; cursor:pointer; font-weight:bold; width:100%; max-width:400px; display:flex; align-items:center; justify-content:center; gap:10px; font-size:16px;">
+            <button onclick="closeSadharSection()" style="background:#6c757d; color:white; border:none; padding:15px; border-radius:12px; cursor:pointer; font-weight:bold; width:100%; max-width:400px; display:flex; align-items:center; justify-content:center; gap:10px; font-size:16px;">
                 <i class="fas fa-arrow-left"></i> ഡാഷ്‌ബോർഡിലേക്ക് തിരികെ
             </button>
         </div>`;
 
     contentArea.innerHTML = `
-        <div id="sadar-wrapper" style="padding: 10px;">
+        <div id="sadhar-wrapper" style="padding: 10px;">
             <div class="sadar-container" style="background:white; padding:20px; border-radius:15px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; border-bottom:1px solid #eee; padding-bottom:10px;">
                     <h3 style="margin:0; color:#1a73e8;">ഉസ്താദുമാരുടെ വിഹിതം (Sadar Only)</h3>

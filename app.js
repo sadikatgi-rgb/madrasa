@@ -459,6 +459,15 @@ async function loadStudents(filterClass = 'all') {
     const user = JSON.parse(savedUser);
 
     const content = document.getElementById('dynamic-content');
+
+    // --- ബാക്ക് ബട്ടൺ (എല്ലാ പേജിലും തിരികെ പോകാൻ) ---
+    const backBtnHTML = `
+        <div style="display:flex; justify-content:flex-end; padding: 10px 15px; position: sticky; top: 0; background: #fff; z-index: 1000; border-bottom: 1px solid #eee;">
+            <button onclick="closeSadharSection()" style="background:#6c757d; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-weight:bold; display:flex; align-items:center; gap:5px; pointer-events: auto;">
+                <i class="fas fa-arrow-left"></i> തിരികെ
+            </button>
+        </div>`;
+
     let query = db.collection("students");
     let showFilter = false;
 
@@ -477,15 +486,16 @@ async function loadStudents(filterClass = 'all') {
     let headerHTML = '';
     if (showFilter) {
         headerHTML = `
-            <select onchange="loadStudents(this.value)" style="margin-bottom:15px; width:100%; padding:10px; border-radius:8px; border:1px solid #ddd; font-family:inherit;">
+            <select onchange="loadStudents(this.value)" style="margin: 10px; width: calc(100% - 20px); padding:10px; border-radius:8px; border:1px solid #ddd; font-family:inherit;">
                 <option value="all" ${filterClass === 'all' ? 'selected' : ''}>എല്ലാ ക്ലാസ്സും</option>
                 ${[...Array(12).keys()].map(i => `<option value="${i+1}" ${filterClass == (i+1) ? 'selected' : ''}>ക്ലാസ്സ് ${i+1}</option>`).join('')}
             </select>`;
     } else {
-        headerHTML = `<h3 style="text-align:center; color:#1a73e8; margin-bottom:15px; background:#f8f9fa; padding:10px; border-radius:8px;">ക്ലാസ്സ് ${filterClass} - വിദ്യാർത്ഥികൾ</h3>`;
+        headerHTML = `<h3 style="text-align:center; color:#1a73e8; margin:15px 10px; background:#f8f9fa; padding:10px; border-radius:8px;">ക്ലാസ്സ് ${filterClass} - വിദ്യാർത്ഥികൾ</h3>`;
     }
 
-    content.innerHTML = headerHTML + `<div id="list-area">ലോഡിംഗ്...</div>`;
+    // കണ്ടന്റ് ഏരിയ സെറ്റ് ചെയ്യുന്നു
+    content.innerHTML = backBtnHTML + headerHTML + `<div id="list-area">ലോഡിംഗ്...</div>`;
 
     const snap = await query.get();
     const listArea = document.getElementById('list-area');
@@ -556,7 +566,7 @@ async function loadStudents(filterClass = 'all') {
 
         // 3. ഓരോ കുട്ടിയുടെയും കാർഡ്
         listArea.innerHTML += `
-            <div class="student-item" style="position:relative; background:white; padding:15px; margin-bottom:15px; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.1); border-left:5px solid #1a73e8;">
+            <div class="student-item" style="position:relative; background:white; padding:15px; margin:10px; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.1); border-left:5px solid #1a73e8;">
                 <div style="position:absolute; right:10px; top:10px;">
                     ${(user.role === 'Sadhar' || (user.role === 'Usthad' && user.assignedClass == s.class)) ? `
                         <i class="fas fa-edit" onclick="editStudent('${doc.id}')" style="color:blue; cursor:pointer; margin-right:15px;"></i>
@@ -565,7 +575,8 @@ async function loadStudents(filterClass = 'all') {
                 </div>
                 <h4 style="margin:0 0 5px 0; color:#1a73e8;">${s.name} (ക്ലാസ്: ${s.class})</h4>
                 
-                ${siblingDetailsHTML} <div style="font-size:11px; color:#666; margin:8px 0;">
+                ${siblingDetailsHTML} 
+                <div style="font-size:11px; color:#666; margin:8px 0;">
                     <b>ID:</b> ${s.studentID} | <b>പ്രതിമാസ ഫീസ്:</b> ₹${currentMonthlyFee} 
                     <span style="font-size:9px; color:#999;">(Base 250 + ${sibCount}×50)</span>
                 </div>
@@ -581,7 +592,7 @@ async function loadStudents(filterClass = 'all') {
                         <div>
                             <span>പഴയ ബാക്കി: <b style="color:#d32f2f;">₹${oldBal}</b></span>
                         </div>
-                        ${oldBal > 0 ? `<button onclick="payOldBalance('${doc.id}', '${s.parentPhone}', '${s.name}')" style="background:#d32f2f; color:white; border:none; padding:3px 8px; border-radius:4px; font-size:10px; cursor:pointer;">Pay Old</button>` : ''}
+                        ${oldBal > 0 ? `<button onclick="payOldBalance('${doc.id}', '${s.parentPhone}', '${s.name}')" style="background:#d32f2f; color:white; border:none; padding:5px 10px; border-radius:4px; font-size:11px; cursor:pointer; font-weight:bold; pointer-events: auto;">Pay Old</button>` : ''}
                     </div>
                     <div style="text-align:right; margin-top:8px; font-weight:bold; border-top:1px solid #ffdada; padding-top:5px; color:#000;">
                         ആകെ കുടിശ്ശിക: ₹${totalPending}
@@ -589,16 +600,16 @@ async function loadStudents(filterClass = 'all') {
                 </div>
 
                 <div style="display:flex; gap:5px; margin-top:10px;">
-                    <button onclick="payFee('${doc.id}')" style="flex:1; background:#28a745; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer; font-size:12px;">Pay Month</button>
-                    <button onclick="viewHistory('${doc.id}', '${s.name}')" style="flex:1; background:#1a73e8; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer; font-size:12px;">History</button>
-                    <button onclick="sendCustomWA('${s.parentPhone}', '${s.name}')" style="background:#25d366; flex:1; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer; font-size:12px;">Chat</button>
+                    <button onclick="payFee('${doc.id}')" style="flex:1; background:#28a745; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer; font-size:12px; font-weight:bold;">Pay Month</button>
+                    <button onclick="viewHistory('${doc.id}', '${s.name}')" style="flex:1; background:#1a73e8; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer; font-size:12px; font-weight:bold;">History</button>
+                    <button onclick="sendCustomWA('${s.parentPhone}', '${s.name}')" style="background:#25d366; flex:1; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer; font-size:12px;"><i class="fab fa-whatsapp"></i> Chat</button>
                 </div>
             </div>`;
     });
 
     // റിപ്പോർട്ട് വിളിക്കുന്നു
-    updateExtendedReport(paidList, unpaidList);
-}
+    if (typeof updateExtendedReport === "function") updateExtendedReport(paidList, unpaidList);
+}        
 
 // സഹായ ഫങ്ക്ഷനുകൾ (താഴെ ചേർക്കാം)
 

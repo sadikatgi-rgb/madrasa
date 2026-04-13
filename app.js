@@ -672,55 +672,63 @@ function showDetailedList(title, list) {
 }
 async function payOldBalance(docId, phone, name) {
     // 1. തുക ചോദിക്കുന്നു
-    const amount = prompt(`${name}-ന്റെ പഴയ ബാക്കിയിൽ എത്ര രൂപയാണ് അടയ്ക്കുന്നത്?`);
-    if (amount === null || amount === "" || isNaN(amount)) return;
+    let amountInput = prompt(`${name}-ന്റെ പഴയ ബാക്കിയിൽ എത്ര രൂപയാണ് അടയ്ക്കുന്നത്?`);
+    if (amountInput === null || amountInput.trim() === "") return;
 
-    // 2. റെസീപ്റ്റ് നമ്പർ ചോദിക്കുന്നു (നിങ്ങൾ ആവശ്യപ്പെട്ട പുതിയ മാറ്റം)
+    // ഇൻപുട്ടിനെ അക്കമാക്കി മാറ്റുന്നു
+    const payAmount = Number(amountInput);
+
+    if (isNaN(payAmount) || payAmount <= 0) {
+        alert("ദയവായി ശരിയായ ഒരു തുക നൽകുക.");
+        return;
+    }
+
+    // 2. റെസീപ്റ്റ് നമ്പർ ചോദിക്കുന്നു (ഇവിടെ 5/245 പോലുള്ളവ നൽകാം)
     const rcptNo = prompt("റെസീപ്റ്റ് നമ്പർ നൽകുക:");
-    if (rcptNo === null || rcptNo === "") {
+    if (rcptNo === null || rcptNo.trim() === "") {
         alert("റെസീപ്റ്റ് നമ്പർ നിർബന്ധമാണ്!");
         return;
     }
 
-    const payAmount = Number(amount);
     const payDate = new Date().toLocaleDateString('en-IN');
 
     try {
         const docRef = db.collection("students").doc(docId);
         const doc = await docRef.get();
+        
+        // ഫയർബേസിലെ തുകയെ അക്കമാക്കി മാറ്റുന്നു (ഇതാണ് താരതമ്യത്തിന് പ്രധാനം)
         const currentOldBalance = Number(doc.data().balance) || 0;
 
+        // അക്കങ്ങൾ തമ്മിൽ മാത്രം താരതമ്യം ചെയ്യുന്നു
         if (payAmount > currentOldBalance) {
-            alert("നൽകിയ തുക പഴയ ബാക്കിയേക്കാൾ കൂടുതലാണ്!");
+            alert(`നൽകിയ തുക (₹${payAmount}) പഴയ ബാക്കിയേക്കാൾ (₹${currentOldBalance}) കൂടുതലാണ്!`);
             return;
         }
 
         const newBalance = currentOldBalance - payAmount;
 
-        // ഫയർബേസിൽ പുതിയ ബാക്കി തുക അപ്‌ഡേറ്റ് ചെയ്യുന്നു
+        // ഫയർബേസിൽ പുതിയ തുക അപ്‌ഡേറ്റ് ചെയ്യുന്നു
         await docRef.update({
             balance: newBalance
         });
 
-        // റെസീപ്റ്റ് വിവരങ്ങൾ ഹിസ്റ്ററിയിലേക്ക് (Receipts Collection) ചേർക്കുന്നു
+        // ഹിസ്റ്ററിയിലേക്ക് ചേർക്കുന്നു
         await db.collection("receipts").add({
             studentId: docId,
             studentName: name,
             amount: payAmount,
             date: payDate,
-            receiptNo: rcptNo, 
+            receiptNo: String(rcptNo), // നമ്പറിനെ ടെക്സ്റ്റ് ആയി സേവ് ചെയ്യുന്നു
             type: "Old Balance Payment",
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
 
         alert(`വിജയകരമായി സ്വീകരിച്ചു!\nബാക്കി തുക: ₹${newBalance}`);
-        
-        // ലിസ്റ്റ് പുതുക്കുന്നു
         loadStudents(); 
         
     } catch (error) {
-        console.error("Error updating old balance:", error);
-        alert("പിശക് സംഭവിച്ചു!");
+        console.error("Error:", error);
+        alert("പിശക് സംഭവിച്ചു! ഇന്റർനെറ്റ് കണക്ഷൻ പരിശോധിക്കുക.");
     }
 }
 

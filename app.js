@@ -593,11 +593,11 @@ async function loadStudents(filterClass = 'all') {
         ${oldBal > 0 ? `<button onclick="payOldBalance('${doc.id}', '${s.parentPhone}', '${s.name}')" style="background:#d32f2f; color:white; border:none; padding:8px 15px; border-radius:6px; font-size:12px; cursor:pointer; font-weight:bold; pointer-events: auto;">Pay Old</button>` : ''}
     </div>
 
-    <div style="text-align: right; margin-top: 4px;">
-        <span onclick="viewOldPayHistory('${doc.id}', '${s.name}')" style="font-size:11px; color:#1a73e8; cursor:pointer; text-decoration:underline; display:inline-block;">
-            View Old Pay History
-        </span>
-    </div>
+    <div class="history-container">
+    <span onclick="viewOldPayHistory('${doc.id}', '${s.name}')" class="view-old-history">
+        <i class="fas fa-history"></i> View Old History
+    </span>
+</div>
 
     <div style="text-align:right; margin-top:8px; font-weight:bold; border-top:1px solid #ffdada; padding-top:8px; color:#000; font-size:14px;">
         ആകെ കുടിശ്ശിക: ₹${totalPending}

@@ -452,7 +452,7 @@ async function saveStudent() {
     }
 }
 
-// 4. സ്റ്റുഡന്റ് ലിസ്റ്റ് (Old Balance ഫീച്ചർ ഉൾപ്പെടെ)
+// 4. സ്റ്റുഡന്റ് ലിസ്റ്റ് (സഹോദരങ്ങളുടെ വിവരവും ഓൾഡ് ബാലൻസും ശരിയാക്കിയത്)
 async function loadStudents(filterClass = 'all') {
     const savedUser = localStorage.getItem("activeUser");
     if (!savedUser) return;
@@ -460,7 +460,7 @@ async function loadStudents(filterClass = 'all') {
 
     const content = document.getElementById('dynamic-content');
 
-    // --- ബാക്ക് ബട്ടൺ (എല്ലാ പേജിലും തിരികെ പോകാൻ) ---
+    // എല്ലാ പേജിലും തിരികെ പോകാൻ Sticky ബാക്ക് ബട്ടൺ
     const backBtnHTML = `
         <div style="display:flex; justify-content:flex-end; padding: 10px 15px; position: sticky; top: 0; background: #fff; z-index: 1000; border-bottom: 1px solid #eee;">
             <button onclick="closeSadharSection()" style="background:#6c757d; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-weight:bold; display:flex; align-items:center; gap:5px; pointer-events: auto;">
@@ -471,7 +471,6 @@ async function loadStudents(filterClass = 'all') {
     let query = db.collection("students");
     let showFilter = false;
 
-    // 1. റോൾ അനുസരിച്ചുള്ള ഫിൽട്ടർ
     if (user.role === 'Usthad') {
         filterClass = user.assignedClass; 
         query = query.where("class", "==", filterClass);
@@ -482,7 +481,6 @@ async function loadStudents(filterClass = 'all') {
         }
     }
 
-    // 2. ഹെഡർ ഭാഗം
     let headerHTML = '';
     if (showFilter) {
         headerHTML = `
@@ -494,31 +492,30 @@ async function loadStudents(filterClass = 'all') {
         headerHTML = `<h3 style="text-align:center; color:#1a73e8; margin:15px 10px; background:#f8f9fa; padding:10px; border-radius:8px;">ക്ലാസ്സ് ${filterClass} - വിദ്യാർത്ഥികൾ</h3>`;
     }
 
-    // കണ്ടന്റ് ഏരിയ സെറ്റ് ചെയ്യുന്നു
     content.innerHTML = backBtnHTML + headerHTML + `<div id="list-area">ലോഡിംഗ്...</div>`;
 
     const snap = await query.get();
     const listArea = document.getElementById('list-area');
     listArea.innerHTML = "";
 
-    // റിപ്പോർട്ടിനായി ലിസ്റ്റുകൾ
     let paidList = [];
     let unpaidList = [];
 
     snap.forEach(doc => {
         const s = doc.data();
-        let sibCount = s.siblings ? s.siblings.length : 0;
-
-        // --- സഹോദരങ്ങളുടെ വിവരങ്ങൾ കാണിക്കാനുള്ള HTML ---
+        
+        // --- 1. സഹോദരങ്ങളുടെ വിവരങ്ങൾ മനോഹരമായി കാണിക്കാൻ (ബോക്സ് ഡിസൈൻ) ---
+        let siblingsArray = s.siblings || [];
+        let sibCount = siblingsArray.length;
         let siblingDetailsHTML = '';
         if (sibCount > 0) {
             siblingDetailsHTML = `
-                <div style="font-size:10px; color:#555; margin-top:5px; padding:6px; background:#f0f7ff; border-radius:8px; border: 1px dashed #abc; line-height:1.4;">
-                    <b>സഹോദരങ്ങൾ:</b> ${s.siblings.map(sib => `${sib.name} (${sib.class})`).join(', ')}
+                <div style="font-size:11px; color:#555; margin-top:5px; padding:8px; background:#f0f7ff; border-radius:8px; border: 1px dashed #abc; line-height:1.4;">
+                    <i class="fas fa-users"></i> <b>സഹോദരങ്ങൾ:</b> ${siblingsArray.map(sib => `${sib.name} (${sib.class})`).join(', ')}
                 </div>`;
         }
 
-        // --- ഫീസ് കണക്കുകൂട്ടൽ (Base 250 + 50 per sibling) ---
+        // --- 2. ഫീസ് കണക്കുകൂട്ടൽ രീതി (Base 250 + 50 per sibling) ---
         const baseFee = 250;
         const additionalFee = sibCount * 50;
         const currentMonthlyFee = baseFee + additionalFee;
@@ -527,31 +524,19 @@ async function loadStudents(filterClass = 'all') {
         const startMonthIdx = monthsOrder.indexOf(startMonthName);
 
         let unpaidCount = 0;
-        let pendingMonthsNames = [];
-
         monthsOrder.forEach((m, idx) => {
             if (idx >= startMonthIdx && idx <= currentMonthIdx) {
                 const isPaid = s.monthStatus && s.monthStatus[m]?.paid;
-                if (!isPaid) {
-                    unpaidCount++;
-                    pendingMonthsNames.push(m);
-                }
+                if (!isPaid) unpaidCount++;
             }
         });
 
-        // റിപ്പോർട്ടിലേക്ക് തരംതിരിക്കുന്നു
-        if (unpaidCount === 0) {
-            paidList.push(s.name);
-        } else {
-            unpaidList.push(s.name);
-        }
+        if (unpaidCount === 0) paidList.push(s.name); else unpaidList.push(s.name);
 
-        // മന്ത് ടേബിൾ
         let monthTableHTML = `<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin: 10px 0; font-size: 10px;">`;
         monthsOrder.forEach((m, index) => {
             const isPaid = s.monthStatus && s.monthStatus[m]?.paid;
             const isAcademicMonth = index >= startMonthIdx && index <= currentMonthIdx;
-            
             monthTableHTML += `
                 <div style="border: 1px solid #ddd; padding: 4px; text-align: center; border-radius:3px; background: ${isPaid ? '#e8f5e9' : (isAcademicMonth ? '#fff' : '#f5f5f5')}">
                     <b style="color: ${isPaid ? 'green' : (isAcademicMonth ? '#777' : '#bbb')}">${m}</b><br>
@@ -564,52 +549,49 @@ async function loadStudents(filterClass = 'all') {
         const oldBal = Number(s.balance) || 0;
         const totalPending = pendingMonthsFee + oldBal;
 
-        // 3. ഓരോ കുട്ടിയുടെയും കാർഡ്
+        // --- 3. സ്റ്റുഡന്റ് കാർഡ് ഡിസൈൻ ---
         listArea.innerHTML += `
             <div class="student-item" style="position:relative; background:white; padding:15px; margin:10px; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.1); border-left:5px solid #1a73e8;">
                 <div style="position:absolute; right:10px; top:10px;">
                     ${(user.role === 'Sadhar' || (user.role === 'Usthad' && user.assignedClass == s.class)) ? `
-                        <i class="fas fa-edit" onclick="editStudent('${doc.id}')" style="color:blue; cursor:pointer; margin-right:15px;"></i>
-                        <i class="fas fa-trash" onclick="deleteStudent('${doc.id}')" style="color:red; cursor:pointer;"></i>
+                        <i class="fas fa-edit" onclick="editStudent('${doc.id}')" style="color:blue; cursor:pointer; margin-right:15px; font-size:18px;"></i>
+                        <i class="fas fa-trash" onclick="deleteStudent('${doc.id}')" style="color:red; cursor:pointer; font-size:18px;"></i>
                     ` : ''}
                 </div>
-                <h4 style="margin:0 0 5px 0; color:#1a73e8;">${s.name} (ക്ലാസ്: ${s.class})</h4>
+                <h4 style="margin:0 0 5px 0; color:#1a73e8; font-size:16px;">${s.name} (ക്ലാസ്: ${s.class})</h4>
                 
-                ${siblingDetailsHTML} 
-                <div style="font-size:11px; color:#666; margin:8px 0;">
-                    <b>ID:</b> ${s.studentID} | <b>പ്രതിമാസ ഫീസ്:</b> ₹${currentMonthlyFee} 
-                    <span style="font-size:9px; color:#999;">(Base 250 + ${sibCount}×50)</span>
+                ${siblingDetailsHTML}
+                <div style="font-size:11px; color:#666; margin:10px 0;">
+                    <b>ID:</b> ${s.studentID} | <b>ഫീസ്:</b> ₹${currentMonthlyFee} 
+                    <span style="font-size:9px; color:#999;">(${baseFee} + ${sibCount} \u00d7 50)</span>
                 </div>
 
                 ${monthTableHTML}
                 
-                <div style="background:#fff3f3; padding:10px; border-radius:8px; border:1px solid #ffebeb; margin-top:10px;">
-                    <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:5px;">
+                <div style="background:#fff3f3; padding:12px; border-radius:10px; border:1px solid #ffebeb; margin-top:10px;">
+                    <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:5px;">
                         <span>ബാക്കി മാസങ്ങൾ (${unpaidCount}):</span>
                         <b style="color:#d32f2f;">₹${pendingMonthsFee}</b>
                     </div>
-                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; padding-top:5px; border-top:1px dashed #ffdada;">
-                        <div>
-                            <span>പഴയ ബാക്കി: <b style="color:#d32f2f;">₹${oldBal}</b></span>
-                        </div>
-                        ${oldBal > 0 ? `<button onclick="payOldBalance('${doc.id}', '${s.parentPhone}', '${s.name}')" style="background:#d32f2f; color:white; border:none; padding:5px 10px; border-radius:4px; font-size:11px; cursor:pointer; font-weight:bold; pointer-events: auto;">Pay Old</button>` : ''}
+                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; padding-top:8px; border-top:1px dashed #ffdada;">
+                        <span>പഴയ ബാക്കി: <b style="color:#d32f2f;">₹${oldBal}</b></span>
+                        ${oldBal > 0 ? `<button onclick="payOldBalance('${doc.id}', '${s.parentPhone}', '${s.name}')" style="background:#d32f2f; color:white; border:none; padding:8px 15px; border-radius:6px; font-size:12px; cursor:pointer; font-weight:bold; pointer-events: auto;">Pay Old</button>` : ''}
                     </div>
-                    <div style="text-align:right; margin-top:8px; font-weight:bold; border-top:1px solid #ffdada; padding-top:5px; color:#000;">
+                    <div style="text-align:right; margin-top:8px; font-weight:bold; border-top:1px solid #ffdada; padding-top:8px; color:#000; font-size:14px;">
                         ആകെ കുടിശ്ശിക: ₹${totalPending}
                     </div>
                 </div>
 
-                <div style="display:flex; gap:5px; margin-top:10px;">
-                    <button onclick="payFee('${doc.id}')" style="flex:1; background:#28a745; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer; font-size:12px; font-weight:bold;">Pay Month</button>
-                    <button onclick="viewHistory('${doc.id}', '${s.name}')" style="flex:1; background:#1a73e8; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer; font-size:12px; font-weight:bold;">History</button>
-                    <button onclick="sendCustomWA('${s.parentPhone}', '${s.name}')" style="background:#25d366; flex:1; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer; font-size:12px;"><i class="fab fa-whatsapp"></i> Chat</button>
+                <div style="display:flex; gap:8px; margin-top:12px;">
+                    <button onclick="payFee('${doc.id}')" style="flex:1; background:#28a745; color:white; border:none; padding:10px; border-radius:8px; cursor:pointer; font-weight:bold;">Pay Month</button>
+                    <button onclick="viewHistory('${doc.id}', '${s.name}')" style="flex:1; background:#1a73e8; color:white; border:none; padding:10px; border-radius:8px; cursor:pointer; font-weight:bold;">History</button>
+                    <button onclick="sendCustomWA('${s.parentPhone}', '${s.name}')" style="background:#25d366; width:50px; color:white; border:none; padding:10px; border-radius:8px; cursor:pointer;"><i class="fab fa-whatsapp" style="font-size:18px;"></i></button>
                 </div>
             </div>`;
     });
 
-    // റിപ്പോർട്ട് വിളിക്കുന്നു
     if (typeof updateExtendedReport === "function") updateExtendedReport(paidList, unpaidList);
-}        
+}
 
 // സഹായ ഫങ്ക്ഷനുകൾ (താഴെ ചേർക്കാം)
 

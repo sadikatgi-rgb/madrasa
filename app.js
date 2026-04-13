@@ -409,17 +409,22 @@ async function saveStudent() {
         return; 
     }
 
-    let siblingsList = [];
-    const sibNames = document.getElementsByClassName('s-name');
-    const sibClasses = document.getElementsByClassName('s-class');
-    for (let i = 0; i < sibNames.length; i++) {
-        if (sibNames[i].value.trim() !== "") {
+        let siblingsList = [];
+    // നമ്മൾ പുതുതായി നൽകിയ 'sibling-row' എന്ന ക്ലാസ് ഉപയോഗിച്ച് വിവരങ്ങൾ എടുക്കുന്നു
+    const siblingRows = document.querySelectorAll('.sibling-row');
+    
+    siblingRows.forEach(row => {
+        const sName = row.querySelector('.sib-name-input').value.trim();
+        const sClass = row.querySelector('.sib-class-input').value.trim();
+        
+        // പേര് ഉണ്ടെങ്കിൽ മാത്രം ലിസ്റ്റിലേക്ക് ചേർക്കുന്നു
+        if (sName !== "") {
             siblingsList.push({ 
-                name: sibNames[i].value.trim(), 
-                class: sibClasses[i].value.trim() 
+                name: sName, 
+                class: sClass 
             });
         }
-    }
+    });
 
     const mFee = 250 + (siblingsList.length * 50);
 

@@ -670,6 +670,44 @@ function showDetailedList(title, list) {
         contentElem.innerHTML = html;
     }
 }
+async function payOldBalance(docId, phone, name) {
+    // 1. എത്ര രൂപയാണ് അടയ്ക്കുന്നത് എന്ന് ചോദിക്കുന്നു
+    const amount = prompt(`${name}-ന്റെ പഴയ ബാക്കിയിൽ എത്ര രൂപയാണ് അടയ്ക്കുന്നത്?`);
+    
+    // ക്യാൻസൽ അടിച്ചാലോ തുക നൽകാതിരുന്നാലോ ഫങ്ക്ഷൻ നിർത്തുന്നു
+    if (amount === null || amount === "" || isNaN(amount)) {
+        return;
+    }
+
+    const payAmount = Number(amount);
+
+    try {
+        const docRef = db.collection("students").doc(docId);
+        const doc = await docRef.get();
+        const currentOldBalance = Number(doc.data().balance) || 0;
+
+        if (payAmount > currentOldBalance) {
+            alert("നൽകിയ തുക പഴയ ബാക്കിയേക്കാൾ കൂടുതലാണ്!");
+            return;
+        }
+
+        const newBalance = currentOldBalance - payAmount;
+
+        // 2. ഫയർബേസിൽ പുതിയ തുക അപ്‌ഡേറ്റ് ചെയ്യുന്നു
+        await docRef.update({
+            balance: newBalance
+        });
+
+        alert(`₹${payAmount} സ്വീകരിച്ചു. ബാക്കി തുക: ₹${newBalance}`);
+        
+        // 3. ലിസ്റ്റ് പുതുക്കി കാണിക്കുന്നു
+        loadStudents(); 
+        
+    } catch (error) {
+        console.error("Error updating old balance:", error);
+        alert("പിശക് സംഭവിച്ചു. വീണ്ടും ശ്രമിക്കുക.");
+    }
+}
 
 // 6. പ്രിന്റ് ഫങ്ക്ഷൻ (Colorful & Large JPG/PDF)
 function printReceipt(name, amount, months, date, rcptNo, sid, father, house, phone, type = "fees") {

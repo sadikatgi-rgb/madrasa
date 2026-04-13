@@ -675,8 +675,8 @@ async function payOldBalance(docId, phone, name) {
     let amountInput = prompt(`${name}-ന്റെ പഴയ ബാക്കിയിൽ എത്ര രൂപയാണ് അടയ്ക്കുന്നത്?`);
     if (amountInput === null || amountInput.trim() === "") return;
 
-    // ഇൻപുട്ടിനെ അക്കമാക്കി മാറ്റുന്നു
-    const payAmount = Number(amountInput);
+    // ഇൻപുട്ടിനെ അക്കമാക്കി മാറ്റുന്നു (ദശാംശം ഉണ്ടെങ്കിലും ശരിയായി പ്രവർത്തിക്കും)
+    const payAmount = parseFloat(amountInput);
 
     if (isNaN(payAmount) || payAmount <= 0) {
         alert("ദയവായി ശരിയായ ഒരു തുക നൽകുക.");
@@ -696,8 +696,13 @@ async function payOldBalance(docId, phone, name) {
         const docRef = db.collection("students").doc(docId);
         const doc = await docRef.get();
         
-        // ഫയർബേസിലെ തുകയെ അക്കമാക്കി മാറ്റുന്നു (ഇതാണ് താരതമ്യത്തിന് പ്രധാനം)
-        const currentOldBalance = Number(doc.data().balance) || 0;
+        if (!doc.exists) {
+            alert("വിദ്യാർത്ഥിയുടെ വിവരങ്ങൾ കണ്ടെത്താനായില്ല.");
+            return;
+        }
+
+        // ഫയർബേസിലെ ബാലൻസിനെ അക്കമാക്കി മാറ്റുന്നു
+        const currentOldBalance = parseFloat(doc.data().balance) || 0;
 
         // അക്കങ്ങൾ തമ്മിൽ മാത്രം താരതമ്യം ചെയ്യുന്നു
         if (payAmount > currentOldBalance) {
@@ -712,22 +717,25 @@ async function payOldBalance(docId, phone, name) {
             balance: newBalance
         });
 
-        // ഹിസ്റ്ററിയിലേക്ക് ചേർക്കുന്നു
+        // ഹിസ്റ്ററിയിലേക്ക് (Receipts Collection) വിവരങ്ങൾ ചേർക്കുന്നു
+        // റെസീപ്റ്റ് നമ്പറിനെ ടെക്സ്റ്റ് (String) ആയി സേവ് ചെയ്യുന്നതുകൊണ്ട് ചിഹ്നങ്ങൾ പ്രശ്നമാകില്ല
         await db.collection("receipts").add({
             studentId: docId,
             studentName: name,
             amount: payAmount,
             date: payDate,
-            receiptNo: String(rcptNo), // നമ്പറിനെ ടെക്സ്റ്റ് ആയി സേവ് ചെയ്യുന്നു
+            receiptNo: String(rcptNo), 
             type: "Old Balance Payment",
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
 
         alert(`വിജയകരമായി സ്വീകരിച്ചു!\nബാക്കി തുക: ₹${newBalance}`);
+        
+        // ലിസ്റ്റ് പുതുക്കുന്നു
         loadStudents(); 
         
     } catch (error) {
-        console.error("Error:", error);
+        console.error("Error updating old balance:", error);
         alert("പിശക് സംഭവിച്ചു! ഇന്റർനെറ്റ് കണക്ഷൻ പരിശോധിക്കുക.");
     }
 }

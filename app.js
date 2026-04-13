@@ -671,15 +671,19 @@ function showDetailedList(title, list) {
     }
 }
 async function payOldBalance(docId, phone, name) {
-    // 1. എത്ര രൂപയാണ് അടയ്ക്കുന്നത് എന്ന് ചോദിക്കുന്നു
+    // 1. തുക ചോദിക്കുന്നു
     const amount = prompt(`${name}-ന്റെ പഴയ ബാക്കിയിൽ എത്ര രൂപയാണ് അടയ്ക്കുന്നത്?`);
-    
-    // ക്യാൻസൽ അടിച്ചാലോ തുക നൽകാതിരുന്നാലോ ഫങ്ക്ഷൻ നിർത്തുന്നു
-    if (amount === null || amount === "" || isNaN(amount)) {
+    if (amount === null || amount === "" || isNaN(amount)) return;
+
+    // 2. റെസീപ്റ്റ് നമ്പർ ചോദിക്കുന്നു (നിങ്ങൾ ആവശ്യപ്പെട്ട പുതിയ മാറ്റം)
+    const rcptNo = prompt("റെസീപ്റ്റ് നമ്പർ നൽകുക:");
+    if (rcptNo === null || rcptNo === "") {
+        alert("റെസീപ്റ്റ് നമ്പർ നിർബന്ധമാണ്!");
         return;
     }
 
     const payAmount = Number(amount);
+    const payDate = new Date().toLocaleDateString('en-IN');
 
     try {
         const docRef = db.collection("students").doc(docId);
@@ -693,19 +697,30 @@ async function payOldBalance(docId, phone, name) {
 
         const newBalance = currentOldBalance - payAmount;
 
-        // 2. ഫയർബേസിൽ പുതിയ തുക അപ്‌ഡേറ്റ് ചെയ്യുന്നു
+        // ഫയർബേസിൽ പുതിയ ബാക്കി തുക അപ്‌ഡേറ്റ് ചെയ്യുന്നു
         await docRef.update({
             balance: newBalance
         });
 
-        alert(`₹${payAmount} സ്വീകരിച്ചു. ബാക്കി തുക: ₹${newBalance}`);
+        // റെസീപ്റ്റ് വിവരങ്ങൾ ഹിസ്റ്ററിയിലേക്ക് (Receipts Collection) ചേർക്കുന്നു
+        await db.collection("receipts").add({
+            studentId: docId,
+            studentName: name,
+            amount: payAmount,
+            date: payDate,
+            receiptNo: rcptNo, 
+            type: "Old Balance Payment",
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        alert(`വിജയകരമായി സ്വീകരിച്ചു!\nബാക്കി തുക: ₹${newBalance}`);
         
-        // 3. ലിസ്റ്റ് പുതുക്കി കാണിക്കുന്നു
+        // ലിസ്റ്റ് പുതുക്കുന്നു
         loadStudents(); 
         
     } catch (error) {
         console.error("Error updating old balance:", error);
-        alert("പിശക് സംഭവിച്ചു. വീണ്ടും ശ്രമിക്കുക.");
+        alert("പിശക് സംഭവിച്ചു!");
     }
 }
 

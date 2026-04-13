@@ -1265,9 +1265,15 @@ async function showCollectionReport() {
         return; 
     }
    
-        content.innerHTML = `
+    content.innerHTML = `
+        <div style="padding: 10px; background: #fff; position: sticky; top: 0; z-index: 1000; border-bottom: 1px solid #eee; display: flex; align-items: center; margin-bottom: 10px;">
+            <button onclick="closeSadharSection()" style="background: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 5px;">
+                <i class="fas fa-arrow-left"></i> തിരികെ
+            </button>
+        </div>
+
         <div style="padding:15px; background:#f8f9fa; min-height:100vh; border-radius:12px;">
-            <h3 style="color:#1a73e8; text-align:center; margin-bottom:20px;">📊 മാസവരി സംഖ്യ - മാസ്റ്റർ റിപ്പോർട്ട്</h3>
+            <h3 style="color:#1a73e8; text-align:center; margin-bottom:20px; margin-top:0;">📊 മാസവരി സംഖ്യ - മാസ്റ്റർ റിപ്പോർട്ട്</h3>
             
             <div id="grand-summary" style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:20px;"></div>
             
@@ -1283,7 +1289,7 @@ async function showCollectionReport() {
                 </div>
             </div>
         </div>`;
-
+    
         try {
         const studentsSnap = await db.collection("students").get();
         

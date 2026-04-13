@@ -583,18 +583,26 @@ async function loadStudents(filterClass = 'all') {
                 ${monthTableHTML}
                 
                 <div style="background:#fff3f3; padding:12px; border-radius:10px; border:1px solid #ffebeb; margin-top:10px;">
-                    <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:5px;">
-                        <span>ബാക്കി മാസങ്ങൾ (${unpaidCount}):</span>
-                        <b style="color:#d32f2f;">₹${pendingMonthsFee}</b>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; padding-top:8px; border-top:1px dashed #ffdada;">
-                        <span>പഴയ ബാക്കി: <b style="color:#d32f2f;">₹${oldBal}</b></span>
-                        ${oldBal > 0 ? `<button onclick="payOldBalance('${doc.id}', '${s.parentPhone}', '${s.name}')" style="background:#d32f2f; color:white; border:none; padding:8px 15px; border-radius:6px; font-size:12px; cursor:pointer; font-weight:bold; pointer-events: auto;">Pay Old</button>` : ''}
-                    </div>
-                    <div style="text-align:right; margin-top:8px; font-weight:bold; border-top:1px solid #ffdada; padding-top:8px; color:#000; font-size:14px;">
-                        ആകെ കുടിശ്ശിക: ₹${totalPending}
-                    </div>
-                </div>
+    <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:5px;">
+        <span>ബാക്കി മാസങ്ങൾ (${unpaidCount}):</span>
+        <b style="color:#d32f2f;">₹${pendingMonthsFee}</b>
+    </div>
+    
+    <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; padding-top:8px; border-top:1px dashed #ffdada;">
+        <span>പഴയ ബാക്കി: <b style="color:#d32f2f;">₹${oldBal}</b></span>
+        ${oldBal > 0 ? `<button onclick="payOldBalance('${doc.id}', '${s.parentPhone}', '${s.name}')" style="background:#d32f2f; color:white; border:none; padding:8px 15px; border-radius:6px; font-size:12px; cursor:pointer; font-weight:bold; pointer-events: auto;">Pay Old</button>` : ''}
+    </div>
+
+    <div style="text-align: right; margin-top: 4px;">
+        <span onclick="viewOldPayHistory('${doc.id}', '${s.name}')" style="font-size:11px; color:#1a73e8; cursor:pointer; text-decoration:underline; display:inline-block;">
+            View Old Pay History
+        </span>
+    </div>
+
+    <div style="text-align:right; margin-top:8px; font-weight:bold; border-top:1px solid #ffdada; padding-top:8px; color:#000; font-size:14px;">
+        ആകെ കുടിശ്ശിക: ₹${totalPending}
+    </div>
+</div>
 
                 <div style="display:flex; gap:8px; margin-top:12px;">
                     <button onclick="payFee('${doc.id}')" style="flex:1; background:#28a745; color:white; border:none; padding:10px; border-radius:8px; cursor:pointer; font-weight:bold;">Pay Month</button>

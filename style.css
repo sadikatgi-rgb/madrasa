@@ -155,3 +155,27 @@ input:focus, select:focus {
     border-bottom: 1px solid #eee; padding: 10px 0; display: flex;
     justify-content: space-between; align-items: center;
 }
+/* പഴയ ബാക്കി ഹിസ്റ്ററി ലിങ്കിനുള്ള സ്റ്റൈൽ */
+.view-old-history {
+    font-size: 11px;
+    color: #1a73e8;
+    cursor: pointer;
+    border: 1px solid #1a73e8;
+    padding: 4px 12px;
+    border-radius: 20px;
+    background: #f0f7ff;
+    display: inline-block;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    text-decoration: none;
+    margin-top: 8px;
+}
+
+.view-old-history:hover {
+    background: #1a73e8;
+    color: white;
+}
+
+.history-container {
+    text-align: right;
+}

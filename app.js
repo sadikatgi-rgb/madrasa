@@ -1434,22 +1434,60 @@ async function showCollectionReport() {
         }
     } catch(e) { console.error(e); }
 }
-// സദർ സെക്ഷൻ തുറക്കാൻ (നിങ്ങളുടെ ബട്ടണിൽ ഇത് നൽകുക)
+// 1. മുഅല്ലിം വിഹിതം സെക്ഷൻ തുറക്കാൻ
 function openSadarSection() {
-    // നിലവിലുള്ള ലിസ്റ്റ് ഏരിയ ഹൈഡ് ചെയ്യുക (ഉദാഹരണത്തിന് വരിസംഖ്യ ലിസ്റ്റ്)
-    if(document.getElementById('list-area')) document.getElementById('list-area').style.display = 'none';
-    
-    // സദർ സെക്ഷൻ കാണിക്കുക
-    document.getElementById('sadar-wrapper').style.display = 'block';
-    loadMuallimHistory();
+    const content = document.getElementById('dynamic-content');
+    const dashboard = document.getElementById('usthad-dashboard');
+
+    if (dashboard) dashboard.style.display = 'none';
+    if (content) {
+        content.style.display = 'block';
+        content.innerHTML = `
+            <div style="padding: 10px; background: #fff; position: sticky; top: 0; z-index: 1000; border-bottom: 1px solid #eee; display: flex; align-items: center; margin-bottom: 15px;">
+                <button onclick="closeSadharSection()" style="background: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                    <i class="fas fa-arrow-left"></i> തിരികെ
+                </button>
+            </div>
+
+            <div style="padding:15px; background:#fff; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.1); margin:10px;">
+                <h3 style="color:#1a73e8; border-bottom:2px solid #1a73e8; padding-bottom:10px; margin-top:0;">👨‍🏫 മുഅല്ലിം വിഹിതം</h3>
+                
+                <div id="muallim-form" style="background:#f8f9fa; padding:15px; border-radius:8px; margin-bottom:20px; border:1px solid #e3f2fd;">
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                        <div style="grid-column: span 2;">
+                            <label style="font-size:12px; color:#666;">വിഹിതം തരം</label>
+                            <select id="contribution-type" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:5px; background:white;">
+                                <option value="ജില്ലാ വിഹിതം">ജില്ലാ വിഹിതം (District)</option>
+                                <option value="സ്റ്റേറ്റ് വിഹിതം">സ്റ്റേറ്റ് വിഹിതം (State)</option>
+                                <option value="കേന്ദ്ര വിഹിതം">കേന്ദ്ര വിഹിതം (Central)</option>
+                            </select>
+                        </div>
+                        <input id="m-date" type="date" style="padding:10px; border:1px solid #ddd; border-radius:5px;">
+                        <input id="m-year" type="number" placeholder="വർഷം (Year)" value="${new Date().getFullYear()}" style="padding:10px; border:1px solid #ddd; border-radius:5px;">
+                        <input id="m-reg" placeholder="Reg No" style="padding:10px; border:1px solid #ddd; border-radius:5px;">
+                        <input id="m-msr" placeholder="MSR No" style="padding:10px; border:1px solid #ddd; border-radius:5px;">
+                        <input id="m-name" placeholder="ഉസ്താദിന്റെ പേര്" style="padding:10px; border:1px solid #ddd; border-radius:5px; grid-column: span 2;">
+                        <input id="m-salary" type="number" oninput="calculateContribution()" placeholder="ശമ്പളം" style="padding:10px; border:1px solid #ddd; border-radius:5px;">
+                        <input id="m-contribution" type="number" placeholder="വിഹിതം തുക" style="padding:10px; border:1px solid #ddd; border-radius:5px;">
+                        <textarea id="m-remarks" placeholder="കുറിപ്പുകൾ (ഉണ്ടെങ്കിൽ)" style="padding:10px; border:1px solid #ddd; border-radius:5px; grid-column: span 2;"></textarea>
+                    </div>
+                    <button id="save-btn" onclick="saveMuallimData()" style="width:100%; margin-top:15px; background:#1a73e8; color:white; border:none; padding:12px; border-radius:5px; font-weight:bold; cursor:pointer;">വിവരങ്ങൾ സേവ് ചെയ്യുക</button>
+                </div>
+
+                <div style="margin-top:20px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; background:#e3f2fd; padding:10px; border-radius:5px;">
+                        <h4 style="margin:0; color:#1a73e8;">ഹിസ്റ്ററി</h4>
+                        <input type="number" id="history-year-filter" value="${new Date().getFullYear()}" onchange="loadMuallimHistory()" style="width:80px; padding:5px; border:1px solid #ccc; border-radius:4px;">
+                    </div>
+                    <div id="muallim-history-list" style="min-height:100px;">ലോഡിംഗ്...</div>
+                </div>
+            </div>
+        `;
+        loadMuallimHistory();
+    }
 }
 
-// തിരികെ പോകാൻ
-function closeSadarSection() {
-    document.getElementById('sadar-wrapper').style.display = 'none';
-    if(document.getElementById('list-area')) document.getElementById('list-area').style.display = 'block';
-}
-
+// 2. വിഹിതം കണക്കാക്കാൻ
 function calculateContribution() {
     const salary = document.getElementById('m-salary').value;
     const contributionField = document.getElementById('m-contribution');
@@ -1460,12 +1498,13 @@ function calculateContribution() {
     }
 }
 
+// 3. വിവരങ്ങൾ സേവ് ചെയ്യാൻ
 let editingDocId = null;
-
 async function saveMuallimData() {
     const data = {
         type: document.getElementById('contribution-type').value,
         date: document.getElementById('m-date').value,
+        year: document.getElementById('m-year').value,
         regNo: document.getElementById('m-reg').value,
         msrNo: document.getElementById('m-msr').value,
         name: document.getElementById('m-name').value,
@@ -1475,7 +1514,7 @@ async function saveMuallimData() {
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
     };
 
-    if(!data.name || !data.salary) return alert("പേരും ശമ്പളവും നൽകുക!");
+    if(!data.name || !data.salary || !data.date) return alert("പേര്, ശമ്പളം, തിയതി എന്നിവ നൽകുക!");
 
     try {
         if (editingDocId) {
@@ -1491,47 +1530,65 @@ async function saveMuallimData() {
     } catch (e) { alert("Error: " + e.message); }
 }
 
+// 4. ഹിസ്റ്ററി ലോഡ് ചെയ്യാൻ
 async function loadMuallimHistory() {
-    const year = document.getElementById('history-year-filter').value;
+    const yearFilter = document.getElementById('history-year-filter').value;
     const list = document.getElementById('muallim-history-list');
-    list.innerHTML = "ലോഡിംഗ്...";
+    list.innerHTML = "<p style='text-align:center;'>ലോഡിംഗ്...</p>";
     
     try {
         const snap = await db.collection("muallim_contributions").orderBy("timestamp", "desc").get();
         list.innerHTML = "";
+        
+        if (snap.empty) {
+            list.innerHTML = "<p style='text-align:center; color:#999;'>വിവരങ്ങൾ ഒന്നും ലഭ്യമല്ല.</p>";
+            return;
+        }
+
         snap.forEach(doc => {
             const d = doc.data();
-            if (d.date && d.date.startsWith(year)) {
+            // തിരഞ്ഞെടുത്ത വർഷത്തിലെ ഡാറ്റ മാത്രം കാണിക്കുന്നു
+            if (d.year == yearFilter || d.date.startsWith(yearFilter)) {
                 list.innerHTML += `
-                <div class="history-item">
+                <div style="background:#fff; border:1px solid #eee; padding:12px; border-radius:8px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
                     <div>
-                        <strong style="color:#1a73e8;">${d.name}</strong><br>
-                        <small>${d.date} | Contrib: ₹${d.contribution}</small>
+                        <strong style="color:#1a73e8; font-size:14px;">${d.name}</strong> 
+                        <span style="font-size:10px; background:#e8f0fe; color:#1a73e8; padding:2px 6px; border-radius:10px; margin-left:5px;">${d.type}</span><br>
+                        <small style="color:#666;">${d.date} | ₹${d.salary} (₹${d.contribution})</small>
                     </div>
-                    <div>
-                        <button onclick="editEntry('${doc.id}', ${JSON.stringify(d).replace(/"/g, '&quot;')})" style="background:#ffc107; border:none; border-radius:4px; padding:4px 8px;">Edit</button>
-                    </div>
+                    <button onclick="editEntry('${doc.id}', ${JSON.stringify(d).replace(/"/g, '&quot;')})" style="background:#f1f3f4; border:none; border-radius:4px; padding:6px 12px; cursor:pointer; font-size:12px; color:#5f6368;">Edit</button>
                 </div>`;
             }
         });
-    } catch (e) { list.innerHTML = "ഹിസ്റ്ററി ലോഡ് ചെയ്യുന്നതിൽ പിശക്."; }
+    } catch (e) { list.innerHTML = "<p style='color:red;'>ഹിസ്റ്ററി ലോഡ് ചെയ്യുന്നതിൽ പിശക്.</p>"; }
 }
 
+// 5. എഡിറ്റ് ചെയ്യാൻ
 function editEntry(id, data) {
     editingDocId = id;
+    document.getElementById('contribution-type').value = data.type || 'ജില്ലാ വിഹിതം';
     document.getElementById('m-date').value = data.date;
+    document.getElementById('m-year').value = data.year || '';
     document.getElementById('m-name').value = data.name;
     document.getElementById('m-salary').value = data.salary;
     document.getElementById('m-contribution').value = data.contribution;
     document.getElementById('m-reg').value = data.regNo;
     document.getElementById('m-msr').value = data.msrNo;
-    document.getElementById('save-btn').innerText = "Update";
+    document.getElementById('m-remarks').value = data.remarks || '';
+    document.getElementById('save-btn').innerText = "Update വിവരങ്ങൾ";
     window.scrollTo(0,0);
 }
 
+// 6. ഫോം റീസെറ്റ് ചെയ്യാൻ
 function resetSadarForm() {
-    ['m-reg', 'm-msr', 'm-name', 'm-salary', 'm-contribution', 'm-remarks'].forEach(id => document.getElementById(id).value = '');
+    ['m-reg', 'm-msr', 'm-name', 'm-salary', 'm-contribution', 'm-remarks', 'm-date'].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.value = '';
+    });
+    editingDocId = null;
+    document.getElementById('save-btn').innerText = "വിവരങ്ങൾ സേവ് ചെയ്യുക";
 }
+
 
 // 3. സദർ - ഉസ്താദ് പണമിടപാട് ടേബിൾ (പുതിയത്)
 // 1. ലോഡ് ചെയ്യുന്ന ടേബിൾ (മാറ്റമില്ലാതെ - ഇതിൽ ID ഉം സമയവും ഡിസ്‌പ്ലേ ചെയ്യാനുണ്ട്)

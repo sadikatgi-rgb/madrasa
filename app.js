@@ -747,6 +747,54 @@ async function payOldBalance(docId, phone, name) {
         alert("പിശക് സംഭവിച്ചു! ഇന്റർനെറ്റ് കണക്ഷൻ പരിശോധിക്കുക.");
     }
 }
+async function viewOldPayHistory(sid, name) {
+    const content = document.getElementById('dynamic-content');
+    
+    // പേജിന്റെ മുകൾഭാഗം
+    content.innerHTML = `
+        <div style="padding: 10px; background: #fff; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin:0; font-size:15px; color:#d32f2f;">${name} - പഴയ ബാക്കി ചരിത്രം</h3>
+            <button onclick="loadStudents()" style="background:#6c757d; color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-size:12px;">തിരികെ</button>
+        </div>
+        <div id="old-history-list" style="padding:15px;">ലോഡിംഗ്...</div>`;
+
+    try {
+        // 'receipts' കളക്ഷനിൽ നിന്ന് വിവരങ്ങൾ എടുക്കുന്നു
+        const snap = await db.collection("receipts")
+            .where("studentId", "==", sid)
+            .where("type", "==", "Old Balance Payment")
+            .orderBy("timestamp", "desc").get();
+
+        const listDiv = document.getElementById('old-history-list');
+        
+        if (snap.empty) {
+            listDiv.innerHTML = "<p style='text-align:center; color:#999; padding:20px;'>ഈ വിദ്യാർത്ഥിക്ക് പഴയ ബാക്കി ചരിത്രങ്ങൾ ലഭ്യമല്ല.</p>";
+            return;
+        }
+
+        let html = "";
+        snap.forEach(doc => {
+            const data = doc.data();
+            html += `
+                <div style="background:white; padding:12px; border-radius:10px; margin-bottom:10px; border:1px solid #ffebeb; display:flex; justify-content:space-between; align-items:center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <div>
+                        <b style="color:#333; font-size:15px;">₹${data.amount}</b><br>
+                        <small style="color:#888;">തിയതി: ${data.date}</small><br>
+                        <small style="color:#888;">Rcpt No: ${data.receiptNo}</small>
+                    </div>
+                    <button onclick="printReceipt('${data.studentName}', ${data.amount}, 'Old Balance', '${data.date}', '${data.receiptNo}', '${data.studentId}')" 
+                            style="background:#f8f9fa; border:1px solid #ddd; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12px; color:#1a73e8;">
+                        <i class="fas fa-print"></i> Print
+                    </button>
+                </div>`;
+        });
+        listDiv.innerHTML = html;
+
+    } catch (e) {
+        console.error("Old History Error:", e);
+        alert("വിവരങ്ങൾ ലഭിക്കുന്നതിൽ പിശക് സംഭവിച്ചു.");
+    }
+}
 
 // 6. പ്രിന്റ് ഫങ്ക്ഷൻ (Colorful & Large JPG/PDF)
 function printReceipt(name, amount, months, date, rcptNo, sid, father, house, phone, type = "fees") {

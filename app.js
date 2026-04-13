@@ -241,21 +241,30 @@ function closeSadharSection() {
 function addSiblingFieldWithFee() {
     const container = document.getElementById('sibling-list');
     const siblingDiv = document.createElement('div');
+    // ഓരോ വരിയെയും തിരിച്ചറിയാൻ 'sibling-row' എന്ന class നൽകി
+    siblingDiv.className = "sibling-row"; 
     siblingDiv.style = "display: grid; grid-template-columns: 2fr 1fr auto; gap: 8px; margin-bottom: 10px; align-items: center;";
     
     siblingDiv.innerHTML = `
-        <input class="sib-name-input" placeholder="പേര്" style="padding:10px; border:1px solid #dee2e6; border-radius:6px; font-size:13px;">
+        <input class="sib-name-input" oninput="updateCalculatedFee()" placeholder="പേര്" style="padding:10px; border:1px solid #dee2e6; border-radius:6px; font-size:13px;">
         <input type="number" class="sib-class-input" placeholder="ക്ലാസ്" style="padding:10px; border:1px solid #dee2e6; border-radius:6px; font-size:13px;">
         <button onclick="removeSibling(this)" style="background:#dc3545; color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer;"><i class="fas fa-trash"></i></button>
     `;
     container.appendChild(siblingDiv);
-    updateCalculatedFee();
+    // ബട്ടൺ അമർത്തുമ്പോൾ ഫീസിൽ മാറ്റം വരുത്തുന്നില്ല, പേര് ടൈപ്പ് ചെയ്യുമ്പോൾ മാത്രം മാറാൻ oninput നൽകി.
 }
 
 function updateCalculatedFee() {
-    const siblingCount = document.querySelectorAll('.sib-name-input').length;
+    let activeSiblings = 0;
+    // പേര് ടൈപ്പ് ചെയ്ത ഇൻപുട്ടുകൾ മാത്രം എണ്ണുന്നു
+    document.querySelectorAll('.sib-name-input').forEach(input => {
+        if (input.value.trim() !== "") {
+            activeSiblings++;
+        }
+    });
+
     const baseFee = 250;
-    const totalFee = baseFee + (siblingCount * 50);
+    const totalFee = baseFee + (activeSiblings * 50);
     const displayElement = document.getElementById('display-calculated-fee');
     const feeInput = document.getElementById('n-monthly-fee');
     

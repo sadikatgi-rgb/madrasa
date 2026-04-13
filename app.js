@@ -984,11 +984,17 @@ async function logout() {
 function showGurunidhiSection() {
     const content = document.getElementById('dynamic-content');
     content.innerHTML = `
+        <div style="padding: 10px; background: #fff; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #eee; display: flex; align-items: center; margin-bottom: 10px;">
+            <button onclick="loadDashboard()" style="background: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 5px;">
+                <i class="fas fa-arrow-left"></i> തിരികെ
+            </button>
+        </div>
+
         <div style="padding:15px; background:#fff; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.1);">
-            <h3 style="color:#d32f2f; border-bottom:2px solid #d32f2f; padding-bottom:10px;">
+            <h3 style="color:#d32f2f; border-bottom:2px solid #d32f2f; padding-bottom:10px; margin-top:0;">
                 📦 ഗുരുനിധി ബോക്സ് 
             </h3>
-            
+
             <div id="admin-g-add" style="background:#fff8f8; padding:15px; border-radius:8px; margin-bottom:20px; border:1px dashed #d32f2f;">
                 <p style="font-weight:bold; margin-top:0; color:#d32f2f;">പുതിയ ബോക്സ് രജിസ്റ്റർ ചെയ്യുക</p>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">

@@ -1809,8 +1809,8 @@ async function loadMagazineList() {
     const searchVal = document.getElementById('mag-search').value.toLowerCase();
     const listArea = document.getElementById('magazine-list-area');
 
-    // ലോഗിൻ ചെയ്ത ഉസ്താദിന്റെ ക്ലാസ് എടുക്കുന്നു (നിങ്ങളുടെ ലോഗിൻ സിസ്റ്റം അനുസരിച്ച് ഇത് മാറും)
-    const loggedInUsthadClass = (typeof currentUserData !== 'undefined' && currentUserData.class) ? currentUserData.class : 'All';
+    // ലോഗിൻ ചെയ്ത ഉസ്താദിന്റെ ക്ലാസ് (മറ്റ് സെക്ഷനുകളിൽ ഉപയോഗിക്കുന്ന അതേ വേരിയബിൾ ഇവിടെ നൽകുക)
+    const loggedInUsthadClass = (typeof currentUserData !== 'undefined' && currentUserData.class) ? currentUserData.class : '';
 
     try {
         const snap = await db.collection("magazine_subscribers")
@@ -1833,17 +1833,19 @@ async function loadMagazineList() {
         snap.forEach(doc => {
             const d = doc.data();
             
-            // ലോജിക് ഫിൽട്ടറിംഗ്:
-            // 1. പബ്ലിക് കോപ്പി എല്ലാവർക്കും കാണാം.
-            // 2. സ്റ്റുഡന്റ് കോപ്പി ഉസ്താദിന്റെ സ്വന്തം ക്ലാസ് മാത്രം അല്ലെങ്കിൽ സെലക്ട് ചെയ്ത ക്ലാസ്.
             let isAuthorized = false;
+
             if (currentMagCategory === 'Public') {
+                // പബ്ലിക് കോപ്പി എല്ലാവർക്കും കാണാം
                 isAuthorized = true; 
             } else {
+                // സ്റ്റുഡന്റ് കോപ്പി ലോജിക്:
+                // ഫിൽട്ടർ 'All' ആണെങ്കിൽ ഉസ്താദിന്റെ ക്ലാസ് മാത്രം കാണിക്കും.
+                // അല്ലെങ്കിൽ ഫിൽട്ടറിൽ തിരഞ്ഞെടുത്ത ക്ലാസ് കാണിക്കും.
                 if (classFilter === 'All') {
-                    isAuthorized = (d.class == loggedInUsthadClass);
+                    isAuthorized = (String(d.class) === String(loggedInUsthadClass));
                 } else {
-                    isAuthorized = (d.class == classFilter);
+                    isAuthorized = (String(d.class) === String(classFilter));
                 }
             }
 

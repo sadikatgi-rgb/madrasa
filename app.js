@@ -1710,21 +1710,18 @@ function downloadMuallimExcel() {
     document.body.appendChild(link);
     link.click();
 }
-let currentMagCategory = 'Student'; 
 
-function openMagazineSection() {
+let currentMagCategory = 'Student';
+
+async function openMagazineSection() {
     const content = document.getElementById('dynamic-content');
     const dashboard = document.getElementById('usthad-dashboard');
     if (dashboard) dashboard.style.display = 'none';
-    
     content.style.display = 'block';
-    
-    // HTML സ്ട്രക്ചർ മാത്രം, സ്റ്റൈലുകൾ CSS-ൽ നിന്ന് വരുന്നു
+
     content.innerHTML = `
         <div class="mag-header">
-            <button onclick="closeSadharSection()" class="back-btn">
-                <i class="fas fa-arrow-left"></i> തിരികെ
-            </button>
+            <button onclick="closeSection()" class="back-btn"><i class="fas fa-arrow-left"></i> തിരികെ</button>
             <h3 style="color:#2e7d32;">📚 മാസികാ വരിക്കാർ</h3>
         </div>
 
@@ -1734,7 +1731,24 @@ function openMagazineSection() {
                 <button onclick="switchMagTab('Public')" id="tab-public" class="mag-tab inactive">Public Copy</button>
             </div>
 
-            <div class="mag-filter-area">
+            <div class="info-card" style="margin-bottom:20px; border-top: 3px solid #2e7d32; padding:15px; background:#f9f9f9; border-radius:8px;">
+                <h4 id="mag-form-title" style="margin-top:0; color:#2e7d32;">പുതിയ വരിക്കാരെ ചേർക്കുക</h4>
+                <input type="hidden" id="mag-edit-id">
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <input type="text" id="mag-name" placeholder="പേര്" class="mag-input">
+                    <input type="number" id="mag-phone" placeholder="ഫോൺ" class="mag-input">
+                    <input type="text" id="mag-place" placeholder="${currentMagCategory === 'Student' ? 'ക്ലാസ്' : 'സ്ഥലം'}" class="mag-input">
+                    <select id="mag-scheme" class="mag-input">
+                        <option value="Scheme1 (Sunnath & Kusumam)">Scheme 1 (Sunnath & Kusumam)</option>
+                        <option value="Scheme2 (Sunnath)">Scheme 2 (Sunnath)</option>
+                        <option value="Scheme3 (Kusumam)">Scheme 3 (Kusumam)</option>
+                    </select>
+                    <input type="number" id="mag-amount" placeholder="തുക" class="mag-input">
+                    <button onclick="saveMagazineSubscriber()" id="mag-save-btn" class="save-btn" style="background:#2e7d32; color:white; border:none; border-radius:5px; cursor:pointer;">സേവ് ചെയ്യുക</button>
+                </div>
+            </div>
+
+            <div class="mag-filter-area" style="display:flex; gap:10px; margin-bottom:15px;">
                 <select id="mag-class-filter" onchange="loadMagazineList()" class="mag-input" style="flex:1;">
                     <option value="All">എല്ലാ ക്ലാസും</option>
                     ${Array.from({length: 12}, (_, i) => `<option value="${i+1}">ക്ലാസ് ${i+1}</option>`).join('')}
@@ -1748,68 +1762,176 @@ function openMagazineSection() {
     loadMagazineList();
 }
 
+// ഡാറ്റ സേവ് ചെയ്യാനും എഡിറ്റ് ചെയ്യാനും
+async function saveMagazineSubscriber() {
+    const id = document.getElementById('mag-edit-id').value;
+    const data = {
+        name: document.getElementById('mag-name').value,
+        phone: document.getElementById('mag-phone').value,
+        scheme: document.getElementById('mag-scheme').value,
+        amount: Number(document.getElementById('mag-amount').value),
+        category: currentMagCategory,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    
+    if (currentMagCategory === 'Student') data.class = document.getElementById('mag-place').value;
+    else data.place = document.getElementById('mag-place').value;
+
+    if(!data.name || !data.amount) return alert("പേരും തുകയും നൽകുക");
+
+    try {
+        if(id) await db.collection("magazine_subscribers").doc(id).update(data);
+        else await db.collection("magazine_subscribers").add(data);
+        
+        alert("വിവരങ്ങൾ വിജയകരമായി സേവ് ചെയ്തു");
+        openMagazineSection(); 
+    } catch (e) { alert("Error: " + e.message); }
+}
+
+// ലിസ്റ്റ് ലോഡ് ചെയ്യാൻ
 async function loadMagazineList() {
     const classVal = document.getElementById('mag-class-filter').value;
     const searchVal = document.getElementById('mag-search').value.toLowerCase();
     const listArea = document.getElementById('magazine-list-area');
 
-    try {
-        const snap = await db.collection("magazine_subscribers")
-                             .where("category", "==", currentMagCategory).get();
-        
-        let html = `
-            <table class="mag-table">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>പേര്</th>
-                        <th>${currentMagCategory === 'Student' ? 'ക്ലാസ്' : 'സ്ഥലം'}</th>
-                        <th>സ്കീം</th>
-                        <th>തുക</th>
-                        <th class="no-print">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
+    const snap = await db.collection("magazine_subscribers").where("category", "==", currentMagCategory).get();
+    
+    let html = `<table class="mag-table"><thead><tr><th>#</th><th>പേര്</th><th>വിവരങ്ങൾ</th><th>തുക</th><th>Action</th></tr></thead><tbody>`;
+    let i = 1;
+    snap.forEach(doc => {
+        const d = doc.data();
+        const matchesSearch = d.name.toLowerCase().includes(searchVal);
+        const matchesClass = (classVal === 'All' || d.class == classVal);
 
-        let i = 1;
-        snap.forEach(doc => {
-            const d = doc.data();
-            if ((classVal === 'All' || d.class == classVal) && (d.name.toLowerCase().includes(searchVal))) {
-                html += `
-                    <tr>
-                        <td style="text-align:center;">${i++}</td>
-                        <td><b>${d.name}</b><br><small>${d.phone || ''}</small></td>
-                        <td>${currentMagCategory === 'Student' ? d.class : d.place}</td>
-                        <td>${d.scheme}</td>
-                        <td style="font-weight:bold;">₹${d.amount}</td>
-                        <td class="no-print" style="text-align:center;">
-                            <button onclick="editMagSub('${doc.id}', ${JSON.stringify(d).replace(/"/g, '&quot;')})" style="border:none; background:none; color:#1a73e8; cursor:pointer;">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            }
-        });
-
-        html += `</tbody></table>`;
-        listArea.innerHTML = i > 1 ? html : "<p style='padding:20px; text-align:center;'>വിവരങ്ങൾ ലഭ്യമല്ല.</p>";
-
-    } catch (e) { listArea.innerHTML = "Error: " + e.message; }
+        if (matchesSearch && matchesClass) {
+            html += `<tr>
+                <td>${i++}</td>
+                <td><b>${d.name}</b><br><small>${d.phone || ''}</small></td>
+                <td>${d.scheme}<br><small>${currentMagCategory === 'Student' ? 'ക്ലാസ്: '+d.class : d.place}</small></td>
+                <td>₹${d.amount}</td>
+                <td>
+                    <button onclick='editMagSub("${doc.id}", ${JSON.stringify(d)})' style="color:#1a73e8; border:none; background:none; cursor:pointer;"><i class="fas fa-edit"></i></button>
+                    <button onclick="deleteMagSub('${doc.id}')" style="color:red; border:none; background:none; cursor:pointer;"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>`;
+        }
+    });
+    listArea.innerHTML = i > 1 ? html + `</tbody></table>` : "<p style='text-align:center; padding:20px;'>വിവരങ്ങൾ ലഭ്യമല്ല.</p>";
 }
 
-// ടാബ് മാറാനുള്ള ഫങ്ക്ഷൻ
-function switchMagTab(cat) {
-    currentMagCategory = cat;
-    document.querySelectorAll('.mag-tab').forEach(btn => {
-        btn.classList.remove('active');
-        btn.classList.add('inactive');
+// എഡിറ്റ് ചെയ്യാൻ
+function editMagSub(id, data) {
+    document.getElementById('mag-edit-id').value = id;
+    document.getElementById('mag-name').value = data.name;
+    document.getElementById('mag-phone').value = data.phone;
+    document.getElementById('mag-place').value = (currentMagCategory === 'Student' ? data.class : data.place);
+    document.getElementById('mag-scheme').value = data.scheme;
+    document.getElementById('mag-amount').value = data.amount;
+    document.getElementById('mag-form-title').innerText = "വിവരങ്ങൾ തിരുത്തുക";
+    document.getElementById('mag-save-btn').innerText = "Update വിവരങ്ങൾ";
+    window.scrollTo(0,0);
+}
+
+// ഡിലീറ്റ് ചെയ്യാൻ
+async function deleteMagSub(id) {
+    if(confirm("ഈ വരിക്കാരനെ ഒഴിവാക്കട്ടെ?")) {
+        await db.collection("magazine_subscribers").doc(id).delete();
+        loadMagazineList();
+    }
+}
+async function openExamSection() {
+    const content = document.getElementById('dynamic-content');
+    const dashboard = document.getElementById('usthad-dashboard');
+    if (dashboard) dashboard.style.display = 'none';
+    content.style.display = 'block';
+
+    content.innerHTML = `
+        <div class="mag-header" style="background:#fff3e0;">
+            <button onclick="closeSection()" class="back-btn"><i class="fas fa-arrow-left"></i> തിരികെ</button>
+            <h3 style="color:#e65100;">📝 പരീക്ഷാ മാനേജ്‌മെന്റ്</h3>
+        </div>
+        <div style="padding:15px;">
+            <div class="mag-filter-area" style="display:flex; gap:10px; margin-bottom:15px;">
+                <select id="exam-class-select" class="mag-input" style="flex:1;">
+                    <option value="">ക്ലാസ് തിരഞ്ഞെടുക്കുക</option>
+                    ${Array.from({length: 12}, (_, i) => `<option value="${i+1}">ക്ലാസ് ${i+1}</option>`).join('')}
+                </select>
+                <button onclick="loadExamStudents()" style="background:#e65100; color:white; border:none; padding:10px; border-radius:5px; cursor:pointer;">ലിസ്റ്റ് കാണുക</button>
+            </div>
+            <div id="exam-list-area"></div>
+        </div>
+    `;
+}
+
+async function loadExamStudents() {
+    const cls = document.getElementById('exam-class-select').value;
+    if(!cls) return alert("ക്ലാസ് തിരഞ്ഞെടുക്കുക");
+    const listArea = document.getElementById('exam-list-area');
+    listArea.innerHTML = "ലോഡ് ചെയ്യുന്നു...";
+
+    const snap = await db.collection("students").where("class", "==", cls).get();
+    const examSnap = await db.collection("exam_data").get();
+    let examMap = {};
+    examSnap.forEach(doc => examMap[doc.id] = doc.data());
+
+    let html = `
+        <table class="mag-table">
+            <thead>
+                <tr>
+                    <th>പേര്</th>
+                    <th>പരീക്ഷാ ഫീ</th>
+                    <th>മാർക്ക് %</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    snap.forEach(doc => {
+        const s = doc.data();
+        const saved = examMap[doc.id] || { fee: '', mark: '' };
+        html += `
+            <tr>
+                <td><b>${s.name}</b></td>
+                <td>
+                    <div style="display:flex; gap:5px; align-items:center;">
+                        <input type="number" id="fee-${doc.id}" value="${saved.fee}" placeholder="₹" style="width:60px; padding:5px;">
+                        <button onclick="saveExamFee('${doc.id}')" title="ഫീ സേവ് ചെയ്യാൻ" style="background:#1a73e8; color:white; border:none; padding:5px; border-radius:4px;"><i class="fas fa-save"></i></button>
+                    </div>
+                </td>
+                <td>
+                    <div style="display:flex; gap:5px; align-items:center;">
+                        <input type="number" id="mark-${doc.id}" value="${saved.mark}" placeholder="%" style="width:55px; padding:5px;">
+                        <button onclick="saveExamMark('${doc.id}')" title="മാർക്ക് സേവ് ചെയ്യാൻ" style="background:#2e7d32; color:white; border:none; padding:5px; border-radius:4px;"><i class="fas fa-check"></i></button>
+                    </div>
+                </td>
+            </tr>
+        `;
     });
-    const activeBtn = document.getElementById('tab-' + cat.toLowerCase());
-    activeBtn.classList.add('active');
-    activeBtn.classList.remove('inactive');
-    loadMagazineList();
+    listArea.innerHTML = html + `</tbody></table>`;
+}
+
+// ഫീ മാത്രം സേവ് ചെയ്യാൻ
+async function saveExamFee(studentId) {
+    const fee = document.getElementById(`fee-${studentId}`).value;
+    try {
+        await db.collection("exam_data").doc(studentId).set({
+            fee: fee,
+            feeDate: new Date().toLocaleDateString()
+        }, { merge: true });
+        alert("ഫീ വിവരങ്ങൾ സേവ് ചെയ്തു");
+    } catch(e) { alert("പിശക്: " + e.message); }
+}
+
+// മാർക്ക് മാത്രം സേവ് ചെയ്യാൻ
+async function saveExamMark(studentId) {
+    const mark = document.getElementById(`mark-${studentId}`).value;
+    try {
+        await db.collection("exam_data").doc(studentId).set({
+            mark: mark,
+            markDate: new Date().toLocaleDateString()
+        }, { merge: true });
+        alert("മാർക്ക് വിവരങ്ങൾ സേവ് ചെയ്തു");
+    } catch(e) { alert("പിശക്: " + e.message); }
 }
 
 // 3. സദർ - ഉസ്താദ് പണമിടപാട് ടേബിൾ (പുതിയത്)

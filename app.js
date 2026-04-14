@@ -1712,7 +1712,8 @@ function downloadMuallimExcel() {
 }
 
 // ഡാറ്റ സേവ് ചെയ്യാനും എഡിറ്റ് ചെയ്യാനും
-let currentMagCategory = 'Student'; // തുടക്കത്തിൽ Student ആയിരിക്കും
+
+let currentMagCategory = 'Student';
 
 // 1. മാസികാ സെക്ഷൻ ഓപ്പൺ ചെയ്യുമ്പോൾ
 function openMagazineSection() {
@@ -1724,10 +1725,7 @@ function openMagazineSection() {
     content.innerHTML = `
         <div class="mag-header">
             <button onclick="closeSadharSection()" class="back-btn"><i class="fas fa-arrow-left"></i> തിരികെ</button>
-            <div style="display:flex; align-items:center; gap:5px;">
-                <span style="font-size:24px;">📚</span>
-                <h3 style="color:#2e7d32; margin:0;">മാസികാ വരിക്കാർ</h3>
-            </div>
+            <h3 style="color:#2e7d32; margin:0;">📚 മാസികാ വരിക്കാർ</h3>
         </div>
 
         <div class="mag-container">
@@ -1736,26 +1734,33 @@ function openMagazineSection() {
                 <button onclick="switchMagTab('Public')" id="tab-public" class="mag-tab inactive">Public Copy</button>
             </div>
 
-            <div class="info-card" style="margin-bottom:20px; border-top: 3px solid #2e7d32; padding:15px; background:#f9f9f9; border-radius:8px;">
-                <h4 id="mag-form-title" style="margin-top:0; color:#2e7d32;">പുതിയ വരിക്കാരെ ചേർക്കുക</h4>
+            <div class="info-card" style="margin-bottom:20px; border-top: 3px solid #2e7d32;">
+                <h4 id="mag-form-title">പുതിയ വരിക്കാരെ ചേർക്കുക</h4>
                 <input type="hidden" id="mag-edit-id">
                 <div class="grid-2">
                     <input type="text" id="mag-name" placeholder="പേര്" class="mag-input">
                     <input type="number" id="mag-phone" placeholder="ഫോൺ" class="mag-input">
-                    <input type="text" id="mag-place" placeholder="ക്ലാസ്" class="mag-input">
+                    
+                    <div id="dynamic-input-container">
+                        <select id="mag-place" class="mag-input">
+                            <option value="">ക്ലാസ് തിരഞ്ഞെടുക്കുക</option>
+                            ${Array.from({length: 12}, (_, i) => `<option value="${i+1}">ക്ലാസ് ${i+1}</option>`).join('')}
+                        </select>
+                    </div>
+
                     <select id="mag-scheme" class="mag-input">
                         <option value="Scheme1 (Sunnath & Kusumam)">Scheme 1 (Sunnath & Kusumam)</option>
                         <option value="Scheme2 (Sunnath)">Scheme 2 (Sunnath)</option>
                         <option value="Scheme3 (Kusumam)">Scheme 3 (Kusumam)</option>
                     </select>
                     <input type="number" id="mag-amount" placeholder="തുക" class="mag-input">
-                    <button onclick="saveMagazineSubscriber()" id="mag-save-btn" class="save-btn" style="background:#2e7d32; color:white; border:none; border-radius:5px; cursor:pointer;">സേവ് ചെയ്യുക</button>
+                    <button onclick="saveMagazineSubscriber()" id="mag-save-btn" class="save-btn" style="background:#2e7d32;">സേവ് ചെയ്യുക</button>
                 </div>
             </div>
 
-            <div class="mag-filter-area" style="display:flex; gap:10px; margin-bottom:15px;">
+            <div id="mag-filter-section" class="mag-filter-area" style="display:flex; gap:10px; margin-bottom:15px;">
                 <select id="mag-class-filter" onchange="loadMagazineList()" class="mag-input" style="flex:1;">
-                    <option value="All">എല്ലാ ക്ലാസും</option>
+                    <option value="All">എല്ലാ ക്ലാസും (Select All)</option>
                     ${Array.from({length: 12}, (_, i) => `<option value="${i+1}">ക്ലാസ് ${i+1}</option>`).join('')}
                 </select>
                 <input type="text" id="mag-search" placeholder="പേര് സെർച്ച്..." oninput="loadMagazineList()" class="mag-input" style="flex:1;">
@@ -1767,53 +1772,65 @@ function openMagazineSection() {
     loadMagazineList();
 }
 
-// 2. ടാബുകൾ മാറാനുള്ള ഫങ്ക്ഷൻ (ബട്ടൺ വർക്ക് ചെയ്യാൻ ഇത് ആവശ്യമാണ്)
+// 2. ടാബുകൾ മാറുമ്പോൾ ഫോമിലും ലിസ്റ്റിലും മാറ്റം വരുത്താൻ
 function switchMagTab(cat) {
     currentMagCategory = cat;
     
-    // ബട്ടൺ സ്റ്റൈൽ മാറ്റുക
+    // ടാബ് ബട്ടണുകളുടെ ആക്റ്റീവ് സ്റ്റൈൽ മാറ്റുക
     document.querySelectorAll('.mag-tab').forEach(btn => {
-        btn.classList.remove('active');
-        btn.classList.add('inactive');
+        btn.classList.toggle('active', btn.id === `tab-${cat.toLowerCase()}`);
+        btn.classList.toggle('inactive', btn.id !== `tab-${cat.toLowerCase()}`);
     });
-    
-    document.getElementById('tab-' + cat.toLowerCase()).classList.add('active');
-    document.getElementById('tab-' + cat.toLowerCase()).classList.remove('inactive');
 
-    // ഫോമിലെ placeholder മാറ്റുക
-    const placeField = document.getElementById('mag-place');
-    if (placeField) {
-        placeField.placeholder = (cat === 'Student') ? "ക്ലാസ്" : "സ്ഥലം";
-    }
+    const inputArea = document.getElementById('dynamic-input-container');
+    const filterSection = document.getElementById('mag-filter-section');
 
-    // ഫിൽട്ടർ മാറ്റുക (Public ആണെങ്കിൽ ക്ലാസ് ഫിൽട്ടർ മറയ്ക്കുകയോ മാറ്റുകയോ ചെയ്യാം)
-    const classFilter = document.getElementById('mag-class-filter');
-    if(cat === 'Public') {
-        classFilter.style.display = 'none';
+    if (cat === 'Student') {
+        // സ്റ്റുഡന്റ് ആണെങ്കിൽ ക്ലാസ് സെലക്ട് ചെയ്യാനുള്ള ഓപ്ഷൻ കാണിക്കും
+        inputArea.innerHTML = `
+            <select id="mag-place" class="mag-input">
+                <option value="">ക്ലാസ് തിരഞ്ഞെടുക്കുക</option>
+                ${Array.from({length: 12}, (_, i) => `<option value="${i+1}">ക്ലാസ് ${i+1}</option>`).join('')}
+            </select>`;
+        filterSection.style.display = 'flex'; // ക്ലാസ് ഫിൽട്ടർ കാണിക്കും
     } else {
-        classFilter.style.display = 'block';
+        // പബ്ലിക് ആണെങ്കിൽ ക്ലാസ് ഓപ്ഷൻ മാറ്റി സ്ഥലം ടൈപ്പ് ചെയ്യാനുള്ള ബോക്സ് നൽകും
+        inputArea.innerHTML = `<input type="text" id="mag-place" placeholder="സ്ഥലം/വിഭാഗം (Public)" class="mag-input">`;
+        filterSection.style.display = 'block'; // സെർച്ച് ബോക്സ് മാത്രം കാണിക്കാൻ (ക്ലാസ് ഫിൽട്ടർ ഹൈഡ് ചെയ്യാവുന്നതാണ്)
+        document.getElementById('mag-class-filter').style.display = 'none';
     }
 
-    loadMagazineList(); // കാറ്റഗറി അനുസരിച്ച് ലിസ്റ്റ് പുതുക്കുന്നു
+    loadMagazineList(); // ടാബ് മാറുമ്പോൾ ലിസ്റ്റ് പുതുക്കുന്നു
 }
 
-// 3. ലിസ്റ്റ് ലോഡ് ചെയ്യുമ്പോൾ കാറ്റഗറി കൂടി ശ്രദ്ധിക്കുന്നു
+// 3. വിവരങ്ങൾ ലോഡ് ചെയ്യുന്ന ഭാഗം (എഡിറ്റ്, ഡിലീറ്റ് ഉൾപ്പെടെ)
 async function loadMagazineList() {
-    const classVal = document.getElementById('mag-class-filter').value;
+    const classFilter = document.getElementById('mag-class-filter') ? document.getElementById('mag-class-filter').value : 'All';
     const searchVal = document.getElementById('mag-search').value.toLowerCase();
     const listArea = document.getElementById('magazine-list-area');
 
     try {
-        // currentMagCategory അനുസരിച്ച് മാത്രം ഡാറ്റ എടുക്കുന്നു
         const snap = await db.collection("magazine_subscribers")
                              .where("category", "==", currentMagCategory).get();
         
-        let html = `<table class="mag-table"><thead><tr><th>#</th><th>പേര്</th><th>വിവരങ്ങൾ</th><th>തുക</th><th>Action</th></tr></thead><tbody>`;
+        let html = `
+            <table class="mag-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>പേര്</th>
+                        <th>${currentMagCategory === 'Student' ? 'ക്ലാസ്' : 'സ്ഥലം'}</th>
+                        <th>തുക</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+        
         let i = 1;
-
         snap.forEach(doc => {
             const d = doc.data();
-            const matchesClass = (currentMagCategory === 'Public' || classVal === 'All' || d.class == classVal);
+            // സ്റ്റുഡന്റ് ആണെങ്കിൽ മാത്രം ക്ലാസ് ഫിൽട്ടർ നോക്കും
+            const matchesClass = (currentMagCategory === 'Public' || classFilter === 'All' || d.class == classFilter);
             const matchesSearch = d.name.toLowerCase().includes(searchVal);
 
             if (matchesClass && matchesSearch) {
@@ -1821,25 +1838,30 @@ async function loadMagazineList() {
                     <tr>
                         <td>${i++}</td>
                         <td><b>${d.name}</b><br><small>${d.phone || ''}</small></td>
-                        <td>${d.scheme}<br><small>${currentMagCategory === 'Student' ? 'ക്ലാസ്: '+d.class : d.place}</small></td>
+                        <td>${currentMagCategory === 'Student' ? 'ക്ലാസ്: '+d.class : d.place}</td>
                         <td>₹${d.amount}</td>
                         <td>
-                            <button onclick='editMagSub("${doc.id}", ${JSON.stringify(d)})' style="color:blue; border:none; background:none;"><i class="fas fa-edit"></i></button>
-                            <button onclick="deleteMagSub('${doc.id}')" style="color:red; border:none; background:none;"><i class="fas fa-trash"></i></button>
+                            <div style="display:flex; gap:12px;">
+                                <i class="fas fa-edit" onclick='editMagSub("${doc.id}", ${JSON.stringify(d)})' style="color:#1a73e8; cursor:pointer;"></i>
+                                <i class="fas fa-trash" onclick="deleteMagSub('${doc.id}')" style="color:#ea4335; cursor:pointer;"></i>
+                            </div>
                         </td>
                     </tr>`;
             }
         });
-        listArea.innerHTML = i > 1 ? html + `</tbody></table>` : "<p style='text-align:center; padding:20px;'>വിവരങ്ങൾ ലഭ്യമല്ല.</p>";
-    } catch (e) { listArea.innerHTML = "Error: " + e.message; }
+        
+        listArea.innerHTML = i > 1 ? html + "</tbody></table>" : "<p style='text-align:center; padding:20px;'>വിവരങ്ങൾ ലഭ്യമല്ല.</p>";
+    } catch (e) {
+        listArea.innerHTML = "Error: " + e.message;
+    }
 }
 
-// 4. സേവ് ചെയ്യുമ്പോൾ കാറ്റഗറി കൂടി ഉൾപ്പെടുത്തുന്നു
+// 4. വിവരങ്ങൾ സേവ് ചെയ്യാനുള്ള ഫങ്ക്ഷൻ
 async function saveMagazineSubscriber() {
     const id = document.getElementById('mag-edit-id').value;
     const name = document.getElementById('mag-name').value;
     const phone = document.getElementById('mag-phone').value;
-    const placeOrClass = document.getElementById('mag-place').value;
+    const placeVal = document.getElementById('mag-place').value;
     const scheme = document.getElementById('mag-scheme').value;
     const amount = document.getElementById('mag-amount').value;
 
@@ -1848,20 +1870,48 @@ async function saveMagazineSubscriber() {
     const data = {
         name, phone, scheme,
         amount: Number(amount),
-        category: currentMagCategory, // ഇവിടെ Student/Public എന്നത് കൃത്യമായി സേവ് ആകും
+        category: currentMagCategory, // Student/Public
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
     };
 
-    if (currentMagCategory === 'Student') data.class = placeOrClass;
-    else data.place = placeOrClass;
+    if (currentMagCategory === 'Student') data.class = placeVal;
+    else data.place = placeVal;
 
     try {
         if(id) await db.collection("magazine_subscribers").doc(id).update(data);
         else await db.collection("magazine_subscribers").add(data);
         
         alert("വിവരങ്ങൾ സേവ് ചെയ്തു!");
-        openMagazineSection(); // Refresh
+        openMagazineSection(); // ഫോം റീസെറ്റ് ചെയ്ത് ലിസ്റ്റ് പുതുക്കുന്നു
     } catch (e) { alert("Error: " + e.message); }
+}
+
+// 5. എഡിറ്റ് ഫങ്ക്ഷൻ
+function editMagSub(id, data) {
+    document.getElementById('mag-edit-id').value = id;
+    document.getElementById('mag-name').value = data.name;
+    document.getElementById('mag-phone').value = data.phone || '';
+    
+    // വാല്യൂ സെറ്റ് ചെയ്യുന്നു
+    const placeInput = document.getElementById('mag-place');
+    if (placeInput) {
+        placeInput.value = (currentMagCategory === 'Student' ? data.class : data.place) || '';
+    }
+    
+    document.getElementById('mag-scheme').value = data.scheme;
+    document.getElementById('mag-amount').value = data.amount;
+    
+    document.getElementById('mag-form-title').innerText = "വിവരങ്ങൾ തിരുത്തുക";
+    document.getElementById('mag-save-btn').innerText = "Update വിവരങ്ങൾ";
+    window.scrollTo(0, 0);
+}
+
+// 6. ഡിലീറ്റ് ഫങ്ക്ഷൻ
+async function deleteMagSub(id) {
+    if(confirm("ഈ വരിക്കാരനെ ഒഴിവാക്കട്ടെ?")) {
+        await db.collection("magazine_subscribers").doc(id).delete();
+        loadMagazineList();
+    }
 }
 
 async function openExamSection() {

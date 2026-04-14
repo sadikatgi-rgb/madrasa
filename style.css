@@ -179,42 +179,62 @@ input:focus, select:focus {
     background: #1a73e8;
     color: white;
 }
-/* മാസികാ സെക്ഷൻ സ്റ്റൈലുകൾ */
+/* --- പരിഷ്കരിച്ച മാസിക & പരീക്ഷാ സെക്ഷൻ സ്റ്റൈലുകൾ --- */
+
 .mag-container {
     padding: 15px;
+    background: #fdfdfd;
 }
 
 .mag-header {
-    padding: 10px;
+    padding: 12px 15px;
     background: #fff;
     position: sticky;
     top: 0;
     z-index: 1000;
-    border-bottom: 1px solid #eee;
+    border-bottom: 2px solid #eee;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 15px;
 }
 
+/* ബാക്ക് ബട്ടൺ സ്റ്റൈൽ */
+.back-btn {
+    background: #f0f2f5;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: #444;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* ടാബുകൾ */
 .tab-group {
     display: flex;
     gap: 10px;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
 }
 
 .mag-tab {
     flex: 1;
-    padding: 10px;
-    border-radius: 8px;
-    border: 1px solid #2e7d32;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1.5px solid #2e7d32;
     cursor: pointer;
-    font-weight: bold;
+    font-weight: 600;
+    font-size: 13px;
     transition: 0.3s;
+    text-align: center;
 }
 
 .mag-tab.active {
     background: #2e7d32;
     color: white;
+    box-shadow: 0 4px 10px rgba(46, 125, 50, 0.2);
 }
 
 .mag-tab.inactive {
@@ -222,46 +242,109 @@ input:focus, select:focus {
     color: #2e7d32;
 }
 
-.mag-filter-area {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 15px;
-}
-
+/* ഇൻപുട്ട് ഫീൽഡുകൾ */
 .mag-input {
-    padding: 10px;
+    width: 100%;
+    padding: 11px;
     border: 1px solid #ddd;
     border-radius: 8px;
-    outline: none;
+    font-size: 13px;
+    margin-bottom: 5px;
+    background: white;
 }
 
-/* ടേബിൾ സ്റ്റൈൽ (നിങ്ങൾ അയച്ച ഫോട്ടോയിലെ പോലെ) */
+.mag-input:focus {
+    border-color: #2e7d32;
+    box-shadow: 0 0 5px rgba(46, 125, 50, 0.1);
+}
+
+/* ഗ്രൂപ്പ് ഇൻപുട്ടുകൾ (Form Grid) */
+.grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+/* ടേബിൾ സ്റ്റൈൽ */
 .mag-table-wrapper {
     overflow-x: auto;
     background: white;
-    border: 1px solid #ddd;
-    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    margin-top: 15px;
 }
 
 .mag-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 11px;
+    font-size: 12px;
 }
 
 .mag-table th {
-    background: #455a64;
+    background: #455a64; /* കടും ചാര നിറം - ഹെഡർ */
     color: white;
-    padding: 10px;
-    border: 1px solid #ddd;
+    padding: 12px 10px;
     text-align: left;
+    font-weight: 500;
 }
 
 .mag-table td {
-    padding: 10px;
-    border: 1px solid #ddd;
+    padding: 12px 10px;
+    border-bottom: 1px solid #eee;
+    vertical-align: middle;
 }
 
 .mag-table tr:nth-child(even) {
-    background-color: #f9f9f9;
+    background-color: #fafafa;
+}
+
+.mag-table tr:hover {
+    background-color: #f1f8e9;
+}
+
+/* എക്സാം സെക്ഷനിലെ ചെറിയ ഇൻപുട്ടുകൾ */
+.exam-input-small {
+    width: 55px;
+    padding: 6px;
+    border: 1.5px solid #ccc;
+    border-radius: 5px;
+    text-align: center;
+    font-weight: bold;
+}
+
+/* ആക്ഷൻ ബട്ടണുകൾ (Save/Edit/Delete) */
+.action-btn-group {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.edit-btn { color: #1a73e8; cursor: pointer; }
+.delete-btn { color: #ea4335; cursor: pointer; }
+
+/* സേവ് ബട്ടൺ (പച്ച - മാർക്ക്, നീല - ഫീ) */
+.save-btn-green {
+    background: #2e7d32;
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.save-btn-blue {
+    background: #1a73e8;
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+/* പ്രിന്റ് ഫ്രണ്ട്‌ലി സ്റ്റൈൽ */
+@media print {
+    .no-print { display: none !important; }
+    .mag-table-wrapper { border: none; }
+    .mag-table th { background: #eee !important; color: black; }
 }

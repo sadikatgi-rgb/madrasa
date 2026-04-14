@@ -1809,6 +1809,9 @@ async function loadMagazineList() {
     const searchVal = document.getElementById('mag-search').value.toLowerCase();
     const listArea = document.getElementById('magazine-list-area');
 
+    // ലോഗിൻ ചെയ്ത ഉസ്താദിന്റെ ക്ലാസ് എടുക്കുന്നു (നിങ്ങളുടെ ലോഗിൻ സിസ്റ്റം അനുസരിച്ച് ഇത് മാറും)
+    const loggedInUsthadClass = (typeof currentUserData !== 'undefined' && currentUserData.class) ? currentUserData.class : 'All';
+
     try {
         const snap = await db.collection("magazine_subscribers")
                              .where("category", "==", currentMagCategory).get();
@@ -1829,16 +1832,30 @@ async function loadMagazineList() {
         let i = 1;
         snap.forEach(doc => {
             const d = doc.data();
-            const matchesClass = (currentMagCategory === 'Public' || classFilter === 'All' || d.class == classFilter);
+            
+            // ലോജിക് ഫിൽട്ടറിംഗ്:
+            // 1. പബ്ലിക് കോപ്പി എല്ലാവർക്കും കാണാം.
+            // 2. സ്റ്റുഡന്റ് കോപ്പി ഉസ്താദിന്റെ സ്വന്തം ക്ലാസ് മാത്രം അല്ലെങ്കിൽ സെലക്ട് ചെയ്ത ക്ലാസ്.
+            let isAuthorized = false;
+            if (currentMagCategory === 'Public') {
+                isAuthorized = true; 
+            } else {
+                if (classFilter === 'All') {
+                    isAuthorized = (d.class == loggedInUsthadClass);
+                } else {
+                    isAuthorized = (d.class == classFilter);
+                }
+            }
+
             const matchesSearch = d.name.toLowerCase().includes(searchVal);
 
-            if (matchesClass && matchesSearch) {
+            if (isAuthorized && matchesSearch) {
                 html += `
                     <tr>
                         <td>${i++}</td>
                         <td>
                             <b>${d.name}</b><br>
-                            <small style="color: #666;"><i class="fas fa-phone-alt" style="font-size: 10px;"></i> ${d.phone || 'No Phone'}</small>
+                            <small style="color: #666;"><i class="fas fa-phone-alt" style="font-size: 10px;"></i> ${d.phone || ''}</small>
                         </td>
                         <td>
                             <span style="font-size: 0.9em; color: #2e7d32;">${d.scheme}</span><br>
@@ -1846,9 +1863,9 @@ async function loadMagazineList() {
                         </td>
                         <td><b>₹${d.amount}</b></td>
                         <td>
-                            <div style="display:flex; gap:15px; align-items: center;">
-                                <i class="fas fa-edit" onclick='editMagSub("${doc.id}", ${JSON.stringify(d)})' style="color:#1a73e8; cursor:pointer;" title="Edit"></i>
-                                <i class="fas fa-trash" onclick="deleteMagSub('${doc.id}')" style="color:#ea4335; cursor:pointer;" title="Delete"></i>
+                            <div style="display:flex; gap:12px; align-items: center;">
+                                <i class="fas fa-edit" onclick='editMagSub("${doc.id}", ${JSON.stringify(d)})' style="color:#1a73e8; cursor:pointer;"></i>
+                                <i class="fas fa-trash" onclick="deleteMagSub('${doc.id}')" style="color:#ea4335; cursor:pointer;"></i>
                             </div>
                         </td>
                     </tr>`;

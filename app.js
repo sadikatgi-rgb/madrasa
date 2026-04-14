@@ -1710,6 +1710,107 @@ function downloadMuallimExcel() {
     document.body.appendChild(link);
     link.click();
 }
+let currentMagCategory = 'Student'; 
+
+function openMagazineSection() {
+    const content = document.getElementById('dynamic-content');
+    const dashboard = document.getElementById('usthad-dashboard');
+    if (dashboard) dashboard.style.display = 'none';
+    
+    content.style.display = 'block';
+    
+    // HTML സ്ട്രക്ചർ മാത്രം, സ്റ്റൈലുകൾ CSS-ൽ നിന്ന് വരുന്നു
+    content.innerHTML = `
+        <div class="mag-header">
+            <button onclick="closeSadharSection()" class="back-btn">
+                <i class="fas fa-arrow-left"></i> തിരികെ
+            </button>
+            <h3 style="color:#2e7d32;">📚 മാസികാ വരിക്കാർ</h3>
+        </div>
+
+        <div class="mag-container">
+            <div class="tab-group">
+                <button onclick="switchMagTab('Student')" id="tab-student" class="mag-tab active">Student Copy</button>
+                <button onclick="switchMagTab('Public')" id="tab-public" class="mag-tab inactive">Public Copy</button>
+            </div>
+
+            <div class="mag-filter-area">
+                <select id="mag-class-filter" onchange="loadMagazineList()" class="mag-input" style="flex:1;">
+                    <option value="All">എല്ലാ ക്ലാസും</option>
+                    ${Array.from({length: 12}, (_, i) => `<option value="${i+1}">ക്ലാസ് ${i+1}</option>`).join('')}
+                </select>
+                <input type="text" id="mag-search" placeholder="പേര് സെർച്ച്..." oninput="loadMagazineList()" class="mag-input" style="flex:1;">
+            </div>
+
+            <div id="magazine-list-area" class="mag-table-wrapper">ലിസ്റ്റ് ലോഡ് ചെയ്യുന്നു...</div>
+        </div>
+    `;
+    loadMagazineList();
+}
+
+async function loadMagazineList() {
+    const classVal = document.getElementById('mag-class-filter').value;
+    const searchVal = document.getElementById('mag-search').value.toLowerCase();
+    const listArea = document.getElementById('magazine-list-area');
+
+    try {
+        const snap = await db.collection("magazine_subscribers")
+                             .where("category", "==", currentMagCategory).get();
+        
+        let html = `
+            <table class="mag-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>പേര്</th>
+                        <th>${currentMagCategory === 'Student' ? 'ക്ലാസ്' : 'സ്ഥലം'}</th>
+                        <th>സ്കീം</th>
+                        <th>തുക</th>
+                        <th class="no-print">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        let i = 1;
+        snap.forEach(doc => {
+            const d = doc.data();
+            if ((classVal === 'All' || d.class == classVal) && (d.name.toLowerCase().includes(searchVal))) {
+                html += `
+                    <tr>
+                        <td style="text-align:center;">${i++}</td>
+                        <td><b>${d.name}</b><br><small>${d.phone || ''}</small></td>
+                        <td>${currentMagCategory === 'Student' ? d.class : d.place}</td>
+                        <td>${d.scheme}</td>
+                        <td style="font-weight:bold;">₹${d.amount}</td>
+                        <td class="no-print" style="text-align:center;">
+                            <button onclick="editMagSub('${doc.id}', ${JSON.stringify(d).replace(/"/g, '&quot;')})" style="border:none; background:none; color:#1a73e8; cursor:pointer;">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }
+        });
+
+        html += `</tbody></table>`;
+        listArea.innerHTML = i > 1 ? html : "<p style='padding:20px; text-align:center;'>വിവരങ്ങൾ ലഭ്യമല്ല.</p>";
+
+    } catch (e) { listArea.innerHTML = "Error: " + e.message; }
+}
+
+// ടാബ് മാറാനുള്ള ഫങ്ക്ഷൻ
+function switchMagTab(cat) {
+    currentMagCategory = cat;
+    document.querySelectorAll('.mag-tab').forEach(btn => {
+        btn.classList.remove('active');
+        btn.classList.add('inactive');
+    });
+    const activeBtn = document.getElementById('tab-' + cat.toLowerCase());
+    activeBtn.classList.add('active');
+    activeBtn.classList.remove('inactive');
+    loadMagazineList();
+}
 
 // 3. സദർ - ഉസ്താദ് പണമിടപാട് ടേബിൾ (പുതിയത്)
 // 1. ലോഡ് ചെയ്യുന്ന ടേബിൾ (മാറ്റമില്ലാതെ - ഇതിൽ ID ഉം സമയവും ഡിസ്‌പ്ലേ ചെയ്യാനുണ്ട്)

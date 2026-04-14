@@ -1818,8 +1818,8 @@ async function loadMagazineList() {
                 <thead>
                     <tr>
                         <th>#</th>
-                        <th>പേര്</th>
-                        <th>${currentMagCategory === 'Student' ? 'ക്ലാസ്' : 'സ്ഥലം'}</th>
+                        <th>വരിക്കാരന്റെ വിവരങ്ങൾ</th>
+                        <th>സ്കീം & ${currentMagCategory === 'Student' ? 'ക്ലാസ്' : 'സ്ഥലം'}</th>
                         <th>തുക</th>
                         <th>Action</th>
                     </tr>
@@ -1829,7 +1829,6 @@ async function loadMagazineList() {
         let i = 1;
         snap.forEach(doc => {
             const d = doc.data();
-            // സ്റ്റുഡന്റ് ആണെങ്കിൽ മാത്രം ക്ലാസ് ഫിൽട്ടർ നോക്കും
             const matchesClass = (currentMagCategory === 'Public' || classFilter === 'All' || d.class == classFilter);
             const matchesSearch = d.name.toLowerCase().includes(searchVal);
 
@@ -1837,13 +1836,19 @@ async function loadMagazineList() {
                 html += `
                     <tr>
                         <td>${i++}</td>
-                        <td><b>${d.name}</b><br><small>${d.phone || ''}</small></td>
-                        <td>${currentMagCategory === 'Student' ? 'ക്ലാസ്: '+d.class : d.place}</td>
-                        <td>₹${d.amount}</td>
                         <td>
-                            <div style="display:flex; gap:12px;">
-                                <i class="fas fa-edit" onclick='editMagSub("${doc.id}", ${JSON.stringify(d)})' style="color:#1a73e8; cursor:pointer;"></i>
-                                <i class="fas fa-trash" onclick="deleteMagSub('${doc.id}')" style="color:#ea4335; cursor:pointer;"></i>
+                            <b>${d.name}</b><br>
+                            <small style="color: #666;"><i class="fas fa-phone-alt" style="font-size: 10px;"></i> ${d.phone || 'No Phone'}</small>
+                        </td>
+                        <td>
+                            <span style="font-size: 0.9em; color: #2e7d32;">${d.scheme}</span><br>
+                            <small><b>${currentMagCategory === 'Student' ? 'ക്ലാസ്: ' + d.class : 'സ്ഥലം: ' + d.place}</b></small>
+                        </td>
+                        <td><b>₹${d.amount}</b></td>
+                        <td>
+                            <div style="display:flex; gap:15px; align-items: center;">
+                                <i class="fas fa-edit" onclick='editMagSub("${doc.id}", ${JSON.stringify(d)})' style="color:#1a73e8; cursor:pointer;" title="Edit"></i>
+                                <i class="fas fa-trash" onclick="deleteMagSub('${doc.id}')" style="color:#ea4335; cursor:pointer;" title="Delete"></i>
                             </div>
                         </td>
                     </tr>`;

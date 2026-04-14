@@ -1539,29 +1539,32 @@ async function loadMuallimHistory() {
         const snap = await db.collection("muallim_contributions").orderBy("timestamp", "desc").get();
         
         if (snap.empty) {
-            list.innerHTML = "<p style='text-align:center; color:#999;'>വിവരങ്ങൾ ഒന്നും ലഭ്യമല്ല.</p>";
+            list.innerHTML = "<p style='text-align:center; color:#999; padding:20px;'>വിവരങ്ങൾ ഒന്നും ലഭ്യമല്ല.</p>";
             return;
         }
 
-        // പ്രിന്റ്, എക്സൽ ബട്ടണുകൾ മുകളിൽ നൽകുന്നു
+        // ബട്ടണുകളും ടേബിൾ ഹെഡറും
         let html = `
-            <div style="display:flex; gap:10px; margin-bottom:15px; no-print">
-                <button onclick="printMuallimReport()" style="flex:1; background:#28a745; color:white; border:none; padding:10px; border-radius:5px; font-size:12px; cursor:pointer;">
+            <div style="display:flex; gap:10px; margin-bottom:15px;" class="no-print">
+                <button onclick="printMuallimReport()" style="flex:1; background:#28a745; color:white; border:none; padding:10px; border-radius:5px; font-size:12px; cursor:pointer; font-weight:bold;">
                     <i class="fas fa-print"></i> Print / PDF
                 </button>
-                <button onclick="downloadMuallimExcel()" style="flex:1; background:#17a2b8; color:white; border:none; padding:10px; border-radius:5px; font-size:12px; cursor:pointer;">
+                <button onclick="downloadMuallimExcel()" style="flex:1; background:#17a2b8; color:white; border:none; padding:10px; border-radius:5px; font-size:12px; cursor:pointer; font-weight:bold;">
                     <i class="fas fa-file-excel"></i> Excel Download
                 </button>
             </div>
-            <div style="overflow-x:auto; background:white; border:1px solid #ddd; border-radius:8px;">
-                <table id="muallim-table" style="width:100%; border-collapse:collapse; font-size:12px;">
+            <div style="overflow-x:auto; background:white; border:1px solid #ddd; border-radius:8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                <table id="muallim-table" style="width:100%; min-width:900px; border-collapse:collapse; font-size:11px; text-align:left;">
                     <thead>
-                        <tr style="background:#f8f9fa; border-bottom:2px solid #dee2e6;">
+                        <tr style="background:#f1f3f4; color:#444; border-bottom:2px solid #ddd;">
                             <th style="padding:10px; border:1px solid #ddd;">തിയതി</th>
-                            <th style="padding:10px; border:1px solid #ddd;">തരം</th>
+                            <th style="padding:10px; border:1px solid #ddd;">വിഹിതം തരം</th>
                             <th style="padding:10px; border:1px solid #ddd;">പേര്</th>
-                            <th style="padding:10px; border:1px solid #ddd;">തുക</th>
-                            <th style="padding:10px; border:1px solid #ddd;" class="no-print">Edit</th>
+                            <th style="padding:10px; border:1px solid #ddd;">Reg & MSR</th>
+                            <th style="padding:10px; border:1px solid #ddd;">ശമ്പളം</th>
+                            <th style="padding:10px; border:1px solid #ddd;">വിഹിതം</th>
+                            <th style="padding:10px; border:1px solid #ddd;">കുറിപ്പുകൾ</th>
+                            <th style="padding:10px; border:1px solid #ddd; text-align:center;" class="no-print">Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1570,16 +1573,26 @@ async function loadMuallimHistory() {
         let count = 0;
         snap.forEach(doc => {
             const d = doc.data();
-            if (d.year == yearFilter || d.date.startsWith(yearFilter)) {
+            // വർഷം അനുസരിച്ചുള്ള ഫിൽട്ടറിംഗ്
+            if (d.year == yearFilter || (d.date && d.date.startsWith(yearFilter))) {
                 count++;
                 html += `
-                    <tr>
-                        <td style="padding:10px; border:1px solid #ddd;">${d.date}</td>
-                        <td style="padding:10px; border:1px solid #ddd;">${d.type}</td>
-                        <td style="padding:10px; border:1px solid #ddd;"><b>${d.name}</b></td>
-                        <td style="padding:10px; border:1px solid #ddd; font-weight:bold;">₹${d.contribution}</td>
+                    <tr style="border-bottom:1px solid #eee;">
+                        <td style="padding:10px; border:1px solid #ddd;">${d.date || '-'}</td>
+                        <td style="padding:10px; border:1px solid #ddd;">${d.type || '-'}</td>
+                        <td style="padding:10px; border:1px solid #ddd;"><strong>${d.name || '-'}</strong></td>
+                        <td style="padding:10px; border:1px solid #ddd;">
+                            <span style="display:block; font-size:10px;">Reg: ${d.regNo || '-'}</span>
+                            <span style="display:block; font-size:10px;">MSR: ${d.msrNo || '-'}</span>
+                        </td>
+                        <td style="padding:10px; border:1px solid #ddd;">₹${d.salary || '0'}</td>
+                        <td style="padding:10px; border:1px solid #ddd; font-weight:bold; color:#1a73e8;">₹${d.contribution || '0'}</td>
+                        <td style="padding:10px; border:1px solid #ddd; max-width:180px; white-space:normal; line-height:1.4;">${d.remarks || '-'}</td>
                         <td style="padding:10px; border:1px solid #ddd; text-align:center;" class="no-print">
-                            <button onclick="editEntry('${doc.id}', ${JSON.stringify(d).replace(/"/g, '&quot;')})" style="background:none; border:none; color:#1a73e8; cursor:pointer;"><i class="fas fa-edit"></i></button>
+                            <button onclick="editEntry('${doc.id}', ${JSON.stringify(d).replace(/"/g, '&quot;')})" 
+                                style="background:#f8f9fa; border:1px solid #ddd; color:#1a73e8; padding:5px 10px; border-radius:4px; cursor:pointer;">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
                         </td>
                     </tr>
                 `;
@@ -1587,10 +1600,14 @@ async function loadMuallimHistory() {
         });
 
         html += `</tbody></table></div>`;
-        list.innerHTML = count > 0 ? html : "<p style='text-align:center;'>വിവരങ്ങൾ ലഭ്യമല്ല.</p>";
+        list.innerHTML = count > 0 ? html : "<p style='text-align:center; padding:20px; color:#999;'>തിരഞ്ഞെടുത്ത വർഷത്തിൽ വിവരങ്ങൾ ലഭ്യമല്ല.</p>";
 
-    } catch (e) { list.innerHTML = "<p style='color:red;'>ഹിസ്റ്ററി ലോഡ് ചെയ്യുന്നതിൽ പിശക്.</p>"; }
+    } catch (e) { 
+        console.error("Error loading history:", e);
+        list.innerHTML = "<p style='color:red; text-align:center; padding:20px;'>ഹിസ്റ്ററി ലോഡ് ചെയ്യുന്നതിൽ പിശക്. ഇന്റർനെറ്റ് പരിശോധിക്കുക.</p>"; 
+    }
 }
+
 
 // 5. എഡിറ്റ് ചെയ്യാൻ (മാറ്റമില്ലാതെ)
 function editEntry(id, data) {
@@ -1621,16 +1638,56 @@ function resetSadarForm() {
 // പ്രിന്റ് എടുക്കാനുള്ള ഫങ്ക്ഷൻ
 function printMuallimReport() {
     const year = document.getElementById('history-year-filter').value;
+    // ടേബിൾ ഉള്ള ഏരിയ മാത്രം എടുക്കുന്നു
     const tableHtml = document.getElementById('muallim-history-list').innerHTML;
-    const printWindow = window.open('', '', 'height=600,width=800');
-    printWindow.document.write('<html><head><title>Report</title>');
-    printWindow.document.write('<style>table{width:100%;border-collapse:collapse;} th,td{border:1px solid #ddd;padding:8px;text-align:left;} .no-print{display:none;} h2{text-align:center;}</style>');
-    printWindow.document.write('</head><body>');
-    printWindow.document.write('<h2>മുഅല്ലിം വിഹിതം റിപ്പോർട്ട് - ' + year + '</h2>');
-    printWindow.document.write(tableHtml);
-    printWindow.document.write('</body></html>');
+    
+    const printWindow = window.open('', '', 'height=800,width=1000');
+    
+    printWindow.document.write(`
+        <html>
+            <head>
+                <title>മുഅല്ലിം വിഹിതം റിപ്പോർട്ട് - ${year}</title>
+                <style>
+                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; color: #333; }
+                    h2 { text-align: center; color: #1a73e8; margin-bottom: 20px; text-decoration: underline; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+                    th, td { border: 1px solid #444; padding: 10px; text-align: left; }
+                    th { background-color: #f2f2f2; font-weight: bold; }
+                    tr:nth-child(even) { background-color: #fafafa; }
+                    
+                    /* പ്രിന്റിൽ ബട്ടണുകൾ ഒഴിവാക്കാൻ */
+                    .no-print { display: none !important; }
+                    
+                    /* A4 Landscape സെറ്റിംഗ്സ് */
+                    @media print {
+                        @page { size: A4 landscape; margin: 1cm; }
+                        body { padding: 0; }
+                        table { border: 1px solid #000; }
+                    }
+                </style>
+            </head>
+            <body>
+                <h2>മുഅല്ലിം വിഹിതം റിപ്പോർട്ട് - ${year}</h2>
+                <div style="margin-bottom: 10px; font-size: 12px;">
+                    Report Generated on: ${new Date().toLocaleDateString('en-GB')}
+                </div>
+                ${tableHtml}
+                <div style="margin-top: 30px; display: flex; justify-content: space-between;">
+                    <p>സദർ ഒപ്പ്: ...........................</p>
+                    <p>തിയതി: ...........................</p>
+                </div>
+            </body>
+        </html>
+    `);
+    
     printWindow.document.close();
-    printWindow.print();
+    
+    // ഇമേജുകളും സ്റ്റൈലുകളും ലോഡ് ആയെന്ന് ഉറപ്പുവരുത്തി പ്രിന്റ് ചെയ്യുന്നു
+    printWindow.onload = function() {
+        printWindow.print();
+        // പ്രിന്റിന് ശേഷം വിൻഡോ താനേ ക്ലോസ് ആകണമെന്നുണ്ടെങ്കിൽ താഴത്തെ വരി ഉപയോഗിക്കാം
+        // printWindow.close();
+    };
 }
 
 // എക്സൽ ഡൗൺലോഡ് ചെയ്യാനുള്ള ഫങ്ക്ഷൻ

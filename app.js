@@ -1809,8 +1809,9 @@ async function loadMagazineList() {
     const searchVal = document.getElementById('mag-search').value.toLowerCase();
     const listArea = document.getElementById('magazine-list-area');
 
-    // ലോഗിൻ ചെയ്ത ഉസ്താദിന്റെ ക്ലാസ് (മറ്റ് സെക്ഷനുകളിൽ ഉപയോഗിക്കുന്ന അതേ വേരിയബിൾ ഇവിടെ നൽകുക)
-    const loggedInUsthadClass = (typeof currentUserData !== 'undefined' && currentUserData.class) ? currentUserData.class : '';
+    // ലോഗിൻ ചെയ്ത ആളുടെ വിവരങ്ങൾ എടുക്കുന്നു
+    const userRole = (typeof currentUserData !== 'undefined') ? currentUserData.role : '';
+    const loggedInUsthadClass = (typeof currentUserData !== 'undefined') ? currentUserData.class : '';
 
     try {
         const snap = await db.collection("magazine_subscribers")
@@ -1835,13 +1836,12 @@ async function loadMagazineList() {
             
             let isAuthorized = false;
 
-            if (currentMagCategory === 'Public') {
-                // പബ്ലിക് കോപ്പി എല്ലാവർക്കും കാണാം
+            // കണ്ടീഷൻ 1: സദർ (Sadhar) ആണെങ്കിൽ എല്ലാ ക്ലാസിലെയും വിവരങ്ങൾ കാണാം
+            // കണ്ടീഷൻ 2: പബ്ലിക് കോപ്പി (Public Copy) ടാബ് ആണെങ്കിൽ എല്ലാവർക്കും കാണാം
+            if (userRole === 'Sadhar' || currentMagCategory === 'Public') {
                 isAuthorized = true; 
             } else {
-                // സ്റ്റുഡന്റ് കോപ്പി ലോജിക്:
-                // ഫിൽട്ടർ 'All' ആണെങ്കിൽ ഉസ്താദിന്റെ ക്ലാസ് മാത്രം കാണിക്കും.
-                // അല്ലെങ്കിൽ ഫിൽട്ടറിൽ തിരഞ്ഞെടുത്ത ക്ലാസ് കാണിക്കും.
+                // കണ്ടീഷൻ 3: ഉസ്താദ് ആണെങ്കിൽ സ്വന്തം ക്ലാസ് മാത്രം അല്ലെങ്കിൽ സെലക്ട് ചെയ്ത ക്ലാസ്
                 if (classFilter === 'All') {
                     isAuthorized = (String(d.class) === String(loggedInUsthadClass));
                 } else {

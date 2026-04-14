@@ -1529,8 +1529,7 @@ async function saveMuallimData() {
         alert("വിജയകരമായി പൂർത്തിയാക്കി!");
     } catch (e) { alert("Error: " + e.message); }
 }
-
-// 4. ഹിസ്റ്ററി ലോഡ് ചെയ്യാൻ
+// 4. ഹിസ്റ്ററി ലോഡ് ചെയ്യാൻ (Table & Print Options സഹിതം)
 async function loadMuallimHistory() {
     const yearFilter = document.getElementById('history-year-filter').value;
     const list = document.getElementById('muallim-history-list');
@@ -1538,32 +1537,62 @@ async function loadMuallimHistory() {
     
     try {
         const snap = await db.collection("muallim_contributions").orderBy("timestamp", "desc").get();
-        list.innerHTML = "";
         
         if (snap.empty) {
             list.innerHTML = "<p style='text-align:center; color:#999;'>വിവരങ്ങൾ ഒന്നും ലഭ്യമല്ല.</p>";
             return;
         }
 
+        // പ്രിന്റ്, എക്സൽ ബട്ടണുകൾ മുകളിൽ നൽകുന്നു
+        let html = `
+            <div style="display:flex; gap:10px; margin-bottom:15px; no-print">
+                <button onclick="printMuallimReport()" style="flex:1; background:#28a745; color:white; border:none; padding:10px; border-radius:5px; font-size:12px; cursor:pointer;">
+                    <i class="fas fa-print"></i> Print / PDF
+                </button>
+                <button onclick="downloadMuallimExcel()" style="flex:1; background:#17a2b8; color:white; border:none; padding:10px; border-radius:5px; font-size:12px; cursor:pointer;">
+                    <i class="fas fa-file-excel"></i> Excel Download
+                </button>
+            </div>
+            <div style="overflow-x:auto; background:white; border:1px solid #ddd; border-radius:8px;">
+                <table id="muallim-table" style="width:100%; border-collapse:collapse; font-size:12px;">
+                    <thead>
+                        <tr style="background:#f8f9fa; border-bottom:2px solid #dee2e6;">
+                            <th style="padding:10px; border:1px solid #ddd;">തിയതി</th>
+                            <th style="padding:10px; border:1px solid #ddd;">തരം</th>
+                            <th style="padding:10px; border:1px solid #ddd;">പേര്</th>
+                            <th style="padding:10px; border:1px solid #ddd;">തുക</th>
+                            <th style="padding:10px; border:1px solid #ddd;" class="no-print">Edit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        let count = 0;
         snap.forEach(doc => {
             const d = doc.data();
-            // തിരഞ്ഞെടുത്ത വർഷത്തിലെ ഡാറ്റ മാത്രം കാണിക്കുന്നു
             if (d.year == yearFilter || d.date.startsWith(yearFilter)) {
-                list.innerHTML += `
-                <div style="background:#fff; border:1px solid #eee; padding:12px; border-radius:8px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                    <div>
-                        <strong style="color:#1a73e8; font-size:14px;">${d.name}</strong> 
-                        <span style="font-size:10px; background:#e8f0fe; color:#1a73e8; padding:2px 6px; border-radius:10px; margin-left:5px;">${d.type}</span><br>
-                        <small style="color:#666;">${d.date} | ₹${d.salary} (₹${d.contribution})</small>
-                    </div>
-                    <button onclick="editEntry('${doc.id}', ${JSON.stringify(d).replace(/"/g, '&quot;')})" style="background:#f1f3f4; border:none; border-radius:4px; padding:6px 12px; cursor:pointer; font-size:12px; color:#5f6368;">Edit</button>
-                </div>`;
+                count++;
+                html += `
+                    <tr>
+                        <td style="padding:10px; border:1px solid #ddd;">${d.date}</td>
+                        <td style="padding:10px; border:1px solid #ddd;">${d.type}</td>
+                        <td style="padding:10px; border:1px solid #ddd;"><b>${d.name}</b></td>
+                        <td style="padding:10px; border:1px solid #ddd; font-weight:bold;">₹${d.contribution}</td>
+                        <td style="padding:10px; border:1px solid #ddd; text-align:center;" class="no-print">
+                            <button onclick="editEntry('${doc.id}', ${JSON.stringify(d).replace(/"/g, '&quot;')})" style="background:none; border:none; color:#1a73e8; cursor:pointer;"><i class="fas fa-edit"></i></button>
+                        </td>
+                    </tr>
+                `;
             }
         });
+
+        html += `</tbody></table></div>`;
+        list.innerHTML = count > 0 ? html : "<p style='text-align:center;'>വിവരങ്ങൾ ലഭ്യമല്ല.</p>";
+
     } catch (e) { list.innerHTML = "<p style='color:red;'>ഹിസ്റ്ററി ലോഡ് ചെയ്യുന്നതിൽ പിശക്.</p>"; }
 }
 
-// 5. എഡിറ്റ് ചെയ്യാൻ
+// 5. എഡിറ്റ് ചെയ്യാൻ (മാറ്റമില്ലാതെ)
 function editEntry(id, data) {
     editingDocId = id;
     document.getElementById('contribution-type').value = data.type || 'ജില്ലാ വിഹിതം';
@@ -1579,7 +1608,7 @@ function editEntry(id, data) {
     window.scrollTo(0,0);
 }
 
-// 6. ഫോം റീസെറ്റ് ചെയ്യാൻ
+// 6. ഫോം റീസെറ്റ് ചെയ്യാൻ (മാറ്റമില്ലാതെ)
 function resetSadarForm() {
     ['m-reg', 'm-msr', 'm-name', 'm-salary', 'm-contribution', 'm-remarks', 'm-date'].forEach(id => {
         const el = document.getElementById(id);
@@ -1589,6 +1618,41 @@ function resetSadarForm() {
     document.getElementById('save-btn').innerText = "വിവരങ്ങൾ സേവ് ചെയ്യുക";
 }
 
+// പ്രിന്റ് എടുക്കാനുള്ള ഫങ്ക്ഷൻ
+function printMuallimReport() {
+    const year = document.getElementById('history-year-filter').value;
+    const tableHtml = document.getElementById('muallim-history-list').innerHTML;
+    const printWindow = window.open('', '', 'height=600,width=800');
+    printWindow.document.write('<html><head><title>Report</title>');
+    printWindow.document.write('<style>table{width:100%;border-collapse:collapse;} th,td{border:1px solid #ddd;padding:8px;text-align:left;} .no-print{display:none;} h2{text-align:center;}</style>');
+    printWindow.document.write('</head><body>');
+    printWindow.document.write('<h2>മുഅല്ലിം വിഹിതം റിപ്പോർട്ട് - ' + year + '</h2>');
+    printWindow.document.write(tableHtml);
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    printWindow.print();
+}
+
+// എക്സൽ ഡൗൺലോഡ് ചെയ്യാനുള്ള ഫങ്ക്ഷൻ
+function downloadMuallimExcel() {
+    const table = document.getElementById("muallim-table");
+    let csv = [];
+    const rows = table.querySelectorAll("tr");
+    for (const row of rows) {
+        const cols = row.querySelectorAll("td, th");
+        let rowData = [];
+        for (let i = 0; i < cols.length - 1; i++) { // 'Edit' കോളം ഒഴിവാക്കുന്നു
+            rowData.push('"' + cols[i].innerText.replace(/"/g, '""') + '"');
+        }
+        csv.push(rowData.join(","));
+    }
+    const csvContent = "data:text/csv;charset=utf-8," + csv.join("\n");
+    const link = document.createElement("a");
+    link.setAttribute("href", encodeURI(csvContent));
+    link.setAttribute("download", "muallim_report.csv");
+    document.body.appendChild(link);
+    link.click();
+}
 
 // 3. സദർ - ഉസ്താദ് പണമിടപാട് ടേബിൾ (പുതിയത്)
 // 1. ലോഡ് ചെയ്യുന്ന ടേബിൾ (മാറ്റമില്ലാതെ - ഇതിൽ ID ഉം സമയവും ഡിസ്‌പ്ലേ ചെയ്യാനുണ്ട്)

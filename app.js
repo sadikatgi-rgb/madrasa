@@ -1810,16 +1810,18 @@ function switchMagTab(cat) {
 
 // 3. വിവരങ്ങൾ ലോഡ് ചെയ്യുന്ന ഭാഗം (എഡിറ്റ്, ഡിലീറ്റ് ഉൾപ്പെടെ)
 async function loadMagazineList() {
+    // 1. ഫിൽട്ടറുകളിൽ നിന്നുള്ള വാല്യൂസ് എടുക്കുന്നു
     const classFilter = document.getElementById('mag-class-filter') ? document.getElementById('mag-class-filter').value : 'All';
-    const searchVal = document.getElementById('mag-search').value.toLowerCase();
+    const searchInput = document.getElementById('mag-search');
+    const searchVal = searchInput ? searchInput.value.toLowerCase() : '';
     const listArea = document.getElementById('magazine-list-area');
 
-    // ലോഗിൻ ചെയ്ത ആളുടെ റോൾ, ക്ലാസ് എന്നിവ എടുക്കുന്നു
+    // 2. ലോഗിൻ ചെയ്ത ആളുടെ റോൾ, ക്ലാസ് എന്നിവ എടുക്കുന്നു
     const userRole = (typeof currentUserData !== 'undefined') ? currentUserData.role : '';
     const loggedInUsthadClass = (typeof currentUserData !== 'undefined') ? currentUserData.class : '';
 
     try {
-        // ഇൻഡക്സ് ഇപ്പോൾ ആക്ടീവ് ആയതിനാൽ ഈ ക്വറി കൃത്യമായി പ്രവർത്തിക്കും
+        // കാറ്റഗറി (Student/Public) അനുസരിച്ച് ഡാറ്റാബേസിൽ നിന്ന് വിവരങ്ങൾ എടുക്കുന്നു
         const snap = await db.collection("magazine_subscribers")
                              .where("category", "==", currentMagCategory).get();
         
@@ -1841,20 +1843,23 @@ async function loadMagazineList() {
             const d = doc.data();
             let isAuthorized = false;
 
-            // 1. പബ്ലിക് കോപ്പി എല്ലാവർക്കും കാണാം
+            // --- ആക്സസ് കൺട്രോൾ ലോജിക് ---
+            
+            // A. പബ്ലിക് കോപ്പി ടാബ് ആണെങ്കിൽ എല്ലാവർക്കും കാണാം
             if (currentMagCategory === 'Public') {
                 isAuthorized = true;
             } 
-            // 2. സദർ (Sadhar) ആണെങ്കിൽ എല്ലാ ക്ലാസിലെയും വിവരങ്ങൾ കാണാം
+            // B. സദർ (Sadhar) ആണെങ്കിൽ എല്ലാ ക്ലാസിലെയും വിവരങ്ങൾ കാണാം
             else if (userRole === 'Sadhar') {
                 isAuthorized = (classFilter === 'All' || String(d.class) === String(classFilter));
             } 
-            // 3. ഉസ്താദ് (Usthad) ആണെങ്കിൽ സ്വന്തം ക്ലാസ് മാത്രമേ കാണാൻ പാടുള്ളൂ
+            // C. ഉസ്താദ് (Usthad) ആണെങ്കിൽ സ്വന്തം ക്ലാസ് മാത്രമേ കാണാൻ പാടുള്ളൂ
             else if (userRole === 'Usthad') {
                 isAuthorized = (String(d.class) === String(loggedInUsthadClass));
             }
 
-            const matchesSearch = d.name.toLowerCase().includes(searchVal);
+            // സെർച്ച് ബോക്സ് കാലിയാണെങ്കിൽ എല്ലാവരെയും കാണിക്കും, അല്ലെങ്കിൽ പേര് വെച്ച് ഫിൽട്ടർ ചെയ്യും
+            const matchesSearch = searchVal === '' || d.name.toLowerCase().includes(searchVal);
 
             if (isAuthorized && matchesSearch) {
                 html += `
@@ -1879,10 +1884,11 @@ async function loadMagazineList() {
             }
         });
         
-        // വിവരങ്ങൾ ഉണ്ടെങ്കിൽ ടേബിൾ കാണിക്കും, ഇല്ലെങ്കിൽ മെസേജ് കാണിക്കും
+        // ലിസ്റ്റ് ഉണ്ടെങ്കിൽ ടേബിൾ കാണിക്കും, ഇല്ലെങ്കിൽ "വിവരങ്ങൾ ലഭ്യമല്ല" എന്ന് കാണിക്കും
         listArea.innerHTML = i > 1 ? html + "</tbody></table>" : "<p style='text-align:center; padding:20px;'>വിവരങ്ങൾ ലഭ്യമല്ല.</p>";
     } catch (e) {
-        listArea.innerHTML = "Error: " + e.message;
+        console.error("Error:", e);
+        listArea.innerHTML = "<p style='color:red; text-align:center;'>Error: " + e.message + "</p>";
     }
 }
 

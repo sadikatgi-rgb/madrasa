@@ -1776,7 +1776,7 @@ function openMagazineSection() {
 function switchMagTab(cat) {
     currentMagCategory = cat;
     
-    // ടാബ് ബട്ടണുകളുടെ ആക്റ്റീവ് സ്റ്റൈൽ മാറ്റുക
+    // ടാബ് ബട്ടണുകളുടെ സ്റ്റൈൽ മാറ്റുന്നു
     document.querySelectorAll('.mag-tab').forEach(btn => {
         btn.classList.toggle('active', btn.id === `tab-${cat.toLowerCase()}`);
         btn.classList.toggle('inactive', btn.id !== `tab-${cat.toLowerCase()}`);
@@ -1784,23 +1784,37 @@ function switchMagTab(cat) {
 
     const inputArea = document.getElementById('dynamic-input-container');
     const filterSection = document.getElementById('mag-filter-section');
+    const classFilter = document.getElementById('mag-class-filter');
+
+    // ലോഗിൻ ചെയ്ത ആളുടെ റോൾ നോക്കുന്നു
+    const userRole = (typeof currentUserData !== 'undefined') ? currentUserData.role : '';
 
     if (cat === 'Student') {
-        // സ്റ്റുഡന്റ് ആണെങ്കിൽ ക്ലാസ് സെലക്ട് ചെയ്യാനുള്ള ഓപ്ഷൻ കാണിക്കും
+        // ചേർക്കുന്ന ഭാഗത്ത് ക്ലാസ് സെലക്ഷൻ നൽകുന്നു
         inputArea.innerHTML = `
             <select id="mag-place" class="mag-input">
                 <option value="">ക്ലാസ് തിരഞ്ഞെടുക്കുക</option>
                 ${Array.from({length: 12}, (_, i) => `<option value="${i+1}">ക്ലാസ് ${i+1}</option>`).join('')}
             </select>`;
-        filterSection.style.display = 'flex'; // ക്ലാസ് ഫിൽട്ടർ കാണിക്കും
+        
+        // ഫിൽട്ടർ സെക്ഷൻ കാണിക്കുന്നു
+        filterSection.style.display = 'flex'; 
+
+        // സദർ ആണെങ്കിൽ മാത്രം താഴെ ക്ലാസ് ഫിൽട്ടർ കാണിച്ചാൽ മതി
+        if (classFilter) {
+            classFilter.style.display = (userRole === 'Sadhar') ? 'block' : 'none';
+        }
     } else {
-        // പബ്ലിക് ആണെങ്കിൽ ക്ലാസ് ഓപ്ഷൻ മാറ്റി സ്ഥലം ടൈപ്പ് ചെയ്യാനുള്ള ബോക്സ് നൽകും
+        // പബ്ലിക് കോപ്പി വിഭാഗം
         inputArea.innerHTML = `<input type="text" id="mag-place" placeholder="സ്ഥലം/വിഭാഗം (Public)" class="mag-input">`;
-        filterSection.style.display = 'block'; // സെർച്ച് ബോക്സ് മാത്രം കാണിക്കാൻ (ക്ലാസ് ഫിൽട്ടർ ഹൈഡ് ചെയ്യാവുന്നതാണ്)
-        document.getElementById('mag-class-filter').style.display = 'none';
+        filterSection.style.display = 'flex';
+        
+        if (classFilter) {
+            classFilter.style.display = 'none'; // പബ്ലിക്കിൽ ക്ലാസ് ഫിൽട്ടർ ആവശ്യമില്ല
+        }
     }
 
-    loadMagazineList(); // ടാബ് മാറുമ്പോൾ ലിസ്റ്റ് പുതുക്കുന്നു
+    loadMagazineList(); 
 }
 
 // 3. വിവരങ്ങൾ ലോഡ് ചെയ്യുന്ന ഭാഗം (എഡിറ്റ്, ഡിലീറ്റ് ഉൾപ്പെടെ)

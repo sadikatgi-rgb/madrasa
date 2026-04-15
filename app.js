@@ -1830,17 +1830,16 @@ function switchMagTab(cat) {
 
 // 3. വിവരങ്ങൾ ലോഡ് ചെയ്യുന്ന ഭാഗം (എഡിറ്റ്, ഡിലീറ്റ് ഉൾപ്പെടെ)
 async function loadMagazineList() {
-    // 1. ഫിൽട്ടറുകളിൽ നിന്നുള്ള വാല്യൂസ് എടുക്കുന്നു
     const classFilterElem = document.getElementById('mag-class-filter');
     const classFilter = classFilterElem ? classFilterElem.value : 'All';
     const listArea = document.getElementById('magazine-list-area');
 
-    // 2. ലോഗിൻ ചെയ്ത ആളുടെ റോൾ, ക്ലാസ് എന്നിവ എടുക്കുന്നു
+    // ഫയർബേസിലെ assignedClass എന്ന ഫീൽഡ് അനുസരിച്ച് ഡാറ്റ എടുക്കുന്നു
     const userRole = (typeof currentUserData !== 'undefined') ? currentUserData.role : '';
-    const loggedInUsthadClass = (typeof currentUserData !== 'undefined') ? currentUserData.class : '';
+    const loggedInUsthadClass = (typeof currentUserData !== 'undefined') ? currentUserData.assignedClass : '';
 
     try {
-        // കാറ്റഗറി അനുസരിച്ച് ഡാറ്റ എടുക്കുന്നു
+        // ഇൻഡക്സ് ആക്ടീവ് ആയതിനാൽ കാറ്റഗറി ക്വറി പ്രവർത്തിക്കും
         const snap = await db.collection("magazine_subscribers")
                              .where("category", "==", currentMagCategory).get();
         
@@ -1862,21 +1861,18 @@ async function loadMagazineList() {
             const d = doc.data();
             let isAuthorized = false;
 
-            // --- ആക്സസ് കൺട്രോൾ ലോജിക് ---
-            
             if (currentMagCategory === 'Public') {
                 isAuthorized = true;
             } 
             else if (userRole === 'Sadhar') {
-                // സദറിന് എല്ലാവരെയും കാണാം, അല്ലെങ്കിൽ സെലക്ട് ചെയ്ത ക്ലാസ് കാണാം
+                // സദറിന് എല്ലാ ക്ലാസും അല്ലെങ്കിൽ സെലക്ട് ചെയ്തത് കാണാം
                 isAuthorized = (classFilter === 'All' || String(d.class) === String(classFilter));
             } 
             else if (userRole === 'Usthad') {
-                // ഉസ്താദിന് സ്വന്തം ക്ലാസ് മാത്രമേ കാണാൻ കഴിയൂ
+                // ഉസ്താദിന് അദ്ദേഹത്തിന്റെ assignedClass മാത്രം കാണിക്കുന്നു
                 isAuthorized = (String(d.class) === String(loggedInUsthadClass));
             }
 
-            // സെർച്ച് ബോക്സ് ഒഴിവാക്കിയതിനാൽ ആ കണ്ടീഷൻ ഇവിടെ ആവശ്യമില്ല
             if (isAuthorized) {
                 html += `
                     <tr>
@@ -1900,7 +1896,6 @@ async function loadMagazineList() {
             }
         });
         
-        // വിവരങ്ങൾ ഉണ്ടെങ്കിൽ ടേബിൾ കാണിക്കും
         listArea.innerHTML = i > 1 ? html + "</tbody></table>" : "<p style='text-align:center; padding:20px;'>വിവരങ്ങൾ ലഭ്യമല്ല.</p>";
     } catch (e) {
         console.error("Error:", e);

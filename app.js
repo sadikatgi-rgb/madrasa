@@ -1833,20 +1833,19 @@ async function loadMagazineList() {
         let i = 1;
         snap.forEach(doc => {
             const d = doc.data();
-            
             let isAuthorized = false;
 
-            // കണ്ടീഷൻ 1: സദർ (Sadhar) ആണെങ്കിൽ എല്ലാ ക്ലാസിലെയും വിവരങ്ങൾ കാണാം
-            // കണ്ടീഷൻ 2: പബ്ലിക് കോപ്പി (Public Copy) ടാബ് ആണെങ്കിൽ എല്ലാവർക്കും കാണാം
-            if (userRole === 'Sadhar' || currentMagCategory === 'Public') {
-                isAuthorized = true; 
-            } else {
-                // കണ്ടീഷൻ 3: ഉസ്താദ് ആണെങ്കിൽ സ്വന്തം ക്ലാസ് മാത്രം അല്ലെങ്കിൽ സെലക്ട് ചെയ്ത ക്ലാസ്
-                if (classFilter === 'All') {
-                    isAuthorized = (String(d.class) === String(loggedInUsthadClass));
-                } else {
-                    isAuthorized = (String(d.class) === String(classFilter));
-                }
+            // 1. പബ്ലിക് കോപ്പി എല്ലാവർക്കും കാണാം
+            if (currentMagCategory === 'Public') {
+                isAuthorized = true;
+            } 
+            // 2. സദർ ആണെങ്കിൽ എല്ലാ ക്ലാസിലെയും സ്റ്റുഡന്റ് കോപ്പി കാണാം
+            else if (userRole === 'Sadhar') {
+                isAuthorized = (classFilter === 'All' || String(d.class) === String(classFilter));
+            } 
+            // 3. ഉസ്താദ് ആണെങ്കിൽ സ്വന്തം ക്ലാസ് മാത്രമേ കാണാൻ പാടുള്ളൂ
+            else if (userRole === 'Usthad') {
+                isAuthorized = (String(d.class) === String(loggedInUsthadClass));
             }
 
             const matchesSearch = d.name.toLowerCase().includes(searchVal);

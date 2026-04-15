@@ -1776,7 +1776,6 @@ function openMagazineSection() {
 function switchMagTab(cat) {
     currentMagCategory = cat;
     
-    // ടാബ് ബട്ടണുകളുടെ സ്റ്റൈൽ മാറ്റുന്നു
     document.querySelectorAll('.mag-tab').forEach(btn => {
         btn.classList.toggle('active', btn.id === `tab-${cat.toLowerCase()}`);
         btn.classList.toggle('inactive', btn.id !== `tab-${cat.toLowerCase()}`);
@@ -1786,32 +1785,24 @@ function switchMagTab(cat) {
     const filterSection = document.getElementById('mag-filter-section');
     const classFilter = document.getElementById('mag-class-filter');
 
-    // ലോഗിൻ ചെയ്ത ആളുടെ റോൾ നോക്കുന്നു
     const userRole = (typeof currentUserData !== 'undefined') ? currentUserData.role : '';
 
     if (cat === 'Student') {
-        // ചേർക്കുന്ന ഭാഗത്ത് ക്ലാസ് സെലക്ഷൻ നൽകുന്നു
         inputArea.innerHTML = `
             <select id="mag-place" class="mag-input">
                 <option value="">ക്ലാസ് തിരഞ്ഞെടുക്കുക</option>
                 ${Array.from({length: 12}, (_, i) => `<option value="${i+1}">ക്ലാസ് ${i+1}</option>`).join('')}
             </select>`;
         
-        // ഫിൽട്ടർ സെക്ഷൻ കാണിക്കുന്നു
         filterSection.style.display = 'flex'; 
-
-        // സദർ ആണെങ്കിൽ മാത്രം താഴെ ക്ലാസ് ഫിൽട്ടർ കാണിച്ചാൽ മതി
         if (classFilter) {
+            // സദർ ആണെങ്കിൽ മാത്രം ക്ലാസ് ഫിൽട്ടർ കാണിക്കുക
             classFilter.style.display = (userRole === 'Sadhar') ? 'block' : 'none';
         }
     } else {
-        // പബ്ലിക് കോപ്പി വിഭാഗം
         inputArea.innerHTML = `<input type="text" id="mag-place" placeholder="സ്ഥലം/വിഭാഗം (Public)" class="mag-input">`;
         filterSection.style.display = 'flex';
-        
-        if (classFilter) {
-            classFilter.style.display = 'none'; // പബ്ലിക്കിൽ ക്ലാസ് ഫിൽട്ടർ ആവശ്യമില്ല
-        }
+        if (classFilter) classFilter.style.display = 'none';
     }
 
     loadMagazineList(); 
@@ -1823,11 +1814,12 @@ async function loadMagazineList() {
     const searchVal = document.getElementById('mag-search').value.toLowerCase();
     const listArea = document.getElementById('magazine-list-area');
 
-    // ലോഗിൻ ചെയ്ത ആളുടെ വിവരങ്ങൾ എടുക്കുന്നു
+    // ലോഗിൻ ചെയ്ത ആളുടെ റോൾ, ക്ലാസ് എന്നിവ എടുക്കുന്നു
     const userRole = (typeof currentUserData !== 'undefined') ? currentUserData.role : '';
     const loggedInUsthadClass = (typeof currentUserData !== 'undefined') ? currentUserData.class : '';
 
     try {
+        // ഇൻഡക്സ് ഇപ്പോൾ ആക്ടീവ് ആയതിനാൽ ഈ ക്വറി കൃത്യമായി പ്രവർത്തിക്കും
         const snap = await db.collection("magazine_subscribers")
                              .where("category", "==", currentMagCategory).get();
         
@@ -1853,11 +1845,11 @@ async function loadMagazineList() {
             if (currentMagCategory === 'Public') {
                 isAuthorized = true;
             } 
-            // 2. സദർ ആണെങ്കിൽ എല്ലാ ക്ലാസിലെയും സ്റ്റുഡന്റ് കോപ്പി കാണാം
+            // 2. സദർ (Sadhar) ആണെങ്കിൽ എല്ലാ ക്ലാസിലെയും വിവരങ്ങൾ കാണാം
             else if (userRole === 'Sadhar') {
                 isAuthorized = (classFilter === 'All' || String(d.class) === String(classFilter));
             } 
-            // 3. ഉസ്താദ് ആണെങ്കിൽ സ്വന്തം ക്ലാസ് മാത്രമേ കാണാൻ പാടുള്ളൂ
+            // 3. ഉസ്താദ് (Usthad) ആണെങ്കിൽ സ്വന്തം ക്ലാസ് മാത്രമേ കാണാൻ പാടുള്ളൂ
             else if (userRole === 'Usthad') {
                 isAuthorized = (String(d.class) === String(loggedInUsthadClass));
             }
@@ -1887,6 +1879,7 @@ async function loadMagazineList() {
             }
         });
         
+        // വിവരങ്ങൾ ഉണ്ടെങ്കിൽ ടേബിൾ കാണിക്കും, ഇല്ലെങ്കിൽ മെസേജ് കാണിക്കും
         listArea.innerHTML = i > 1 ? html + "</tbody></table>" : "<p style='text-align:center; padding:20px;'>വിവരങ്ങൾ ലഭ്യമല്ല.</p>";
     } catch (e) {
         listArea.innerHTML = "Error: " + e.message;

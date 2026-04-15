@@ -1776,6 +1776,7 @@ function openMagazineSection() {
 function switchMagTab(cat) {
     currentMagCategory = cat;
     
+    // ടാബ് ബട്ടണുകളുടെ ആക്റ്റീവ് സ്റ്റൈൽ മാറ്റുന്നു
     document.querySelectorAll('.mag-tab').forEach(btn => {
         btn.classList.toggle('active', btn.id === `tab-${cat.toLowerCase()}`);
         btn.classList.toggle('inactive', btn.id !== `tab-${cat.toLowerCase()}`);
@@ -1784,36 +1785,54 @@ function switchMagTab(cat) {
     const inputArea = document.getElementById('dynamic-input-container');
     const filterSection = document.getElementById('mag-filter-section');
     const classFilter = document.getElementById('mag-class-filter');
+    const searchBox = document.getElementById('mag-search'); // സെർച്ച് ബോക്സ് റെഫറൻസ്
 
     const userRole = (typeof currentUserData !== 'undefined') ? currentUserData.role : '';
 
     if (cat === 'Student') {
+        // ചേർക്കുന്ന ഭാഗത്ത് ക്ലാസ് സെലക്ഷൻ നൽകുന്നു
         inputArea.innerHTML = `
             <select id="mag-place" class="mag-input">
                 <option value="">ക്ലാസ് തിരഞ്ഞെടുക്കുക</option>
                 ${Array.from({length: 12}, (_, i) => `<option value="${i+1}">ക്ലാസ് ${i+1}</option>`).join('')}
             </select>`;
         
+        // ഫിൽട്ടർ സെക്ഷൻ കാണിക്കുന്നു
         filterSection.style.display = 'flex'; 
+
+        // 1. സദർ ആണെങ്കിൽ മാത്രം ക്ലാസ് ഫിൽട്ടർ (Drop-down) കാണിക്കുക
         if (classFilter) {
-            // സദർ ആണെങ്കിൽ മാത്രം ക്ലാസ് ഫിൽട്ടർ കാണിക്കുക
             classFilter.style.display = (userRole === 'Sadhar') ? 'block' : 'none';
+            classFilter.value = 'All'; // സദർ ടാബ് മാറുമ്പോൾ എല്ലാവരെയും കാണിക്കാൻ 'All' സെറ്റ് ചെയ്യുന്നു
         }
+
+        // 2. സെർച്ച് ബോക്സ് സുന്നത്ത് കുസുമം സ്റ്റുഡന്റ് ടാബിൽ ഹൈഡ് ചെയ്യുന്നു
+        if (searchBox) {
+            searchBox.style.display = 'none';
+        }
+
     } else {
+        // പബ്ലിക് കോപ്പി വിഭാഗം
         inputArea.innerHTML = `<input type="text" id="mag-place" placeholder="സ്ഥലം/വിഭാഗം (Public)" class="mag-input">`;
         filterSection.style.display = 'flex';
+        
         if (classFilter) classFilter.style.display = 'none';
+        
+        // പബ്ലിക് ടാബിൽ സെർച്ച് ബോക്സ് വേണമെങ്കിൽ മാത്രം കാണിക്കാം
+        if (searchBox) {
+            searchBox.style.display = 'block';
+        }
     }
 
+    // ബട്ടൺ അമർത്തുമ്പോൾ തന്നെ ലിസ്റ്റ് ലോഡ് ചെയ്യുന്നു
     loadMagazineList(); 
 }
 
 // 3. വിവരങ്ങൾ ലോഡ് ചെയ്യുന്ന ഭാഗം (എഡിറ്റ്, ഡിലീറ്റ് ഉൾപ്പെടെ)
 async function loadMagazineList() {
     // 1. ഫിൽട്ടറുകളിൽ നിന്നുള്ള വാല്യൂസ് എടുക്കുന്നു
-    const classFilter = document.getElementById('mag-class-filter') ? document.getElementById('mag-class-filter').value : 'All';
-    const searchInput = document.getElementById('mag-search');
-    const searchVal = searchInput ? searchInput.value.toLowerCase() : '';
+    const classFilterElem = document.getElementById('mag-class-filter');
+    const classFilter = classFilterElem ? classFilterElem.value : 'All';
     const listArea = document.getElementById('magazine-list-area');
 
     // 2. ലോഗിൻ ചെയ്ത ആളുടെ റോൾ, ക്ലാസ് എന്നിവ എടുക്കുന്നു
@@ -1821,7 +1840,7 @@ async function loadMagazineList() {
     const loggedInUsthadClass = (typeof currentUserData !== 'undefined') ? currentUserData.class : '';
 
     try {
-        // കാറ്റഗറി (Student/Public) അനുസരിച്ച് ഡാറ്റാബേസിൽ നിന്ന് വിവരങ്ങൾ എടുക്കുന്നു
+        // കാറ്റഗറി അനുസരിച്ച് ഡാറ്റ എടുക്കുന്നു
         const snap = await db.collection("magazine_subscribers")
                              .where("category", "==", currentMagCategory).get();
         
@@ -1845,23 +1864,20 @@ async function loadMagazineList() {
 
             // --- ആക്സസ് കൺട്രോൾ ലോജിക് ---
             
-            // A. പബ്ലിക് കോപ്പി ടാബ് ആണെങ്കിൽ എല്ലാവർക്കും കാണാം
             if (currentMagCategory === 'Public') {
                 isAuthorized = true;
             } 
-            // B. സദർ (Sadhar) ആണെങ്കിൽ എല്ലാ ക്ലാസിലെയും വിവരങ്ങൾ കാണാം
             else if (userRole === 'Sadhar') {
+                // സദറിന് എല്ലാവരെയും കാണാം, അല്ലെങ്കിൽ സെലക്ട് ചെയ്ത ക്ലാസ് കാണാം
                 isAuthorized = (classFilter === 'All' || String(d.class) === String(classFilter));
             } 
-            // C. ഉസ്താദ് (Usthad) ആണെങ്കിൽ സ്വന്തം ക്ലാസ് മാത്രമേ കാണാൻ പാടുള്ളൂ
             else if (userRole === 'Usthad') {
+                // ഉസ്താദിന് സ്വന്തം ക്ലാസ് മാത്രമേ കാണാൻ കഴിയൂ
                 isAuthorized = (String(d.class) === String(loggedInUsthadClass));
             }
 
-            // സെർച്ച് ബോക്സ് കാലിയാണെങ്കിൽ എല്ലാവരെയും കാണിക്കും, അല്ലെങ്കിൽ പേര് വെച്ച് ഫിൽട്ടർ ചെയ്യും
-            const matchesSearch = searchVal === '' || d.name.toLowerCase().includes(searchVal);
-
-            if (isAuthorized && matchesSearch) {
+            // സെർച്ച് ബോക്സ് ഒഴിവാക്കിയതിനാൽ ആ കണ്ടീഷൻ ഇവിടെ ആവശ്യമില്ല
+            if (isAuthorized) {
                 html += `
                     <tr>
                         <td>${i++}</td>
@@ -1884,7 +1900,7 @@ async function loadMagazineList() {
             }
         });
         
-        // ലിസ്റ്റ് ഉണ്ടെങ്കിൽ ടേബിൾ കാണിക്കും, ഇല്ലെങ്കിൽ "വിവരങ്ങൾ ലഭ്യമല്ല" എന്ന് കാണിക്കും
+        // വിവരങ്ങൾ ഉണ്ടെങ്കിൽ ടേബിൾ കാണിക്കും
         listArea.innerHTML = i > 1 ? html + "</tbody></table>" : "<p style='text-align:center; padding:20px;'>വിവരങ്ങൾ ലഭ്യമല്ല.</p>";
     } catch (e) {
         console.error("Error:", e);

@@ -2139,9 +2139,11 @@ function showFeesUI(container) {
 
 function loadExamStudents() {
     const user = JSON.parse(localStorage.getItem("activeUser"));
-    const container = document.getElementById('exam-dynamic-area'); // വിശാലമായ ഏരിയ
+    const container = document.getElementById('exam-dynamic-area');
     
-    // ടേബിൾ സ്ട്രക്ചർ
+    if (!container) return;
+
+    // 1. ടേബിളിന്റെയും സെർച്ച് ഫിൽട്ടറിന്റെയും ഘടന (Structure)
     container.innerHTML = `
         <div class="exam-card no-print">
             <h4 style="margin-bottom:10px;">വിദ്യാർത്ഥികളുടെ ലിസ്റ്റ്</h4>
@@ -2155,6 +2157,7 @@ function loadExamStudents() {
                     <i class="fas fa-print"></i> Print
                 </button>
             </div>
+            <div id="exam-class-summary-area"></div>
         </div>
 
         <div class="mag-table-wrapper">
@@ -2170,15 +2173,14 @@ function loadExamStudents() {
                         <th class="no-print">Actions</th>
                     </tr>
                 </thead>
-                <tbody id="exam-student-list-body">
-                    </tbody>
+                <tbody id="exam-student-list-body"></tbody>
             </table>
         </div>
     `;
 
     let query = db.collection("exam_students");
     
-    // ഉസ്താദുമാർക്ക് അവരുടെ ക്ലാസ് മാത്രം (Sadar-ന് എല്ലാം കാണാം)
+    // റോൾ അനുസരിച്ചുള്ള ഫിൽട്ടർ
     if (user.role === 'Usthad') {
         query = query.where("class", "==", user.assignedClass);
     } else {
@@ -2188,8 +2190,11 @@ function loadExamStudents() {
         }
     }
 
+    // ഡാറ്റാബേസിൽ നിന്ന് വിവരങ്ങൾ എടുക്കുന്നു
     query.orderBy("gender", "asc").orderBy("name", "asc").get().then(snapshot => {
         const tbody = document.getElementById('exam-student-list-body');
+        tbody.innerHTML = ""; // പഴയ ലിസ്റ്റ് ക്ലിയർ ചെയ്യുന്നു
+        
         let maleCount = 0;
         let femaleCount = 0;
 
@@ -2197,44 +2202,40 @@ function loadExamStudents() {
             const s = doc.data();
             const isFemale = s.gender === 'Female';
             
-            // റോൾ നമ്പർ കണക്കാക്കൽ (ആൺകുട്ടികൾക്കും പെൺകുട്ടികൾക്കും പ്രത്യേകം)
+            // റോൾ നമ്പർ ലോജിക് (ആൺകുട്ടികൾക്കും പെൺകുട്ടികൾക്കും പ്രത്യേകം 1 മുതൽ)
             let rollNo;
             if(!isFemale) { maleCount++; rollNo = maleCount; }
             else { femaleCount++; rollNo = femaleCount; }
 
-            const row = `
+            tbody.innerHTML += `
                 <tr style="${isFemale ? 'background-color: #fff5f5;' : ''}">
                     <td style="font-weight:bold;">${rollNo}</td>
                     <td>${s.admNo || '-'}</td>
-                    <td style="font-weight:bold; color: ${isFemale ? '#d32f2f' : '#1a73e8'};">
-                        ${s.name}
-                    </td>
+                    <td style="font-weight:bold; color: ${isFemale ? '#d32f2f' : '#1a73e8'};">${s.name}</td>
                     <td>${s.fatherName || '-'}</td>
                     <td>${s.dob || '-'}</td>
-                    <td>
-                        <span class="${isFemale ? 'badge-female' : 'badge-male'}">
-                            ${s.gender}
-                        </span>
-                    </td>
+                    <td><span class="${isFemale ? 'badge-female' : 'badge-male'}">${s.gender}</span></td>
                     <td class="no-print action-btn-group">
                         <i class="fas fa-edit edit-btn" onclick="editExamStudent('${doc.id}')"></i>
                         <i class="fas fa-trash delete-btn" onclick="deleteExamStudent('${doc.id}')"></i>
                     </td>
-                </tr>
-            `;
-            tbody.innerHTML += row;
+                </tr>`;
         });
+
+        // സമ്മറി ഏരിയ അപ്ഡേറ്റ് ചെയ്യുന്നു
+        const summaryArea = document.getElementById('exam-class-summary-area');
+        if (summaryArea) {
+            summaryArea.innerHTML = `
+                <div class="summary-box" style="margin-top:10px; border-left: 5px solid #e65100; padding:12px; background:#fff9f4;">
+                    <b>മൊത്തം കുട്ടികൾ: ${snapshot.size}</b> (ആൺകുട്ടികൾ: ${maleCount} | പെൺകുട്ടികൾ: ${femaleCount})
+                </div>
+            `;
+        }
+    }).catch(err => {
+        console.error("Error: ", err);
     });
 }
 
-    // ക്ലാസ് സമ്മറി
-    document.getElementById('fee-summary-area').innerHTML = `
-        <div class="summary-box">
-            <b>Class ${cls} Summary:</b><br>
-            Total Students: ${students.size} | Total Collected: ₹${totalPaid}
-        </div>
-    `;
-}
 
 async function saveFee(sid, name, cls) {
     const amt = document.getElementById(`amt-${sid}`).value;

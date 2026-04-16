@@ -2046,27 +2046,32 @@ function showRegisterUI(container) {
 
 // കുട്ടി വിവരങ്ങൾ സേവ് ചെയ്യാൻ
 async function saveExamStudent() {
-    const data = {
-        admNo: document.getElementById('ex-adm').value,
-        name: document.getElementById('ex-name').value,
-        class: document.getElementById('ex-class').value,
-        father: document.getElementById('ex-father').value,
-        gender: document.getElementById('ex-gender').value,
-        year: document.getElementById('ex-year').value,
-        dob: document.getElementById('ex-dob').value,
-        phone: document.getElementById('ex-phone').value,
-        status: 'active',
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    };
+    const adm = document.getElementById('ex-adm').value;
+    const name = document.getElementById('ex-name').value;
+    const father = document.getElementById('ex-father').value;
+    const dob = document.getElementById('ex-dob').value;
+    const cls = document.getElementById('ex-class').value;
+    const gender = document.getElementById('ex-gender').value;
 
-    if(!data.name || !data.class) return alert("പേരും ക്ലാസ്സും നിർബന്ധമാണ്!");
+    if (!name || !cls) return alert("പേരും ക്ലാസ്സും നിർബന്ധമാണ്!");
 
     try {
-        await db.collection("exam_students").add(data);
+        await db.collection("exam_students").add({
+            admNo: adm,
+            name: name,
+            fatherName: father,
+            dob: dob,
+            class: cls,
+            gender: gender,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
         alert("വിജയകരമായി ചേർത്തു!");
-        loadRegList();
-    } catch(e) { alert("Error: " + e.message); }
+        loadExamStudents(); // ലിസ്റ്റ് റിഫ്രഷ് ചെയ്യുന്നു
+    } catch (e) {
+        alert("Error: " + e.message);
+    }
 }
+
 
 // ലിസ്റ്റ് ലോഡ് ചെയ്യാൻ
 async function loadRegList() {
@@ -2140,37 +2145,59 @@ function showFeesUI(container) {
 function loadExamStudents() {
     const user = JSON.parse(localStorage.getItem("activeUser"));
     const container = document.getElementById('exam-dynamic-area');
-    
     if (!container) return;
 
-    // 1. ടേബിളിന്റെയും സെർച്ച് ഫിൽട്ടറിന്റെയും ഘടന (Structure)
+    // --- 1. രജിസ്ട്രേഷൻ ഫോമും ടേബിൾ ഹെഡറും ---
     container.innerHTML = `
         <div class="exam-card no-print">
-            <h4 style="margin-bottom:10px;">വിദ്യാർത്ഥികളുടെ ലിസ്റ്റ്</h4>
-            <div style="display:flex; gap:10px; margin-bottom:15px;">
-                <select id="filter-class" onchange="loadExamStudents()" class="exam-input">
-                    <option value="All">എല്ലാ ക്ലാസ്സും</option>
+            <h4 style="color:#e65100; margin-bottom:15px;"><i class="fas fa-user-plus"></i> പുതിയ വിദ്യാർത്ഥിയെ ചേർക്കുക</h4>
+            <div class="exam-grid">
+                <input type="text" id="ex-adm" placeholder="Adm No" class="exam-input">
+                <input type="text" id="ex-name" placeholder="Student Name" class="exam-input">
+                <input type="text" id="ex-father" placeholder="Father's Name" class="exam-input">
+                <input type="date" id="ex-dob" class="exam-input" title="Birth Date">
+                <select id="ex-class" class="exam-input">
+                    <option value="">ക്ലാസ് തിരഞ്ഞെടുക്കുക</option>
                     <option value="1">ക്ലാസ് 1</option>
                     <option value="2">ക്ലാസ് 2</option>
+                    <option value="3">ക്ലാസ് 3</option>
                 </select>
-                <button onclick="window.print()" class="save-btn-blue" style="width:auto;">
+                <select id="ex-gender" class="exam-input">
+                    <option value="Male">Male (ആൺകുട്ടി)</option>
+                    <option value="Female">Female (പെൺകുട്ടി)</option>
+                </select>
+            </div>
+            <button onclick="saveExamStudent()" class="save-btn-blue" style="width:100%; padding:12px;">
+                <i class="fas fa-save"></i> Save Student
+            </button>
+        </div>
+
+        <div class="exam-card no-print" style="border-top: 4px solid #2e7d32;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h4 style="color:#2e7d32;">വിദ്യാർത്ഥികളുടെ ലിസ്റ്റ്</h4>
+                <button onclick="window.print()" class="save-btn-blue" style="width:auto; background:#455a64;">
                     <i class="fas fa-print"></i> Print
                 </button>
             </div>
-            <div id="exam-class-summary-area"></div>
+            <select id="filter-class" onchange="loadExamStudents()" class="exam-input">
+                <option value="All">എല്ലാ ക്ലാസ്സും</option>
+                <option value="1">ക്ലാസ് 1</option>
+                <option value="2">ക്ലാസ് 2</option>
+            </select>
+            <div id="exam-summary-box"></div>
         </div>
 
         <div class="mag-table-wrapper">
-            <table class="mag-table" id="student-print-table">
+            <table class="mag-table">
                 <thead>
                     <tr>
-                        <th>Roll No</th>
+                        <th>Roll</th>
                         <th>Adm No</th>
                         <th>Student Name</th>
                         <th>Father's Name</th>
                         <th>Birth Date</th>
                         <th>Gender</th>
-                        <th class="no-print">Actions</th>
+                        <th class="no-print">Action</th>
                     </tr>
                 </thead>
                 <tbody id="exam-student-list-body"></tbody>
@@ -2178,64 +2205,47 @@ function loadExamStudents() {
         </div>
     `;
 
+    // --- 4. ഡാറ്റാബേസിൽ നിന്ന് ലിസ്റ്റ് ലോഡ് ചെയ്യുന്നു ---
     let query = db.collection("exam_students");
-    
-    // റോൾ അനുസരിച്ചുള്ള ഫിൽട്ടർ
     if (user.role === 'Usthad') {
         query = query.where("class", "==", user.assignedClass);
     } else {
-        const filterClass = document.getElementById('filter-class').value;
-        if (filterClass !== "All") {
-            query = query.where("class", "==", filterClass);
-        }
+        const selCls = document.getElementById('filter-class').value;
+        if (selCls !== "All") query = query.where("class", "==", selCls);
     }
 
-    // ഡാറ്റാബേസിൽ നിന്ന് വിവരങ്ങൾ എടുക്കുന്നു
     query.orderBy("gender", "asc").orderBy("name", "asc").get().then(snapshot => {
         const tbody = document.getElementById('exam-student-list-body');
-        tbody.innerHTML = ""; // പഴയ ലിസ്റ്റ് ക്ലിയർ ചെയ്യുന്നു
-        
-        let maleCount = 0;
-        let femaleCount = 0;
+        let maleCount = 0; let femaleCount = 0;
+        tbody.innerHTML = "";
 
         snapshot.forEach(doc => {
             const s = doc.data();
             const isFemale = s.gender === 'Female';
-            
-            // റോൾ നമ്പർ ലോജിക് (ആൺകുട്ടികൾക്കും പെൺകുട്ടികൾക്കും പ്രത്യേകം 1 മുതൽ)
             let rollNo;
             if(!isFemale) { maleCount++; rollNo = maleCount; }
             else { femaleCount++; rollNo = femaleCount; }
 
             tbody.innerHTML += `
                 <tr style="${isFemale ? 'background-color: #fff5f5;' : ''}">
-                    <td style="font-weight:bold;">${rollNo}</td>
+                    <td><b>${rollNo}</b></td>
                     <td>${s.admNo || '-'}</td>
-                    <td style="font-weight:bold; color: ${isFemale ? '#d32f2f' : '#1a73e8'};">${s.name}</td>
+                    <td style="font-weight:bold; color:${isFemale ? '#d32f2f' : '#1a73e8'};">${s.name}</td>
                     <td>${s.fatherName || '-'}</td>
                     <td>${s.dob || '-'}</td>
                     <td><span class="${isFemale ? 'badge-female' : 'badge-male'}">${s.gender}</span></td>
                     <td class="no-print action-btn-group">
-                        <i class="fas fa-edit edit-btn" onclick="editExamStudent('${doc.id}')"></i>
                         <i class="fas fa-trash delete-btn" onclick="deleteExamStudent('${doc.id}')"></i>
                     </td>
                 </tr>`;
         });
 
-        // സമ്മറി ഏരിയ അപ്ഡേറ്റ് ചെയ്യുന്നു
-        const summaryArea = document.getElementById('exam-class-summary-area');
-        if (summaryArea) {
-            summaryArea.innerHTML = `
-                <div class="summary-box" style="margin-top:10px; border-left: 5px solid #e65100; padding:12px; background:#fff9f4;">
-                    <b>മൊത്തം കുട്ടികൾ: ${snapshot.size}</b> (ആൺകുട്ടികൾ: ${maleCount} | പെൺകുട്ടികൾ: ${femaleCount})
-                </div>
-            `;
-        }
-    }).catch(err => {
-        console.error("Error: ", err);
+        document.getElementById('exam-summary-box').innerHTML = `
+            <div class="summary-box">
+                <b>Summary:</b> Total: ${snapshot.size} | Boys: ${maleCount} | Girls: ${femaleCount}
+            </div>`;
     });
 }
-
 
 async function saveFee(sid, name, cls) {
     const amt = document.getElementById(`amt-${sid}`).value;

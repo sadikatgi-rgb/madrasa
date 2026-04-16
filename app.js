@@ -1934,6 +1934,7 @@ async function deleteMagSub(id) {
 
 
 // 1. പരീക്ഷാ സെക്ഷൻ മെയിൻ ലേഔട്ട്
+let currentExamTab = 'register';
 function openExamSection() {
     const content = document.getElementById('dynamic-content');
     const user = JSON.parse(localStorage.getItem("activeUser"));

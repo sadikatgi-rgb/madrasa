@@ -2147,42 +2147,45 @@ function loadExamStudents() {
     const container = document.getElementById('exam-dynamic-area');
     if (!container) return;
 
-    // --- 1. രജിസ്ട്രേഷൻ ഫോമും ടേബിൾ ഹെഡറും ---
+    // 1 മുതൽ 12 വരെയുള്ള ക്ലാസുകൾ ഡൈനാമിക് ആയി നിർമ്മിക്കുന്നു
+    let classOptions = '';
+    for (let i = 1; i <= 12; i++) {
+        classOptions += `<option value="${i}">${i}-ാം ക്ലാസ്</option>`;
+    }
+
+    // കണ്ടന്റ് ഏരിയ സെറ്റ് ചെയ്യുന്നു (Inline styles ഒഴിവാക്കി CSS Classes ഉപയോഗിച്ചു)
     container.innerHTML = `
         <div class="exam-card no-print">
-            <h4 style="color:#e65100; margin-bottom:15px;"><i class="fas fa-user-plus"></i> പുതിയ വിദ്യാർത്ഥിയെ ചേർക്കുക</h4>
+            <h4 class="form-title"><i class="fas fa-user-plus"></i> പുതിയ വിദ്യാർത്ഥിയെ ചേർക്കുക</h4>
             <div class="exam-grid">
-                <input type="text" id="ex-adm" placeholder="Adm No" class="exam-input">
-                <input type="text" id="ex-name" placeholder="Student Name" class="exam-input">
-                <input type="text" id="ex-father" placeholder="Father's Name" class="exam-input">
-                <input type="date" id="ex-dob" class="exam-input" title="Birth Date">
+                <input type="text" id="ex-adm" placeholder="അഡ്മിഷൻ നമ്പർ" class="exam-input">
+                <input type="text" id="ex-name" placeholder="കുട്ടിയുടെ പേര്" class="exam-input">
+                <input type="text" id="ex-father" placeholder="പിതാവിന്റെ പേര്" class="exam-input">
+                <input type="date" id="ex-dob" class="exam-input" title="ജനനത്തീയതി">
                 <select id="ex-class" class="exam-input">
                     <option value="">ക്ലാസ് തിരഞ്ഞെടുക്കുക</option>
-                    <option value="1">ക്ലാസ് 1</option>
-                    <option value="2">ക്ലാസ് 2</option>
-                    <option value="3">ക്ലാസ് 3</option>
+                    ${user.role === 'Sadar' ? classOptions : `<option value="${user.assignedClass}">${user.assignedClass}-ാം ക്ലാസ്</option>`}
                 </select>
                 <select id="ex-gender" class="exam-input">
                     <option value="Male">Male (ആൺകുട്ടി)</option>
                     <option value="Female">Female (പെൺകുട്ടി)</option>
                 </select>
             </div>
-            <button onclick="saveExamStudent()" class="save-btn-blue" style="width:100%; padding:12px;">
-                <i class="fas fa-save"></i> Save Student
+            <button onclick="saveExamStudent()" class="save-btn-blue full-width">
+                <i class="fas fa-save"></i> വിദ്യാർത്ഥിയെ സേവ് ചെയ്യുക
             </button>
         </div>
 
-        <div class="exam-card no-print" style="border-top: 4px solid #2e7d32;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <h4 style="color:#2e7d32;">വിദ്യാർത്ഥികളുടെ ലിസ്റ്റ്</h4>
-                <button onclick="window.print()" class="save-btn-blue" style="width:auto; background:#455a64;">
+        <div class="exam-card no-print list-header-card">
+            <div class="list-header-flex">
+                <h4>വിദ്യാർത്ഥികളുടെ ലിസ്റ്റ്</h4>
+                <button onclick="window.print()" class="print-header-btn">
                     <i class="fas fa-print"></i> Print
                 </button>
             </div>
-            <select id="filter-class" onchange="loadExamStudents()" class="exam-input">
+            <select id="filter-class" onchange="loadExamStudents()" class="exam-input" ${user.role === 'Usthad' ? 'disabled' : ''}>
                 <option value="All">എല്ലാ ക്ലാസ്സും</option>
-                <option value="1">ക്ലാസ് 1</option>
-                <option value="2">ക്ലാസ് 2</option>
+                ${classOptions}
             </select>
             <div id="exam-summary-box"></div>
         </div>
@@ -2192,12 +2195,12 @@ function loadExamStudents() {
                 <thead>
                     <tr>
                         <th>Roll</th>
-                        <th>Adm No</th>
+                        <th>Adm</th>
                         <th>Student Name</th>
-                        <th>Father's Name</th>
+                        <th>Father Name</th>
                         <th>Birth Date</th>
                         <th>Gender</th>
-                        <th class="no-print">Action</th>
+                        <th class="no-print">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="exam-student-list-body"></tbody>
@@ -2205,13 +2208,18 @@ function loadExamStudents() {
         </div>
     `;
 
-    // --- 4. ഡാറ്റാബേസിൽ നിന്ന് ലിസ്റ്റ് ലോഡ് ചെയ്യുന്നു ---
+    // ഉസ്താദ് ആണെങ്കിൽ അവരുടെ ക്ലാസ് ഓട്ടോമാറ്റിക് ആയി സെലക്ട് ചെയ്യുന്നു
+    if(user.role === 'Usthad') {
+        document.getElementById('filter-class').value = user.assignedClass;
+    }
+
     let query = db.collection("exam_students");
+    const selCls = document.getElementById('filter-class').value;
+    
     if (user.role === 'Usthad') {
         query = query.where("class", "==", user.assignedClass);
-    } else {
-        const selCls = document.getElementById('filter-class').value;
-        if (selCls !== "All") query = query.where("class", "==", selCls);
+    } else if (selCls !== "All") {
+        query = query.where("class", "==", selCls);
     }
 
     query.orderBy("gender", "asc").orderBy("name", "asc").get().then(snapshot => {
@@ -2227,25 +2235,29 @@ function loadExamStudents() {
             else { femaleCount++; rollNo = femaleCount; }
 
             tbody.innerHTML += `
-                <tr style="${isFemale ? 'background-color: #fff5f5;' : ''}">
+                <tr class="${isFemale ? 'female-row' : ''}">
                     <td><b>${rollNo}</b></td>
                     <td>${s.admNo || '-'}</td>
-                    <td style="font-weight:bold; color:${isFemale ? '#d32f2f' : '#1a73e8'};">${s.name}</td>
+                    <td class="${isFemale ? 'female-name' : 'male-name'}">${s.name}</td>
                     <td>${s.fatherName || '-'}</td>
                     <td>${s.dob || '-'}</td>
                     <td><span class="${isFemale ? 'badge-female' : 'badge-male'}">${s.gender}</span></td>
                     <td class="no-print action-btn-group">
-                        <i class="fas fa-trash delete-btn" onclick="deleteExamStudent('${doc.id}')"></i>
+                        <i class="fas fa-edit edit-btn" onclick="editExamStudent('${doc.id}')" title="എഡിറ്റ്"></i>
+                        <i class="fas fa-arrow-circle-up btn-promote" onclick="promoteStudent('${doc.id}', '${s.class}')" title="പ്രൊമോഷൻ"></i>
+                        <i class="fas fa-arrow-circle-down btn-depromote" onclick="depromoteStudent('${doc.id}', '${s.class}')" title="ഡി-പ്രൊമോഷൻ"></i>
+                        <i class="fas fa-trash delete-btn" onclick="deleteExamStudent('${doc.id}')" title="ഡിലീറ്റ്"></i>
                     </td>
                 </tr>`;
         });
 
         document.getElementById('exam-summary-box').innerHTML = `
             <div class="summary-box">
-                <b>Summary:</b> Total: ${snapshot.size} | Boys: ${maleCount} | Girls: ${femaleCount}
+                ആകെ: ${snapshot.size} | ആൺ: ${maleCount} | പെൺ: ${femaleCount}
             </div>`;
     });
 }
+
 
 async function saveFee(sid, name, cls) {
     const amt = document.getElementById(`amt-${sid}`).value;

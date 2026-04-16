@@ -2137,38 +2137,96 @@ function showFeesUI(container) {
     `;
 }
 
-async function loadFeeStudents() {
-    const cls = document.getElementById('fee-class-select').value;
-    const type = document.getElementById('fee-exam-type').value;
-    const area = document.getElementById('fee-student-area');
-    if(!cls) return;
-
-    area.innerHTML = "Loading...";
-    const students = await db.collection("exam_students").where("class", "==", cls).where("status", "==", "active").get();
-    const feeSnap = await db.collection("exam_fees").where("examType", "==", type).get();
+function loadExamStudents() {
+    const user = JSON.parse(localStorage.getItem("activeUser"));
+    const container = document.getElementById('exam-dynamic-area'); // വിശാലമായ ഏരിയ
     
-    let feeMap = {};
-    feeSnap.forEach(d => feeMap[d.data().studentId] = d.data());
+    // ടേബിൾ സ്ട്രക്ചർ
+    container.innerHTML = `
+        <div class="exam-card no-print">
+            <h4 style="margin-bottom:10px;">വിദ്യാർത്ഥികളുടെ ലിസ്റ്റ്</h4>
+            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                <select id="filter-class" onchange="loadExamStudents()" class="exam-input">
+                    <option value="All">എല്ലാ ക്ലാസ്സും</option>
+                    <option value="1">ക്ലാസ് 1</option>
+                    <option value="2">ക്ലാസ് 2</option>
+                </select>
+                <button onclick="window.print()" class="save-btn-blue" style="width:auto;">
+                    <i class="fas fa-print"></i> Print
+                </button>
+            </div>
+        </div>
 
-    let html = `<table class="exam-table"><thead><tr><th>Name</th><th>Status</th><th>Amount</th><th>Pay</th></tr></thead><tbody>`;
-    let totalPaid = 0;
+        <div class="mag-table-wrapper">
+            <table class="mag-table" id="student-print-table">
+                <thead>
+                    <tr>
+                        <th>Roll No</th>
+                        <th>Adm No</th>
+                        <th>Student Name</th>
+                        <th>Father's Name</th>
+                        <th>Birth Date</th>
+                        <th>Gender</th>
+                        <th class="no-print">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="exam-student-list-body">
+                    </tbody>
+            </table>
+        </div>
+    `;
 
-    students.forEach(doc => {
-        const s = doc.data();
-        const f = feeMap[doc.id] || { paid: 0, balance: 0 };
-        totalPaid += Number(f.paid);
+    let query = db.collection("exam_students");
+    
+    // ഉസ്താദുമാർക്ക് അവരുടെ ക്ലാസ് മാത്രം (Sadar-ന് എല്ലാം കാണാം)
+    if (user.role === 'Usthad') {
+        query = query.where("class", "==", user.assignedClass);
+    } else {
+        const filterClass = document.getElementById('filter-class').value;
+        if (filterClass !== "All") {
+            query = query.where("class", "==", filterClass);
+        }
+    }
 
-        html += `
-            <tr>
-                <td><b>${s.name}</b><br><small>Adm: ${s.admNo}</small></td>
-                <td>${f.paid > 0 ? '✅ Paid' : '❌ Pending'}</td>
-                <td><input type="number" id="amt-${doc.id}" value="${f.paid}" class="exam-input" style="width:70px;"></td>
-                <td><button onclick="saveFee('${doc.id}', '${s.name}', '${cls}')" style="background:#1a73e8; color:white; border:none; padding:8px; border-radius:5px;"><i class="fas fa-save"></i></button></td>
-            </tr>
-        `;
+    query.orderBy("gender", "asc").orderBy("name", "asc").get().then(snapshot => {
+        const tbody = document.getElementById('exam-student-list-body');
+        let maleCount = 0;
+        let femaleCount = 0;
+
+        snapshot.forEach(doc => {
+            const s = doc.data();
+            const isFemale = s.gender === 'Female';
+            
+            // റോൾ നമ്പർ കണക്കാക്കൽ (ആൺകുട്ടികൾക്കും പെൺകുട്ടികൾക്കും പ്രത്യേകം)
+            let rollNo;
+            if(!isFemale) { maleCount++; rollNo = maleCount; }
+            else { femaleCount++; rollNo = femaleCount; }
+
+            const row = `
+                <tr style="${isFemale ? 'background-color: #fff5f5;' : ''}">
+                    <td style="font-weight:bold;">${rollNo}</td>
+                    <td>${s.admNo || '-'}</td>
+                    <td style="font-weight:bold; color: ${isFemale ? '#d32f2f' : '#1a73e8'};">
+                        ${s.name}
+                    </td>
+                    <td>${s.fatherName || '-'}</td>
+                    <td>${s.dob || '-'}</td>
+                    <td>
+                        <span class="${isFemale ? 'badge-female' : 'badge-male'}">
+                            ${s.gender}
+                        </span>
+                    </td>
+                    <td class="no-print action-btn-group">
+                        <i class="fas fa-edit edit-btn" onclick="editExamStudent('${doc.id}')"></i>
+                        <i class="fas fa-trash delete-btn" onclick="deleteExamStudent('${doc.id}')"></i>
+                    </td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
+        });
     });
-    area.innerHTML = html + "</tbody></table>";
-    
+}
+
     // ക്ലാസ് സമ്മറി
     document.getElementById('fee-summary-area').innerHTML = `
         <div class="summary-box">

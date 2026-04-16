@@ -1787,8 +1787,8 @@ function switchMagTab(cat) {
     const classFilter = document.getElementById('mag-class-filter');
     const searchBox = document.getElementById('mag-search'); // സെർച്ച് ബോക്സ് റെഫറൻസ്
 
-    const userRole = (typeof currentUserData !== 'undefined') ? currentUserData.role : '';
-
+    const user = JSON.parse(localStorage.getItem("activeUser"));
+const userRole = user ? user.role : '';
     if (cat === 'Student') {
         // ചേർക്കുന്ന ഭാഗത്ത് ക്ലാസ് സെലക്ഷൻ നൽകുന്നു
         inputArea.innerHTML = `
@@ -1834,27 +1834,18 @@ async function loadMagazineList() {
     const classFilter = classFilterElem ? classFilterElem.value : 'All';
     const listArea = document.getElementById('magazine-list-area');
 
-    // ഫയർബേസിലെ assignedClass എന്ന ഫീൽഡ് അനുസരിച്ച് ഡാറ്റ എടുക്കുന്നു
-    const userRole = (typeof currentUserData !== 'undefined') ? currentUserData.role : '';
-    const loggedInUsthadClass = (typeof currentUserData !== 'undefined') ? currentUserData.assignedClass : '';
+    // --- മാറ്റം വരുത്തിയ ഭാഗം (ഗുരുനിധിയിലേത് പോലെ) ---
+    // localStorage-ൽ നിന്ന് ലോഗിൻ ചെയ്ത യൂസറെ എടുക്കുന്നു
+    const user = JSON.parse(localStorage.getItem("activeUser"));
+    const userRole = user ? user.role : '';
+    const loggedInUsthadClass = user ? user.assignedClass : '';
+    // -------------------------------------------
 
     try {
-        // ഇൻഡക്സ് ആക്ടീവ് ആയതിനാൽ കാറ്റഗറി ക്വറി പ്രവർത്തിക്കും
         const snap = await db.collection("magazine_subscribers")
                              .where("category", "==", currentMagCategory).get();
         
-        let html = `
-            <table class="mag-table">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>വരിക്കാരന്റെ വിവരങ്ങൾ</th>
-                        <th>സ്കീം & ${currentMagCategory === 'Student' ? 'ക്ലാസ്' : 'സ്ഥലം'}</th>
-                        <th>തുക</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>`;
+        let html = `<table class="mag-table"><thead><tr><th>#</th><th>വരിക്കാരന്റെ വിവരങ്ങൾ</th><th>സ്കീം & ${currentMagCategory === 'Student' ? 'ക്ലാസ്' : 'സ്ഥലം'}</th><th>തുക</th><th>Action</th></tr></thead><tbody>`;
         
         let i = 1;
         snap.forEach(doc => {
@@ -1865,41 +1856,21 @@ async function loadMagazineList() {
                 isAuthorized = true;
             } 
             else if (userRole === 'Sadhar') {
-                // സദറിന് എല്ലാ ക്ലാസും അല്ലെങ്കിൽ സെലക്ട് ചെയ്തത് കാണാം
                 isAuthorized = (classFilter === 'All' || String(d.class) === String(classFilter));
             } 
             else if (userRole === 'Usthad') {
-                // ഉസ്താദിന് അദ്ദേഹത്തിന്റെ assignedClass മാത്രം കാണിക്കുന്നു
+                // ഉസ്താദിന് സ്വന്തം assignedClass ഉള്ള കുട്ടികളെ മാത്രം കാണിക്കുന്നു
                 isAuthorized = (String(d.class) === String(loggedInUsthadClass));
             }
 
             if (isAuthorized) {
-                html += `
-                    <tr>
-                        <td>${i++}</td>
-                        <td>
-                            <b>${d.name}</b><br>
-                            <small style="color: #666;"><i class="fas fa-phone-alt" style="font-size: 10px;"></i> ${d.phone || ''}</small>
-                        </td>
-                        <td>
-                            <span style="font-size: 0.9em; color: #2e7d32;">${d.scheme}</span><br>
-                            <small><b>${currentMagCategory === 'Student' ? 'ക്ലാസ്: ' + d.class : 'സ്ഥലം: ' + d.place}</b></small>
-                        </td>
-                        <td><b>₹${d.amount}</b></td>
-                        <td>
-                            <div style="display:flex; gap:12px; align-items: center;">
-                                <i class="fas fa-edit" onclick='editMagSub("${doc.id}", ${JSON.stringify(d)})' style="color:#1a73e8; cursor:pointer;"></i>
-                                <i class="fas fa-trash" onclick="deleteMagSub('${doc.id}')" style="color:#ea4335; cursor:pointer;"></i>
-                            </div>
-                        </td>
-                    </tr>`;
+                html += `<tr><td>${i++}</td><td><b>${d.name}</b><br><small>${d.phone || ''}</small></td><td>${d.scheme}<br><small><b>${currentMagCategory === 'Student' ? 'ക്ലാസ്: ' + d.class : 'സ്ഥലം: ' + d.place}</b></small></td><td><b>₹${d.amount}</b></td><td><div style="display:flex; gap:12px;"><i class="fas fa-edit" onclick='editMagSub("${doc.id}", ${JSON.stringify(d)})' style="color:#1a73e8; cursor:pointer;"></i><i class="fas fa-trash" onclick="deleteMagSub('${doc.id}')" style="color:#ea4335; cursor:pointer;"></i></div></td></tr>`;
             }
         });
         
         listArea.innerHTML = i > 1 ? html + "</tbody></table>" : "<p style='text-align:center; padding:20px;'>വിവരങ്ങൾ ലഭ്യമല്ല.</p>";
     } catch (e) {
-        console.error("Error:", e);
-        listArea.innerHTML = "<p style='color:red; text-align:center;'>Error: " + e.message + "</p>";
+        listArea.innerHTML = "Error: " + e.message;
     }
 }
 

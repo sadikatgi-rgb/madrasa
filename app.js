@@ -1932,99 +1932,360 @@ async function deleteMagSub(id) {
     }
 }
 
-async function openExamSection() {
+function openExamSection() {
     const content = document.getElementById('dynamic-content');
-    const dashboard = document.getElementById('usthad-dashboard');
-    if (dashboard) dashboard.style.display = 'none';
-    content.style.display = 'block';
+    const user = JSON.parse(localStorage.getItem("activeUser"));
+    const userRole = user ? user.role : '';
 
     content.innerHTML = `
-        <div class="mag-header" style="background:#fff3e0;">
-            <button onclick="closeSection()" class="back-btn"><i class="fas fa-arrow-left"></i> തിരികെ</button>
-            <h3 style="color:#e65100;">📝 പരീക്ഷാ മാനേജ്‌മെന്റ്</h3>
+        <div class="mag-header" style="background:#e65100; color:white;">
+            <button onclick="closeSection()" class="back-btn" style="color:white;"><i class="fas fa-arrow-left"></i> തിരികെ</button>
+            <h3 style="margin:0;">📝 പരീക്ഷാ മാനേജ്‌മെന്റ് സിസ്റ്റം</h3>
         </div>
+
         <div style="padding:15px;">
-            <div class="mag-filter-area" style="display:flex; gap:10px; margin-bottom:15px;">
-                <select id="exam-class-select" class="mag-input" style="flex:1;">
-                    <option value="">ക്ലാസ് തിരഞ്ഞെടുക്കുക</option>
-                    ${Array.from({length: 12}, (_, i) => `<option value="${i+1}">ക്ലാസ് ${i+1}</option>`).join('')}
-                </select>
-                <button onclick="loadExamStudents()" style="background:#e65100; color:white; border:none; padding:10px; border-radius:5px; cursor:pointer;">ലിസ്റ്റ് കാണുക</button>
+            <div style="display:flex; gap:5px; margin-bottom:15px; background:#f5f5f5; padding:5px; border-radius:10px;">
+                <button onclick="switchExamTab('register')" id="tab-reg" class="mag-tab active" style="flex:1;">രജിസ്ട്രേഷൻ & പ്രൊമോഷൻ</button>
+                <button onclick="switchExamTab('fees')" id="tab-fees" class="mag-tab inactive" style="flex:1;">പരീക്ഷാ ഫീസ്</button>
+                <button onclick="switchExamTab('results')" id="tab-res" class="mag-tab inactive" style="flex:1;">ഫലം & അനലിറ്റിക്സ്</button>
             </div>
-            <div id="exam-list-area"></div>
+
+            <div id="exam-dynamic-area">
+                </div>
         </div>
     `;
+    switchExamTab('register'); // ആദ്യ ടാബ് ലോഡ് ചെയ്യുന്നു
 }
 
-async function loadExamStudents() {
-    const cls = document.getElementById('exam-class-select').value;
-    if(!cls) return alert("ക്ലാസ് തിരഞ്ഞെടുക്കുക");
-    const listArea = document.getElementById('exam-list-area');
-    listArea.innerHTML = "ലോഡ് ചെയ്യുന്നു...";
+// ടാബുകൾ മാറാൻ
+function switchExamTab(tab) {
+    const container = document.getElementById('exam-dynamic-area');
+    document.querySelectorAll('.mag-tab').forEach(b => b.className = 'mag-tab inactive');
+    
+    if(tab === 'register') {
+        document.getElementById('tab-reg').className = 'mag-tab active';
+        showStudentRegisterUI(container);
+    } else if(tab === 'fees') {
+        document.getElementById('tab-fees').className = 'mag-tab active';
+        showExamFeeUI(container);
+    } else if(tab === 'results') {
+        document.getElementById('tab-res').className = 'mag-tab active';
+        showExamResultUI(container);
+    }
+}
+function showStudentRegisterUI(container) {
+    container.innerHTML = `
+        <div class="info-card" style="border-top: 3px solid #e65100;">
+            <h4>പുതിയ കുട്ടിയെ ചേർക്കുക (Student Registration)</h4>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <input id="ex-adm" placeholder="Admission No" class="mag-input">
+                <input id="ex-name" placeholder="Name" class="mag-input">
+                <select id="ex-class" class="mag-input">
+                    ${Array.from({length: 12}, (_, i) => `<option value="${i+1}">Class ${i+1}</option>`).join('')}
+                </select>
+                <input id="ex-father" placeholder="Father's Name" class="mag-input">
+                <select id="ex-gender" class="mag-input">
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                </select>
+                <input id="ex-year" placeholder="Year (1/2)" class="mag-input">
+                <input id="ex-dob" type="date" class="mag-input">
+                <input id="ex-phone" placeholder="Mobile" class="mag-input">
+            </div>
+            <button onclick="saveExamStudent()" style="width:100%; margin-top:10px; background:#e65100; color:white; border:none; padding:12px; border-radius:8px;">സേവ് ചെയ്യുക</button>
+        </div>
 
-    const snap = await db.collection("students").where("class", "==", cls).get();
-    const examSnap = await db.collection("exam_data").get();
-    let examMap = {};
-    examSnap.forEach(doc => examMap[doc.id] = doc.data());
-
-    let html = `
-        <table class="mag-table">
-            <thead>
-                <tr>
-                    <th>പേര്</th>
-                    <th>പരീക്ഷാ ഫീ</th>
-                    <th>മാർക്ക് %</th>
-                </tr>
-            </thead>
-            <tbody>
+        <div style="margin-top:20px;">
+            <select id="reg-filter-class" onchange="loadExamStudentList()" class="mag-input" style="width:100%; margin-bottom:10px;">
+                <option value="All">എല്ലാ ക്ലാസും</option>
+                ${Array.from({length: 12}, (_, i) => `<option value="${i+1}">Class ${i+1}</option>`).join('')}
+            </select>
+            <div id="exam-student-list">ലോഡ് ചെയ്യുന്നു...</div>
+        </div>
     `;
+    loadExamStudentList();
+}
+let currentExamTab = 'register';
+let selectedExamType = 'Half Yearly'; // Default
 
+// 1. പരീക്ഷാ സെക്ഷൻ മെയിൻ ലേഔട്ട്
+function openExamSection() {
+    const content = document.getElementById('dynamic-content');
+    const user = JSON.parse(localStorage.getItem("activeUser"));
+    if (!user) return alert("ദയവായി ലോഗിൻ ചെയ്യുക");
+
+    content.innerHTML = `
+        <div class="exam-header">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <button onclick="closeSection()" style="background:none; border:none; color:white; cursor:pointer;"><i class="fas fa-arrow-left"></i> തിരികെ</button>
+                <h3 style="margin:0;">📝 Exam Management</h3>
+            </div>
+        </div>
+
+        <div style="padding:15px;">
+            <div class="exam-tab-group">
+                <button onclick="switchExamTab('register')" id="tab-reg" class="exam-tab active">Registration</button>
+                <button onclick="switchExamTab('fees')" id="tab-fees" class="exam-tab">Exam Fees</button>
+                <button onclick="switchExamTab('results')" id="tab-res" class="exam-tab">Results & Analysis</button>
+            </div>
+            <div id="exam-dynamic-area"></div>
+        </div>
+    `;
+    switchExamTab('register');
+}
+
+// 2. ടാബ് മാറ്റാൻ
+function switchExamTab(tab) {
+    currentExamTab = tab;
+    const container = document.getElementById('exam-dynamic-area');
+    document.querySelectorAll('.exam-tab').forEach(b => {
+        b.classList.remove('active');
+        b.classList.add('inactive');
+    });
+    
+    if(tab === 'register') {
+        document.getElementById('tab-reg').classList.add('active');
+        showRegisterUI(container);
+    } else if(tab === 'fees') {
+        document.getElementById('tab-fees').classList.add('active');
+        showFeesUI(container);
+    } else if(tab === 'results') {
+        document.getElementById('tab-res').classList.add('active');
+        showResultsUI(container);
+    }
+}
+
+// --- ഭാഗം 1: റെജിസ്ട്രേഷൻ & പ്രൊമോഷൻ ---
+function showRegisterUI(container) {
+    const user = JSON.parse(localStorage.getItem("activeUser"));
+    const isSadhar = user.role === 'Sadhar';
+
+    container.innerHTML = `
+        <div class="exam-card">
+            <h4>Add New Student</h4>
+            <div class="exam-grid">
+                <input id="ex-adm" placeholder="Admission No" class="exam-input">
+                <input id="ex-name" placeholder="Student Name" class="exam-input">
+                <select id="ex-class" class="exam-input">
+                    <option value="">Select Class</option>
+                    ${Array.from({length: 12}, (_, i) => `<option value="${i+1}">Class ${i+1}</option>`).join('')}
+                </select>
+                <input id="ex-father" placeholder="Father's Name" class="exam-input">
+                <select id="ex-gender" class="exam-input">
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                </select>
+                <select id="ex-year" class="exam-input">
+                    <option value="1">Year 1</option>
+                    <option value="2">Year 2</option>
+                </select>
+                <input id="ex-dob" type="date" class="exam-input">
+                <input id="ex-phone" placeholder="Mobile" class="exam-input">
+            </div>
+            <button onclick="saveExamStudent()" style="width:100%; padding:12px; background:#e65100; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">Save Student</button>
+        </div>
+
+        <div class="exam-card">
+            <select id="reg-filter-class" onchange="loadRegList()" class="exam-input">
+                <option value="All">All Classes</option>
+                ${Array.from({length: 12}, (_, i) => `<option value="${i+1}">Class ${i+1}</option>`).join('')}
+            </select>
+            <div id="reg-list-area" style="margin-top:15px;"></div>
+        </div>
+    `;
+    loadRegList();
+}
+
+// കുട്ടി വിവരങ്ങൾ സേവ് ചെയ്യാൻ
+async function saveExamStudent() {
+    const data = {
+        admNo: document.getElementById('ex-adm').value,
+        name: document.getElementById('ex-name').value,
+        class: document.getElementById('ex-class').value,
+        father: document.getElementById('ex-father').value,
+        gender: document.getElementById('ex-gender').value,
+        year: document.getElementById('ex-year').value,
+        dob: document.getElementById('ex-dob').value,
+        phone: document.getElementById('ex-phone').value,
+        status: 'active',
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    if(!data.name || !data.class) return alert("പേരും ക്ലാസ്സും നിർബന്ധമാണ്!");
+
+    try {
+        await db.collection("exam_students").add(data);
+        alert("വിജയകരമായി ചേർത്തു!");
+        loadRegList();
+    } catch(e) { alert("Error: " + e.message); }
+}
+
+// ലിസ്റ്റ് ലോഡ് ചെയ്യാൻ
+async function loadRegList() {
+    const filterCls = document.getElementById('reg-filter-class').value;
+    const listArea = document.getElementById('reg-list-area');
+    const user = JSON.parse(localStorage.getItem("activeUser"));
+    
+    let query = db.collection("exam_students").where("status", "==", "active");
+    
+    // ഉസ്താദിന് സ്വന്തം ക്ലാസ് മാത്രം
+    if(user.role === 'Usthad') {
+        query = query.where("class", "==", String(user.assignedClass));
+        document.getElementById('reg-filter-class').style.display = 'none';
+    } else if(filterCls !== 'All') {
+        query = query.where("class", "==", filterCls);
+    }
+
+    const snap = await query.get();
+    let html = `<table class="exam-table"><thead><tr><th>Adm</th><th>Name</th><th>Class</th><th>Info</th><th>Action</th></tr></thead><tbody>`;
+    
     snap.forEach(doc => {
         const s = doc.data();
-        const saved = examMap[doc.id] || { fee: '', mark: '' };
         html += `
             <tr>
-                <td><b>${s.name}</b></td>
+                <td>${s.admNo}</td>
+                <td><b>${s.name}</b><br><span class="badge-${s.gender.toLowerCase()}">${s.gender}</span></td>
+                <td>${s.class} (${s.year})</td>
+                <td><small>${s.father}<br>${s.phone}</small></td>
                 <td>
-                    <div style="display:flex; gap:5px; align-items:center;">
-                        <input type="number" id="fee-${doc.id}" value="${saved.fee}" placeholder="₹" style="width:60px; padding:5px;">
-                        <button onclick="saveExamFee('${doc.id}')" title="ഫീ സേവ് ചെയ്യാൻ" style="background:#1a73e8; color:white; border:none; padding:5px; border-radius:4px;"><i class="fas fa-save"></i></button>
-                    </div>
-                </td>
-                <td>
-                    <div style="display:flex; gap:5px; align-items:center;">
-                        <input type="number" id="mark-${doc.id}" value="${saved.mark}" placeholder="%" style="width:55px; padding:5px;">
-                        <button onclick="saveExamMark('${doc.id}')" title="മാർക്ക് സേവ് ചെയ്യാൻ" style="background:#2e7d32; color:white; border:none; padding:5px; border-radius:4px;"><i class="fas fa-check"></i></button>
-                    </div>
+                    <button onclick="promoteStudent('${doc.id}', ${s.class}, true)" class="btn-promote" title="Promote"><i class="fas fa-arrow-up"></i></button>
+                    <button onclick="promoteStudent('${doc.id}', ${s.class}, false)" class="btn-depromote" title="De-promote"><i class="fas fa-arrow-down"></i></button>
                 </td>
             </tr>
         `;
     });
-    listArea.innerHTML = html + `</tbody></table>`;
+    listArea.innerHTML = snap.empty ? "വിവരങ്ങൾ ലഭ്യമല്ല" : html + "</tbody></table>";
 }
 
-// ഫീ മാത്രം സേവ് ചെയ്യാൻ
-async function saveExamFee(studentId) {
-    const fee = document.getElementById(`fee-${studentId}`).value;
-    try {
-        await db.collection("exam_data").doc(studentId).set({
-            fee: fee,
-            feeDate: new Date().toLocaleDateString()
-        }, { merge: true });
-        alert("ഫീ വിവരങ്ങൾ സേവ് ചെയ്തു");
-    } catch(e) { alert("പിശക്: " + e.message); }
+// പ്രൊമോഷൻ ലോജിക്
+async function promoteStudent(id, currentCls, isUp) {
+    const nextCls = isUp ? Number(currentCls) + 1 : Number(currentCls) - 1;
+    if(nextCls < 1 || nextCls > 12) return alert("സാധ്യമല്ല!");
+    
+    if(confirm(`കുട്ടിയെ ക്ലാസ്സ് ${nextCls}-ലേക്ക് മാറ്റട്ടെ?`)) {
+        await db.collection("exam_students").doc(id).update({ class: String(nextCls) });
+        loadRegList();
+    }
 }
 
-// മാർക്ക് മാത്രം സേവ് ചെയ്യാൻ
-async function saveExamMark(studentId) {
-    const mark = document.getElementById(`mark-${studentId}`).value;
+// --- ഭാഗം 2: പരീക്ഷാ ഫീസ് ---
+function showFeesUI(container) {
+    container.innerHTML = `
+        <div class="exam-card">
+            <h4>Exam Fee Collection</h4>
+            <div class="exam-grid">
+                <select id="fee-exam-type" class="exam-input">
+                    <option value="Half Yearly">Half Yearly</option>
+                    <option value="Annual">Annual</option>
+                </select>
+                <select id="fee-class-select" class="exam-input" onchange="loadFeeStudents()">
+                    <option value="">Select Class</option>
+                    ${Array.from({length: 12}, (_, i) => `<option value="${i+1}">Class ${i+1}</option>`).join('')}
+                </select>
+            </div>
+            <div id="fee-student-area"></div>
+        </div>
+        <div id="fee-summary-area"></div>
+    `;
+}
+
+async function loadFeeStudents() {
+    const cls = document.getElementById('fee-class-select').value;
+    const type = document.getElementById('fee-exam-type').value;
+    const area = document.getElementById('fee-student-area');
+    if(!cls) return;
+
+    area.innerHTML = "Loading...";
+    const students = await db.collection("exam_students").where("class", "==", cls).where("status", "==", "active").get();
+    const feeSnap = await db.collection("exam_fees").where("examType", "==", type).get();
+    
+    let feeMap = {};
+    feeSnap.forEach(d => feeMap[d.data().studentId] = d.data());
+
+    let html = `<table class="exam-table"><thead><tr><th>Name</th><th>Status</th><th>Amount</th><th>Pay</th></tr></thead><tbody>`;
+    let totalPaid = 0;
+
+    students.forEach(doc => {
+        const s = doc.data();
+        const f = feeMap[doc.id] || { paid: 0, balance: 0 };
+        totalPaid += Number(f.paid);
+
+        html += `
+            <tr>
+                <td><b>${s.name}</b><br><small>Adm: ${s.admNo}</small></td>
+                <td>${f.paid > 0 ? '✅ Paid' : '❌ Pending'}</td>
+                <td><input type="number" id="amt-${doc.id}" value="${f.paid}" class="exam-input" style="width:70px;"></td>
+                <td><button onclick="saveFee('${doc.id}', '${s.name}', '${cls}')" style="background:#1a73e8; color:white; border:none; padding:8px; border-radius:5px;"><i class="fas fa-save"></i></button></td>
+            </tr>
+        `;
+    });
+    area.innerHTML = html + "</tbody></table>";
+    
+    // ക്ലാസ് സമ്മറി
+    document.getElementById('fee-summary-area').innerHTML = `
+        <div class="summary-box">
+            <b>Class ${cls} Summary:</b><br>
+            Total Students: ${students.size} | Total Collected: ₹${totalPaid}
+        </div>
+    `;
+}
+
+async function saveFee(sid, name, cls) {
+    const amt = document.getElementById(`amt-${sid}`).value;
+    const type = document.getElementById('fee-exam-type').value;
+    
     try {
-        await db.collection("exam_data").doc(studentId).set({
-            mark: mark,
-            markDate: new Date().toLocaleDateString()
-        }, { merge: true });
-        alert("മാർക്ക് വിവരങ്ങൾ സേവ് ചെയ്തു");
-    } catch(e) { alert("പിശക്: " + e.message); }
+        await db.collection("exam_fees").doc(`${sid}_${type}`).set({
+            studentId: sid,
+            examType: type,
+            class: cls,
+            paid: Number(amt),
+            date: new Date().toLocaleDateString()
+        });
+        alert("Fee Updated!");
+        loadFeeStudents();
+    } catch(e) { alert(e.message); }
+}
+
+// --- ഭാഗം 3: ഫലം & അനലിറ്റിക്സ് (സദർ സ്പെഷ്യൽ) ---
+async function showResultsUI(container) {
+    container.innerHTML = "<h4>Analytics Loading...</h4>";
+    
+    const user = JSON.parse(localStorage.getItem("activeUser"));
+    const allStudents = await db.collection("exam_students").where("status", "==", "active").get();
+    
+    let classStats = {};
+    allStudents.forEach(doc => {
+        const s = doc.data();
+        if(!classStats[s.class]) classStats[s.class] = { m:0, f:0, total:0 };
+        classStats[s.class].total++;
+        if(s.gender === 'Male') classStats[s.class].m++; else classStats[s.class].f++;
+    });
+
+    let html = `<h4>Sadr Dashboard - Madrasa Overview</h4>`;
+    let grandTotal = 0;
+
+    Object.keys(classStats).sort((a,b)=>a-b).forEach(cls => {
+        const st = classStats[cls];
+        grandTotal += st.total;
+        html += `
+            <div class="summary-box">
+                <div style="display:flex; justify-content:space-between;">
+                    <b>Class ${cls}</b>
+                    <span>Total: ${st.total}</span>
+                </div>
+                <div style="font-size:12px; color:#666; margin-top:5px;">
+                    Boys: ${st.m} | Girls: ${st.f}
+                </div>
+            </div>
+        `;
+    });
+
+    html += `<div class="exam-card" style="margin-top:20px; background:#e65100; color:white;">
+                <b>Total Madrasa Students: ${grandTotal}</b>
+            </div>`;
+    
+    container.innerHTML = html;
 }
 
 // 3. സദർ - ഉസ്താദ് പണമിടപാട് ടേബിൾ (പുതിയത്)

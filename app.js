@@ -1934,16 +1934,36 @@ async function deleteMagSub(id) {
 
 
 // 1. പരീക്ഷാ സെക്ഷൻ മെയിൻ ലേഔട്ട്
-let currentExamTab = 'register';
+// 1. ഗ്ലോബൽ വേരിയബിൾ (ഫങ്ക്ഷന് പുറത്ത് ഏറ്റവും മുകളിൽ നൽകുക)
+let currentExamTab = 'register'; 
+
+// 2. മെയിൻ ഫങ്ക്ഷൻ
 function openExamSection() {
+    // ആദ്യം എലമെന്റുകളെ കണ്ടെത്തുന്നു
+    const dashboard = document.getElementById('usthad-dashboard');
     const content = document.getElementById('dynamic-content');
+    
+    // യൂസർ ലോഗിൻ ചെയ്തിട്ടുണ്ടോ എന്ന് പരിശോധിക്കുന്നു
     const user = JSON.parse(localStorage.getItem("activeUser"));
     if (!user) return alert("ദയവായി ലോഗിൻ ചെയ്യുക");
 
+    // എലമെന്റുകൾ പേജിൽ ഉണ്ടോ എന്ന് ഉറപ്പുവരുത്തുന്നു (ഇതാണ് Error വരാതിരിക്കാൻ സഹായിക്കുന്നത്)
+    if(!dashboard || !content) {
+        console.error("Dashboard or Content area not found!");
+        return;
+    }
+
+    // ഇനി ഡാഷ്‌ബോർഡ് മറച്ച് കണ്ടന്റ് ഏരിയ കാണിക്കുന്നു
+    dashboard.style.display = 'none';
+    content.style.display = 'block';
+
+    // ഉള്ളടക്കം (HTML) നൽകുന്നു
     content.innerHTML = `
         <div class="exam-header">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <button onclick="closeSection()" style="background:none; border:none; color:white; cursor:pointer;"><i class="fas fa-arrow-left"></i> തിരികെ</button>
+                <button onclick="closeSadharSection()" style="background:none; border:none; color:white; cursor:pointer;">
+                    <i class="fas fa-arrow-left"></i> തിരികെ
+                </button>
                 <h3 style="margin:0;">📝 Exam Management</h3>
             </div>
         </div>
@@ -1952,11 +1972,13 @@ function openExamSection() {
             <div class="exam-tab-group">
                 <button onclick="switchExamTab('register')" id="tab-reg" class="exam-tab active">Registration</button>
                 <button onclick="switchExamTab('fees')" id="tab-fees" class="exam-tab">Exam Fees</button>
-                <button onclick="switchExamTab('results')" id="tab-res" class="exam-tab">Results & Analysis</button>
+                <button onclick="switchExamTab('results')" id="tab-res" class="exam-tab">Results</button>
             </div>
             <div id="exam-dynamic-area"></div>
         </div>
     `;
+
+    // ആദ്യത്തെ ടാബ് ലോഡ് ചെയ്യുന്നു
     switchExamTab('register');
 }
 

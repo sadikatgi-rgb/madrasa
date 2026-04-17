@@ -2083,77 +2083,96 @@ async function loadStudentTable(mode) {
     const tbody = document.getElementById(mode === 'view-list' ? 'student-view-body' : 'mark-entry-body');
     const statsArea = document.getElementById('class-stats-area');
     
-    // ഫിൽട്ടർ ലോജിക്
+    // ഫിൽട്ടർ ഐഡി കണ്ടെത്തുന്നു (View List അല്ലെങ്കിൽ Mark Entry അനുസരിച്ച്)
     const filterId = mode === 'view-list' ? 'filter-class' : 'filter-class-marks';
-    let filterClass = document.getElementById(filterId)?.value || user.assignedClass || "ALL";
+    let filterValue = document.getElementById(filterId)?.value || user.assignedClass || "ALL";
 
     if(!tbody) return;
 
+    // ലോഡിംഗ് സമയത്ത് പഴയ ഡാറ്റ ക്ലിയർ ചെയ്യുന്നു
+    tbody.innerHTML = `<tr><td colspan="8" style="padding:20px;">ഡാറ്റ ലോഡ് ചെയ്യുന്നു...</td></tr>`;
+
     let query = db.collection("exam_students");
     
-    // റോൾ അനുസരിച്ച് ഡാറ്റ നിയന്ത്രിക്കുന്നു
+    // ഡാറ്റാബേസിലെ 'class' ഫീൽഡ് String ("1") ആയതുകൊണ്ട് String() ഉപയോഗിച്ച് കൃത്യമാക്കുന്നു
     if (user.role === 'Usthad') {
         query = query.where("class", "==", String(user.assignedClass));
-    } else if (filterClass !== "ALL") {
-        query = query.where("class", "==", String(filterClass));
+    } else if (filterValue !== "ALL") {
+        query = query.where("class", "==", String(filterValue));
     }
 
-    const snap = await query.get();
-    let students = [];
-    let stats = { total: 0, male: 0, female: 0 };
+    try {
+        const snap = await query.get();
+        let students = [];
+        let stats = { total: 0, male: 0, female: 0 };
 
-    snap.forEach(doc => {
-        const d = doc.data();
-        students.push({ id: doc.id, ...d });
-        stats.total++;
-        if (d.gender === 'Male') stats.male++; else stats.female++;
-    });
+        snap.forEach(doc => {
+            const d = doc.data();
+            students.push({ id: doc.id, ...d });
+            stats.total++;
+            if (d.gender === 'Male' || d.gender === 'male') stats.male++; 
+            else if (d.gender === 'Female' || d.gender === 'female') stats.female++;
+        });
 
-    if(statsArea && mode === 'view-list') {
-        statsArea.innerHTML = `
-            <div class="stat-box">Total: <b>${stats.total}</b></div>
-            <div class="stat-box male-bg">Boys: <b>${stats.male}</b></div>
-            <div class="stat-box female-bg">Girls: <b>${stats.female}</b></div>
-        `;
-    }
-
-    // സോർട്ടിംഗ്: ക്ലാസ്സ് -> റോൾ നമ്പർ
-    students.sort((a, b) => {
-        if (a.class !== b.class) return parseInt(a.class) - parseInt(b.class);
-        return parseInt(a.rollNo) - parseInt(b.rollNo);
-    });
-
-    tbody.innerHTML = "";
-    students.forEach((s, idx) => {
-        const genderClass = s.gender === 'Female' ? 'text-red' : 'text-black';
-        
-        if(mode === 'view-list') {
-            tbody.innerHTML += `
-                <tr class="${genderClass}">
-                    <td>${s.rollNo || '-'}</td><td>${s.admNo || '-'}</td>
-                    <td class="text-left"><b>${s.name || '-'}</b></td><td>Class ${s.class}</td>
-                    <td>${s.gender}</td><td>${s.fatherName || '-'}</td><td>${s.mobile || '-'}</td>
-                    <td class="no-print">
-                        <i class="fas fa-edit edit-icon" onclick="editExamStudent('${s.id}')"></i>
-                        <i class="fas fa-trash delete-icon" onclick="deleteExamStudent('${s.id}')"></i>
-                    </td>
-                </tr>`;
-        } else if(mode === 'marks') {
-            const total = (Number(s.m1)||0) + (Number(s.m2)||0) + (Number(s.m3)||0) + (Number(s.m4)||0);
-            tbody.innerHTML += `
-                <tr class="${genderClass}">
-                    <td>${idx+1}</td><td>${s.admNo}</td>
-                    <td class="text-left"><b>${s.name}</b></td>
-                    <td><input type="number" value="${s.m1||0}" class="sam-mark-input" onchange="updateMark('${s.id}','m1',this.value)"></td>
-                    <td><input type="number" value="${s.m2||0}" class="sam-mark-input" onchange="updateMark('${s.id}','m2',this.value)"></td>
-                    <td><input type="number" value="${s.m3||0}" class="sam-mark-input" onchange="updateMark('${s.id}','m3',this.value)"></td>
-                    <td><input type="number" value="${s.m4||0}" class="sam-mark-input" onchange="updateMark('${s.id}','m4',this.value)"></td>
-                    <td><b>${total}</b></td>
-                    <td class="${total >= 160 ? 'pass' : 'fail'}">${total >= 160 ? 'Pass' : 'Fail'}</td>
-                    <td class="no-print"><i class="fas fa-edit edit-icon" onclick="editExamStudent('${s.id}')"></i></td>
-                </tr>`;
+        // സ്റ്റാറ്റിസ്റ്റിക്സ് അപ്ഡേറ്റ് ചെയ്യുന്നു
+        if(statsArea && mode === 'view-list') {
+            statsArea.innerHTML = `
+                <div class="stat-box">Total: <b>${stats.total}</b></div>
+                <div class="stat-box male-bg">Boys: <b>${stats.male}</b></div>
+                <div class="stat-box female-bg">Girls: <b>${stats.female}</b></div>
+            `;
         }
-    });
+
+        // റോൾ നമ്പർ അനുസരിച്ച് ക്രമീകരിക്കുന്നു
+        students.sort((a, b) => parseInt(a.rollNo) - parseInt(b.rollNo));
+
+        tbody.innerHTML = "";
+        
+        if (students.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" style="padding:20px; color:#d32f2f; font-weight:bold;">വിവരങ്ങൾ ഒന്നും ലഭ്യമല്ല (Class: ${filterValue})</td></tr>`;
+            return;
+        }
+
+        students.forEach((s, idx) => {
+            const isFemale = s.gender?.toLowerCase() === 'female';
+            const genderClass = isFemale ? 'text-red' : 'text-black';
+            
+            if(mode === 'view-list') {
+                tbody.innerHTML += `
+                    <tr class="${genderClass}">
+                        <td>${s.rollNo || '-'}</td>
+                        <td>${s.admNo || '-'}</td>
+                        <td class="text-left"><b>${s.name || '-'}</b></td>
+                        <td>Class ${s.class || '-'}</td>
+                        <td>${s.gender || '-'}</td>
+                        <td>${s.fatherName || '-'}</td>
+                        <td>${s.mobile || '-'}</td>
+                        <td class="no-print">
+                            <i class="fas fa-edit edit-icon" onclick="editExamStudent('${s.id}')"></i>
+                            <i class="fas fa-trash delete-icon" onclick="deleteExamStudent('${s.id}')"></i>
+                        </td>
+                    </tr>`;
+            } else if(mode === 'marks') {
+                const total = (Number(s.m1)||0) + (Number(s.m2)||0) + (Number(s.m3)||0) + (Number(s.m4)||0);
+                tbody.innerHTML += `
+                    <tr class="${genderClass}">
+                        <td>${idx+1}</td>
+                        <td>${s.admNo || '-'}</td>
+                        <td class="text-left"><b>${s.name || '-'}</b></td>
+                        <td><input type="number" value="${s.m1||0}" class="sam-mark-input" onchange="updateMark('${s.id}','m1',this.value)"></td>
+                        <td><input type="number" value="${s.m2||0}" class="sam-mark-input" onchange="updateMark('${s.id}','m2',this.value)"></td>
+                        <td><input type="number" value="${s.m3||0}" class="sam-mark-input" onchange="updateMark('${s.id}','m3',this.value)"></td>
+                        <td><input type="number" value="${s.m4||0}" class="sam-mark-input" onchange="updateMark('${s.id}','m4',this.value)"></td>
+                        <td><b>${total}</b></td>
+                        <td class="${total >= 160 ? 'pass' : 'fail'}">${total >= 160 ? 'Pass' : 'Fail'}</td>
+                        <td class="no-print"><i class="fas fa-edit edit-icon" onclick="editExamStudent('${s.id}')"></i></td>
+                    </tr>`;
+            }
+        });
+    } catch (error) {
+        console.error("Error loading data:", error);
+        tbody.innerHTML = `<tr><td colspan="8" style="color:red;">ഡാറ്റാബേസ് കണക്ഷൻ പിശക് സംഭവിച്ചു.</td></tr>`;
+    }
 }
 
 // --- 7. സേവ് & എഡിറ്റ് ലോജിക് ---

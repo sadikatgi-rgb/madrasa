@@ -520,42 +520,67 @@ input:focus, select:focus {
         border: 1px solid #ccc;
     }
 }
-/* ടേബിൾ സൈഡിലേക്ക് സ്ക്രോൾ ചെയ്യാൻ */
-.mag-table-wrapper {
+/* മൊബൈലിൽ വശങ്ങളിലേക്ക് സ്ക്രോൾ ചെയ്യാൻ */
+.table-container-scroll {
     width: 100%;
-    overflow-x: auto; /* സൈഡിലേക്ക് സ്ക്രോൾ ചെയ്യാൻ */
-    background: white;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-top: 15px;
+    border: 1px solid #ddd;
     border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 
-.mag-table {
-    width: 100%;
-    min-width: 800px; /* ടേബിളിന്റെ കുറഞ്ഞ വീതി */
+/* ടേബിളിന്റെ കുറഞ്ഞ വീതി 800px ആക്കി വെക്കുന്നു */
+.mag-table.result-table {
+    min-width: 900px;
     border-collapse: collapse;
 }
 
-.mag-table th, .mag-table td {
-    padding: 10px;
-    border: 1px solid #ddd;
+.mark-input {
+    width: 50px;
+    padding: 5px;
+    border: 1px solid #ccc;
     text-align: center;
-    white-space: nowrap; /* വരികൾ മുറിഞ്ഞു പോകാതിരിക്കാൻ */
+    font-weight: bold;
+    border-radius: 4px;
 }
 
-/* വിജയശതമാനം കാണിക്കുന്ന കാർഡ് */
-.stats-container {
+.stats-summary-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
-    margin-bottom: 20px;
+    margin-top: 10px;
 }
 
-.stat-box {
-    background: #fff;
-    padding: 15px;
-    border-radius: 10px;
-    border-top: 4px solid #e65100;
+.stat-card-mini {
+    background: #e65100;
+    color: white;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 12px;
     text-align: center;
+    font-weight: bold;
 }
 
-.stat-box h2 { color: #e65100; margin: 5px 0; }
+/* ആക്ഷൻ ബട്ടണുകളുടെ സ്റ്റൈൽ (നിങ്ങൾ അയച്ച ഫോട്ടോ പോലെ) */
+.action-buttons {
+    display: flex;
+    gap: 5px;
+}
+
+.up-btn { background: #2e7d32; color: white; border: none; padding: 5px 10px; border-radius: 4px; }
+.del-btn-small { background: #d32f2f; color: white; border: none; padding: 5px 10px; border-radius: 4px; }
+
+.text-pass { color: green; font-weight: bold; }
+.text-fail { color: red; font-weight: bold; }
+
+.save-btn-orange {
+    background: #e65100;
+    color: white;
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+}

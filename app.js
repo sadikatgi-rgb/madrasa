@@ -1932,10 +1932,13 @@ async function deleteMagSub(id) {
     }
 }
 
-// --- 📝 Updated Samastha Portal Exam Management ---
+ // ==========================================
+// 📝 SAMASTHA EXAM MANAGEMENT SYSTEM (FINAL)
+// ==========================================
 
 let currentExamTab = 'register'; 
 
+// --- 1. പ്രധാന സെക്ഷൻ ഓപ്പൺ ചെയ്യുന്നു ---
 function openExamSection() {
     const dashboard = document.getElementById('usthad-dashboard');
     const content = document.getElementById('dynamic-content');
@@ -1971,9 +1974,12 @@ function closeExamSection() {
     document.getElementById('dynamic-content').style.display = 'none';
 }
 
+// --- 2. ടാബുകൾ മാറുന്ന ലോജിക് ---
 function switchExamTab(tab) {
     currentExamTab = tab;
     const container = document.getElementById('exam-dynamic-area');
+    if(!container) return;
+    
     document.querySelectorAll('.sam-tab').forEach(b => b.classList.remove('active'));
     document.getElementById(`tab-${tab}`).classList.add('active');
 
@@ -1983,7 +1989,7 @@ function switchExamTab(tab) {
     else if(tab === 'promote') showPromotionUI(container);
 }
 
-// --- 1. Admission Section (Add Only) ---
+// --- 3. അഡ്മിഷൻ ഫോം (New Admission) ---
 function showAddStudentUI(container) {
     container.innerHTML = `
         <div class="sam-card border-orange">
@@ -2004,15 +2010,12 @@ function showAddStudentUI(container) {
                 <input id="ex-father" placeholder="Father's Name" class="sam-input">
                 <input id="ex-phone" placeholder="Mobile" class="sam-input">
             </div>
-            <button onclick="saveExamStudent()" class="sam-btn-orange">SAVE STUDENT</button>
-            <div class="instruction-box" onclick="switchExamTab('view-list')">
-                <i class="fas fa-list"></i> കുട്ടികളുടെ ലിസ്റ്റ് കാണാൻ <b>Student View</b> ക്ലിക്ക് ചെയ്യുക.
-            </div>
+            <button onclick="saveExamStudent()" id="save-btn" class="sam-btn-orange">SAVE STUDENT</button>
         </div>
     `;
 }
 
-// --- 2. Student View with Advanced Filters & Counts ---
+// --- 4. സ്റ്റുഡന്റ് വ്യൂ (സദറിന് ഫിൽട്ടർ ഉൾപ്പെടെ) ---
 function showStudentViewUI(container) {
     const user = JSON.parse(localStorage.getItem("activeUser"));
     container.innerHTML = `
@@ -2026,9 +2029,7 @@ function showStudentViewUI(container) {
                     </select>
                 ` : `<span class="class-badge">Class: ${user.assignedClass}</span>`}
             </div>
-
             <div id="class-stats-area" class="stats-container"></div>
-
             <div class="table-scroll">
                 <table class="sam-main-table">
                     <thead>
@@ -2045,14 +2046,19 @@ function showStudentViewUI(container) {
     loadStudentTable('view-list');
 }
 
-// --- 3. Mark Entry UI ---
+// --- 5. മാർക്ക് എൻട്രി ---
 function showMarkEntryUI(container) {
     const user = JSON.parse(localStorage.getItem("activeUser"));
     container.innerHTML = `
         <div class="sam-card border-green">
             <div class="flex-between">
                 <h4 class="title-green"><i class="fas fa-edit"></i> Mark Entry</h4>
-                <button onclick="window.print()" class="sam-print-btn"><i class="fas fa-print"></i> Print</button>
+                ${user.role === 'Sadar' ? `
+                    <select id="filter-class-marks" onchange="loadStudentTable('marks')" class="sam-input filter-select">
+                        <option value="ALL">All Classes</option>
+                        ${[1,2,3,4,5,6,7,8,9,10,11,12].map(c => `<option value="${c}">Class ${c}</option>`).join('')}
+                    </select>
+                ` : ''}
             </div>
             <div class="table-scroll">
                 <table class="sam-main-table">
@@ -2071,24 +2077,25 @@ function showMarkEntryUI(container) {
     loadStudentTable('marks');
 }
 
-// --- 1. പ്രധാന ടേബിൾ ലോഡിംഗ് ഫങ്ക്ഷൻ (Updated with Field Names) ---
-async function loadStudentTable(mode, forceClass = null) {
+// --- 6. ഡാറ്റ ലോഡിംഗ് ഫങ്ക്ഷൻ (ഉസ്താദ്/സദർ റൂൾസ് ഉൾപ്പെടെ) ---
+async function loadStudentTable(mode) {
     const user = JSON.parse(localStorage.getItem("activeUser"));
     const tbody = document.getElementById(mode === 'view-list' ? 'student-view-body' : 'mark-entry-body');
     const statsArea = document.getElementById('class-stats-area');
     
-    // സദർ ഒരു പ്രത്യേക ക്ലാസ്സ് കാർഡിൽ ക്ലിക്ക് ചെയ്താൽ അത് ലോഡ് ചെയ്യും, അല്ലെങ്കിൽ സെലക്ട് ചെയ്ത ക്ലാസ്സ്
-    const filterClass = forceClass || document.getElementById('filter-class')?.value || user.assignedClass || "ALL";
+    // ഫിൽട്ടർ ലോജിക്
+    const filterId = mode === 'view-list' ? 'filter-class' : 'filter-class-marks';
+    let filterClass = document.getElementById(filterId)?.value || user.assignedClass || "ALL";
 
     if(!tbody) return;
 
     let query = db.collection("exam_students");
     
-    // റോൾ അനുസരിച്ചുള്ള ഫിൽട്ടറിംഗ്
+    // റോൾ അനുസരിച്ച് ഡാറ്റ നിയന്ത്രിക്കുന്നു
     if (user.role === 'Usthad') {
-        query = query.where("studentClass", "==", user.assignedClass);
+        query = query.where("class", "==", String(user.assignedClass));
     } else if (filterClass !== "ALL") {
-        query = query.where("studentClass", "==", filterClass);
+        query = query.where("class", "==", String(filterClass));
     }
 
     const snap = await query.get();
@@ -2102,8 +2109,7 @@ async function loadStudentTable(mode, forceClass = null) {
         if (d.gender === 'Male') stats.male++; else stats.female++;
     });
 
-    // സ്റ്റാറ്റിസ്റ്റിക്സ് അപ്ഡേറ്റ് ചെയ്യുന്നു
-    if(statsArea) {
+    if(statsArea && mode === 'view-list') {
         statsArea.innerHTML = `
             <div class="stat-box">Total: <b>${stats.total}</b></div>
             <div class="stat-box male-bg">Boys: <b>${stats.male}</b></div>
@@ -2111,11 +2117,10 @@ async function loadStudentTable(mode, forceClass = null) {
         `;
     }
 
-    // ക്രമീകരണം: ക്ലാസ്സ് -> ജെൻഡർ (ആൺകുട്ടികൾ ആദ്യം) -> റോൾ നമ്പർ
+    // സോർട്ടിംഗ്: ക്ലാസ്സ് -> റോൾ നമ്പർ
     students.sort((a, b) => {
-        if (a.studentClass !== b.studentClass) return parseInt(a.studentClass) - parseInt(b.studentClass);
-        if (a.gender !== b.gender) return a.gender === 'Male' ? -1 : 1;
-        return parseInt(a.studentRollNo) - parseInt(b.studentRollNo);
+        if (a.class !== b.class) return parseInt(a.class) - parseInt(b.class);
+        return parseInt(a.rollNo) - parseInt(b.rollNo);
     });
 
     tbody.innerHTML = "";
@@ -2125,25 +2130,20 @@ async function loadStudentTable(mode, forceClass = null) {
         if(mode === 'view-list') {
             tbody.innerHTML += `
                 <tr class="${genderClass}">
-                    <td>${s.studentRollNo || '-'}</td>
-                    <td>${s.studentAdmNo || '-'}</td>
-                    <td class="text-left"><b>${s.studentName || '-'}</b></td>
-                    <td>Class ${s.studentClass || '-'}</td>
-                    <td>${s.gender}</td>
-                    <td>${s.fatherName || '-'}</td>
-                    <td>${s.mobile || '-'}</td>
+                    <td>${s.rollNo || '-'}</td><td>${s.admNo || '-'}</td>
+                    <td class="text-left"><b>${s.name || '-'}</b></td><td>Class ${s.class}</td>
+                    <td>${s.gender}</td><td>${s.fatherName || '-'}</td><td>${s.mobile || '-'}</td>
                     <td class="no-print">
                         <i class="fas fa-edit edit-icon" onclick="editExamStudent('${s.id}')"></i>
                         <i class="fas fa-trash delete-icon" onclick="deleteExamStudent('${s.id}')"></i>
                     </td>
                 </tr>`;
         } else if(mode === 'marks') {
-            const total = (s.m1||0) + (s.m2||0) + (s.m3||0) + (s.m4||0);
+            const total = (Number(s.m1)||0) + (Number(s.m2)||0) + (Number(s.m3)||0) + (Number(s.m4)||0);
             tbody.innerHTML += `
                 <tr class="${genderClass}">
-                    <td>${idx+1}</td>
-                    <td>${s.studentAdmNo || '-'}</td>
-                    <td class="text-left"><b>${s.studentName || '-'}</b></td>
+                    <td>${idx+1}</td><td>${s.admNo}</td>
+                    <td class="text-left"><b>${s.name}</b></td>
                     <td><input type="number" value="${s.m1||0}" class="sam-mark-input" onchange="updateMark('${s.id}','m1',this.value)"></td>
                     <td><input type="number" value="${s.m2||0}" class="sam-mark-input" onchange="updateMark('${s.id}','m2',this.value)"></td>
                     <td><input type="number" value="${s.m3||0}" class="sam-mark-input" onchange="updateMark('${s.id}','m3',this.value)"></td>
@@ -2156,71 +2156,62 @@ async function loadStudentTable(mode, forceClass = null) {
     });
 }
 
-// --- 2. എഡിറ്റ് ഫങ്ക്ഷൻ (Fixes the Edit issue) ---
-async function editExamStudent(id) {
-    const doc = await db.collection("exam_students").doc(id).get();
-    if(!doc.exists) return alert("വിവരം ലഭ്യമല്ല");
-    const s = doc.data();
-
-    // അഡ്മിഷൻ ടാബിലേക്ക് മാറ്റുന്നു
-    switchExamTab('register');
-    
-    // ടൈംഔട്ട് നൽകുന്നത് ഇൻപുട്ട് ഫീൽഡുകൾ ലോഡ് ആകാൻ വേണ്ടിയാണ്
-    setTimeout(() => {
-        document.getElementById('ex-adm').value = s.studentAdmNo || "";
-        document.getElementById('ex-roll').value = s.studentRollNo || "";
-        document.getElementById('ex-name').value = s.studentName || "";
-        document.getElementById('ex-class').value = s.studentClass || "";
-        document.getElementById('ex-gender').value = s.gender || "Male";
-        document.getElementById('ex-father').value = s.fatherName || "";
-        document.getElementById('ex-phone').value = s.mobile || "";
-        
-        const saveBtn = document.querySelector('.sam-btn-orange');
-        saveBtn.innerText = "UPDATE STUDENT";
-        saveBtn.onclick = async () => {
-            const updatedData = {
-                studentAdmNo: document.getElementById('ex-adm').value,
-                studentRollNo: document.getElementById('ex-roll').value,
-                studentName: document.getElementById('ex-name').value,
-                studentClass: document.getElementById('ex-class').value,
-                gender: document.getElementById('ex-gender').value,
-                fatherName: document.getElementById('ex-father').value,
-                mobile: document.getElementById('ex-phone').value
-            };
-            await db.collection("exam_students").doc(id).update(updatedData);
-            alert("വിവരങ്ങൾ വിജയകരമായി പുതുക്കി!");
-            location.reload(); // മാറ്റങ്ങൾ കാണാൻ പേജ് പുതുക്കുന്നു
-        };
-    }, 400);
-}
-
-// --- 3. സേവ് ഫങ്ക്ഷൻ (Matches DB field names) ---
+// --- 7. സേവ് & എഡിറ്റ് ലോജിക് ---
 async function saveExamStudent() {
     const data = {
-        studentAdmNo: document.getElementById('ex-adm').value,
-        studentRollNo: document.getElementById('ex-roll').value,
+        admNo: document.getElementById('ex-adm').value,
+        rollNo: document.getElementById('ex-roll').value,
         admDate: document.getElementById('ex-adm-date').value,
-        studentName: document.getElementById('ex-name').value,
-        studentClass: document.getElementById('ex-class').value,
+        name: document.getElementById('ex-name').value,
+        class: String(document.getElementById('ex-class').value),
         gender: document.getElementById('ex-gender').value,
         fatherName: document.getElementById('ex-father').value,
         mobile: document.getElementById('ex-phone').value,
         m1:0, m2:0, m3:0, m4:0
     };
-    
-    if(!data.studentName || !data.studentClass || !data.studentRollNo) {
-        return alert("ദയവായി പേരും ക്ലാസ്സും റോൾ നമ്പറും നൽകുക");
-    }
-
+    if(!data.name || !data.class || !data.rollNo) return alert("ദയവായി പേരും ക്ലാസ്സും റോൾ നമ്പറും നൽകുക");
     await db.collection("exam_students").add(data);
-    alert("Saved Successfully!");
+    alert("വിജയകരമായി ചേർത്തു!");
     switchExamTab('view-list');
 }
 
-// --- 4. മാർക്ക് അപ്ഡേറ്റ് & ഡിലീറ്റ് ---
+async function editExamStudent(id) {
+    const doc = await db.collection("exam_students").doc(id).get();
+    const s = doc.data();
+    switchExamTab('register');
+    
+    setTimeout(() => {
+        document.getElementById('ex-adm').value = s.admNo || "";
+        document.getElementById('ex-roll').value = s.rollNo || "";
+        document.getElementById('ex-name').value = s.name || "";
+        document.getElementById('ex-class').value = s.class || "";
+        document.getElementById('ex-gender').value = s.gender || "Male";
+        document.getElementById('ex-father').value = s.fatherName || "";
+        document.getElementById('ex-phone').value = s.mobile || "";
+        
+        const btn = document.getElementById('save-btn');
+        btn.innerText = "UPDATE STUDENT INFO";
+        btn.onclick = async () => {
+            const upData = {
+                admNo: document.getElementById('ex-adm').value,
+                rollNo: document.getElementById('ex-roll').value,
+                name: document.getElementById('ex-name').value,
+                class: String(document.getElementById('ex-class').value),
+                gender: document.getElementById('ex-gender').value,
+                fatherName: document.getElementById('ex-father').value,
+                mobile: document.getElementById('ex-phone').value
+            };
+            await db.collection("exam_students").doc(id).update(upData);
+            alert("Updated!");
+            location.reload();
+        };
+    }, 500);
+}
+
 async function updateMark(id, field, val) {
     let d = {}; d[field] = parseInt(val) || 0;
     await db.collection("exam_students").doc(id).update(d);
+    // മാർക്ക് അപ്ഡേറ്റ് ചെയ്യുമ്പോൾ ടേബിൾ മാത്രം പുതുക്കുന്നു
     loadStudentTable('marks');
 }
 
@@ -2230,9 +2221,7 @@ async function deleteExamStudent(id) {
         loadStudentTable(currentExamTab);
     }
 }
-
-
-
+   
 // 3. സദർ - ഉസ്താദ് പണമിടപാട് ടേബിൾ (പുതിയത്)
 // 1. ലോഡ് ചെയ്യുന്ന ടേബിൾ (മാറ്റമില്ലാതെ - ഇതിൽ ID ഉം സമയവും ഡിസ്‌പ്ലേ ചെയ്യാനുണ്ട്)
 async function loadRemittanceTable(monthData, remittanceSnap) {

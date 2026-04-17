@@ -1932,8 +1932,8 @@ async function deleteMagSub(id) {
     }
 }
 
- // ==========================================
-// 📝 SAMASTHA EXAM MANAGEMENT SYSTEM (FINAL)
+// ==========================================
+// 📝 SAMASTHA EXAM MANAGEMENT SYSTEM (FINAL UPDATED)
 // ==========================================
 
 let currentExamTab = 'register'; 
@@ -1989,13 +1989,18 @@ function switchExamTab(tab) {
     else if(tab === 'promote') showPromotionUI(container);
 }
 
-// --- 3. അഡ്മിഷൻ ഫോം (New Admission) ---
+// --- 3. അഡ്മിഷൻ ഫോം (നഷ്ടപ്പെട്ട ഫീൽഡുകൾ തിരികെ ചേർത്തു) ---
 function showAddStudentUI(container) {
     container.innerHTML = `
         <div class="sam-card border-orange">
             <h4 class="title-orange"><i class="fas fa-user-plus"></i> New Admission</h4>
-            <div class="sam-form-grid">
-                <input id="ex-adm" placeholder="Admission No" class="s Name" class="sam-input">
+            <div class="sam-form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <input type="text" id="ex-adm" placeholder="Admission No" class="sam-input">
+                <input type="number" id="ex-roll" placeholder="Roll No" class="sam-input">
+                
+                <input type="date" id="ex-dob" class="sam-input" title="Date of Birth">
+                <input type="text" id="ex-name" placeholder="Student Name" class="sam-input">
+                
                 <select id="ex-class" class="sam-input">
                     <option value="">Select Class</option>
                     ${[1,2,3,4,5,6,7,8,9,10,11,12].map(c => `<option value="${c}">Class ${c}</option>`).join('')}
@@ -2004,60 +2009,39 @@ function showAddStudentUI(container) {
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
                 </select>
-                <input id="ex-father" placeholder="Father's Name" class="sam-input">
-                <input id="ex-phone" placeholder="Mobile" class="sam-input">
+                
+                <input type="text" id="ex-father" placeholder="Father's Name" class="sam-input">
+                <input type="text" id="ex-phone" placeholder="Mobile" class="sam-input">
             </div>
-            <button onclick="saveExamStudent()" id="save-btn" class="sam-btn-orange">SAVE STUDENT</button>
+            <button onclick="saveExamStudent()" id="save-btn" class="sam-btn-orange" style="width:100%; margin-top:15px; padding:12px;">SAVE STUDENT</button>
         </div>
     `;
 }
 
-// --- 4. സ്റ്റുഡന്റ് വ്യൂ (സദറിന് ഫിൽട്ടർ ഉൾപ്പെടെ) ---
+// --- 4. സ്റ്റുഡന്റ് വ്യൂ (സദറിന് എല്ലാ ക്ലാസ്സുകളും തിരഞ്ഞെടുക്കാം) ---
 function showStudentViewUI(container) {
     const user = JSON.parse(localStorage.getItem("activeUser"));
-    
-    // ലോഗിൻ ചെയ്തത് സദർ ആണോ എന്ന് കൃത്യമായി പരിശോധിക്കുന്നു
     const isSadhar = user && (user.role === 'Sadhar' || user.role === 'sadhar');
 
     container.innerHTML = `
         <div class="sam-card border-blue">
             <div class="filter-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <h4 class="title-blue"><i class="fas fa-users"></i> Student List</h4>
-                
                 <div class="filter-box">
                     ${isSadhar ? `
-                        <select id="filter-class" onchange="loadStudentTable('view-list')" class="sam-input" style="width: 160px; padding: 8px; border: 2px solid #007bff; border-radius: 6px; font-weight: bold;">
+                        <select id="filter-class" onchange="loadStudentTable('view-list')" class="sam-input" style="width: 150px; padding: 8px; border: 2px solid #007bff; border-radius: 6px; font-weight: bold;">
                             <option value="ALL">All Classes</option>
-                            <option value="1">Class 1</option>
-                            <option value="2">Class 2</option>
-                            <option value="3">Class 3</option>
-                            <option value="4">Class 4</option>
-                            <option value="5">Class 5</option>
-                            <option value="6">Class 6</option>
-                            <option value="7">Class 7</option>
-                            <option value="8">Class 8</option>
-                            <option value="9">Class 9</option>
-                            <option value="10">Class 10</option>
-                            <option value="11">Class 11</option>
-                            <option value="12">Class 12</option>
+                            ${[1,2,3,4,5,6,7,8,9,10,11,12].map(c => `<option value="${c}">Class ${c}</option>`).join('')}
                         </select>
                     ` : `<span class="class-badge" style="background: #007bff; color: white; padding: 5px 12px; border-radius: 4px;">Class: ${user.assignedClass}</span>`}
                 </div>
             </div>
-            
             <div id="class-stats-area" class="stats-container"></div>
-            
             <div class="table-scroll">
                 <table class="sam-main-table">
                     <thead>
                         <tr>
-                            <th>Roll</th>
-                            <th>Adm No</th>
-                            <th>Name</th>
-                            <th>DOB</th> <th>Class</th>
-                            <th>Gender</th>
-                            <th>Mobile</th>
-                            <th class="no-print">Action</th>
+                            <th>Roll</th><th>Adm No</th><th>Name</th><th>DOB</th><th>Class</th><th>Gender</th><th>Mobile</th><th class="no-print">Action</th>
                         </tr>
                     </thead>
                     <tbody id="student-view-body"></tbody>
@@ -2071,12 +2055,14 @@ function showStudentViewUI(container) {
 // --- 5. മാർക്ക് എൻട്രി ---
 function showMarkEntryUI(container) {
     const user = JSON.parse(localStorage.getItem("activeUser"));
+    const isSadhar = user && (user.role === 'Sadhar' || user.role === 'sadhar');
+
     container.innerHTML = `
         <div class="sam-card border-green">
             <div class="flex-between">
                 <h4 class="title-green"><i class="fas fa-edit"></i> Mark Entry</h4>
-                ${user.role === 'Sadhar' ? `
-                    <select id="filter-class-marks" onchange="loadStudentTable('marks')" class="sam-input filter-select">
+                ${isSadhar ? `
+                    <select id="filter-class-marks" onchange="loadStudentTable('marks')" class="sam-input filter-select" style="width: 150px;">
                         <option value="ALL">All Classes</option>
                         ${[1,2,3,4,5,6,7,8,9,10,11,12].map(c => `<option value="${c}">Class ${c}</option>`).join('')}
                     </select>
@@ -2100,38 +2086,22 @@ function showMarkEntryUI(container) {
 }
 
 // --- 6. ഡാറ്റ ലോഡിംഗ് ഫങ്ക്ഷൻ (തീയതി ക്രമീകരിച്ചത്) ---
-// --- 6. ഡാറ്റ ലോഡിംഗ് ഫങ്ക്ഷൻ (Date Format & Sadhar Role Fix) ---
 async function loadStudentTable(mode) {
     const user = JSON.parse(localStorage.getItem("activeUser"));
     const tbody = document.getElementById(mode === 'view-list' ? 'student-view-body' : 'mark-entry-body');
     const statsArea = document.getElementById('class-stats-area');
     
-    // ലോഗിൻ ചെയ്ത ആൾ 'Sadhar' ആണോ എന്ന് പരിശോധിക്കുന്നു
-    const isSadharRole = user && (user.role === 'Sadhar' || user.role === 'sadhar');
-
-    // ഫിൽട്ടർ ഐഡി കണ്ടെത്തുന്നു
+    const isSadhar = user && (user.role === 'Sadhar' || user.role === 'sadhar');
     const filterId = mode === 'view-list' ? 'filter-class' : 'filter-class-marks';
-    
-    // ഡിഫോൾട്ട് വാല്യൂ നിശ്ചയിക്കുന്നു
-    let filterValue = document.getElementById(filterId)?.value;
-    if (!filterValue) {
-        filterValue = isSadharRole ? "ALL" : user.assignedClass;
-    }
+    let filterValue = document.getElementById(filterId)?.value || (isSadhar ? "ALL" : user.assignedClass);
 
     if(!tbody) return;
-
     tbody.innerHTML = `<tr><td colspan="9" style="padding:20px;">ഡാറ്റ ലോഡ് ചെയ്യുന്നു...</td></tr>`;
 
     let query = db.collection("exam_students");
-    
-    // ഫിൽട്ടറിംഗ് ലോജിക്
-    if (isSadharRole) {
-        if (filterValue !== "ALL") {
-            query = query.where("class", "==", String(filterValue));
-        }
-        // ALL ആണെങ്കിൽ ഫിൽട്ടർ വേണ്ട, എല്ലാ കുട്ടികളെയും കാണിക്കും
+    if (isSadhar) {
+        if (filterValue !== "ALL") query = query.where("class", "==", String(filterValue));
     } else {
-        // ഉസ്താദിന് സ്വന്തം ക്ലാസ്സ് മാത്രം
         query = query.where("class", "==", String(user.assignedClass));
     }
 
@@ -2156,13 +2126,11 @@ async function loadStudentTable(mode) {
             `;
         }
 
-        // റോൾ നമ്പർ അനുസരിച്ച് ക്രമീകരിക്കുന്നു
         students.sort((a, b) => parseInt(a.rollNo || 0) - parseInt(b.rollNo || 0));
-
         tbody.innerHTML = "";
         
         if (students.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="9" style="padding:20px; color:#d32f2f; font-weight:bold;">വിവരങ്ങൾ ഒന്നും ലഭ്യമല്ല (Class: ${filterValue})</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="9" style="padding:20px; color:#d32f2f;">വിവരങ്ങൾ ലഭ്യമല്ല.</td></tr>`;
             return;
         }
 
@@ -2170,17 +2138,13 @@ async function loadStudentTable(mode) {
             const isFemale = s.gender?.toLowerCase() === 'female';
             const genderClass = isFemale ? 'text-red' : 'text-black';
             
-            // --- തീയതി ക്രമീകരണം (YYYY-MM-DD -> DD-MM-YYYY) ---
+            // തീയതി ക്രമീകരണം
             let displayDate = '-';
             const rawDate = s.dob || s.admDate;
-            if (rawDate && rawDate !== '-' && rawDate.includes('-')) {
+            if (rawDate && rawDate.includes('-')) {
                 const parts = rawDate.split('-');
-                if (parts.length === 3) {
-                    // വർഷം-മാസം-തിയ്യതി എന്നത് തിയ്യതി-മാസം-വർഷം ആക്കുന്നു
-                    displayDate = `${parts[2]}-${parts[1]}-${parts[0]}`; 
-                } else {
-                    displayDate = rawDate;
-                }
+                if (parts.length === 3) displayDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                else displayDate = rawDate;
             }
             
             if(mode === 'view-list') {
@@ -2189,8 +2153,7 @@ async function loadStudentTable(mode) {
                         <td>${s.rollNo || '-'}</td>
                         <td>${s.admNo || '-'}</td>
                         <td class="text-left"><b>${s.name || '-'}</b></td>
-                        <td>${displayDate}</td> 
-                        <td>Class ${s.class || '-'}</td>
+                        <td>${displayDate}</td> <td>Class ${s.class || '-'}</td>
                         <td>${s.gender || '-'}</td>
                         <td>${s.mobile || '-'}</td>
                         <td class="no-print">
@@ -2216,18 +2179,16 @@ async function loadStudentTable(mode) {
             }
         });
     } catch (error) {
-        console.error("Error loading data:", error);
-        tbody.innerHTML = `<tr><td colspan="9" style="color:red;">ഡാറ്റാബേസ് കണക്ഷൻ പിശക് സംഭവിച്ചു.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" style="color:red;">ഡാറ്റാബേസ് കണക്ഷൻ പിശക്.</td></tr>`;
     }
 }
-
 
 // --- 7. സേവ് & എഡിറ്റ് ലോജിക് ---
 async function saveExamStudent() {
     const data = {
         admNo: document.getElementById('ex-adm').value,
         rollNo: document.getElementById('ex-roll').value,
-        admDate: document.getElementById('ex-adm-date').value,
+        dob: document.getElementById('ex-dob').value,
         name: document.getElementById('ex-name').value,
         class: String(document.getElementById('ex-class').value),
         gender: document.getElementById('ex-gender').value,
@@ -2249,6 +2210,7 @@ async function editExamStudent(id) {
     setTimeout(() => {
         document.getElementById('ex-adm').value = s.admNo || "";
         document.getElementById('ex-roll').value = s.rollNo || "";
+        document.getElementById('ex-dob').value = s.dob || "";
         document.getElementById('ex-name').value = s.name || "";
         document.getElementById('ex-class').value = s.class || "";
         document.getElementById('ex-gender').value = s.gender || "Male";
@@ -2261,6 +2223,7 @@ async function editExamStudent(id) {
             const upData = {
                 admNo: document.getElementById('ex-adm').value,
                 rollNo: document.getElementById('ex-roll').value,
+                dob: document.getElementById('ex-dob').value,
                 name: document.getElementById('ex-name').value,
                 class: String(document.getElementById('ex-class').value),
                 gender: document.getElementById('ex-gender').value,
@@ -2277,7 +2240,6 @@ async function editExamStudent(id) {
 async function updateMark(id, field, val) {
     let d = {}; d[field] = parseInt(val) || 0;
     await db.collection("exam_students").doc(id).update(d);
-    // മാർക്ക് അപ്ഡേറ്റ് ചെയ്യുമ്പോൾ ടേബിൾ മാത്രം പുതുക്കുന്നു
     loadStudentTable('marks');
 }
 

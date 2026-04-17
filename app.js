@@ -2018,19 +2018,34 @@ function showAddStudentUI(container) {
 // --- 4. സ്റ്റുഡന്റ് വ്യൂ (സദറിന് ഫിൽട്ടർ ഉൾപ്പെടെ) ---
 function showStudentViewUI(container) {
     const user = JSON.parse(localStorage.getItem("activeUser"));
+    
+    // ലോഗിൻ ചെയ്തത് സദർ ആണോ എന്ന് കൃത്യമായി പരിശോധിക്കുന്നു
+    const isSadar = user && (user.role === 'Sadar' || user.role === 'sadar');
+
     container.innerHTML = `
         <div class="sam-card border-blue">
-            <div class="filter-header">
+            <div class="filter-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <h4 class="title-blue"><i class="fas fa-users"></i> Student List</h4>
                 
-                ${user.role === 'Sadar' ? `
-                    <div class="filter-box">
-                        <select id="filter-class" onchange="loadStudentTable('view-list')" class="sam-input filter-select">
+                <div class="filter-box">
+                    ${isSadar ? `
+                        <select id="filter-class" onchange="loadStudentTable('view-list')" class="sam-input" style="width: 160px; padding: 8px; border: 2px solid #007bff; border-radius: 6px; font-weight: bold;">
                             <option value="ALL">All Classes</option>
-                            ${[1,2,3,4,5,6,7,8,9,10,11,12].map(c => `<option value="${c}">Class ${c}</option>`).join('')}
+                            <option value="1">Class 1</option>
+                            <option value="2">Class 2</option>
+                            <option value="3">Class 3</option>
+                            <option value="4">Class 4</option>
+                            <option value="5">Class 5</option>
+                            <option value="6">Class 6</option>
+                            <option value="7">Class 7</option>
+                            <option value="8">Class 8</option>
+                            <option value="9">Class 9</option>
+                            <option value="10">Class 10</option>
+                            <option value="11">Class 11</option>
+                            <option value="12">Class 12</option>
                         </select>
-                    </div>
-                ` : `<span class="class-badge">Class: ${user.assignedClass}</span>`}
+                    ` : `<span class="class-badge" style="background: #007bff; color: white; padding: 5px 12px; border-radius: 4px;">Class: ${user.assignedClass}</span>`}
+                </div>
             </div>
             
             <div id="class-stats-area" class="stats-container"></div>
@@ -2053,10 +2068,8 @@ function showStudentViewUI(container) {
             </div>
         </div>
     `;
-    // പേജ് ലോഡ് ചെയ്യുമ്പോൾ ഡാറ്റ കാണിക്കാൻ
     loadStudentTable('view-list');
 }
-
 
 // --- 5. മാർക്ക് എൻട്രി ---
 function showMarkEntryUI(container) {
@@ -2089,24 +2102,21 @@ function showMarkEntryUI(container) {
     loadStudentTable('marks');
 }
 
-// --- 6. ഡാറ്റ ലോഡിംഗ് ഫങ്ക്ഷൻ (ഉസ്താദ്/സദർ റൂൾസ് ഉൾപ്പെടെ) ---
+// --- 6. ഡാറ്റ ലോഡിംഗ് ഫങ്ക്ഷൻ (തീയതി ക്രമീകരിച്ചത്) ---
 async function loadStudentTable(mode) {
     const user = JSON.parse(localStorage.getItem("activeUser"));
     const tbody = document.getElementById(mode === 'view-list' ? 'student-view-body' : 'mark-entry-body');
     const statsArea = document.getElementById('class-stats-area');
     
-    // ഫിൽട്ടർ ഐഡി കണ്ടെത്തുന്നു
     const filterId = mode === 'view-list' ? 'filter-class' : 'filter-class-marks';
     let filterValue = document.getElementById(filterId)?.value || (user.role === 'Usthad' ? user.assignedClass : "ALL");
 
     if(!tbody) return;
 
-    // ലോഡിംഗ് സമയത്ത് പഴയ ഡാറ്റ ക്ലിയർ ചെയ്യുന്നു
     tbody.innerHTML = `<tr><td colspan="9" style="padding:20px;">ഡാറ്റ ലോഡ് ചെയ്യുന്നു...</td></tr>`;
 
     let query = db.collection("exam_students");
     
-    // ക്വറി ലോജിക്: സദർ 'ALL' ആണ് സെലക്ട് ചെയ്തതെങ്കിൽ ഫിൽട്ടർ ഒഴിവാക്കുന്നു
     if (user.role === 'Usthad') {
         query = query.where("class", "==", String(user.assignedClass));
     } else if (filterValue !== "ALL") {
@@ -2122,12 +2132,10 @@ async function loadStudentTable(mode) {
             const d = doc.data();
             students.push({ id: doc.id, ...d });
             stats.total++;
-            // ലിംഗഭേദം തിരിച്ചറിയാൻ ചെറിയ അക്ഷരങ്ങളും വലിയ അക്ഷരങ്ങളും നോക്കുന്നു
             if (d.gender?.toLowerCase() === 'male') stats.male++; 
             else if (d.gender?.toLowerCase() === 'female') stats.female++;
         });
 
-        // സ്റ്റാറ്റിസ്റ്റിക്സ് അപ്ഡേറ്റ് ചെയ്യുന്നു
         if(statsArea && mode === 'view-list') {
             statsArea.innerHTML = `
                 <div class="stat-box">Total: <b>${stats.total}</b></div>
@@ -2136,7 +2144,6 @@ async function loadStudentTable(mode) {
             `;
         }
 
-        // റോൾ നമ്പർ അനുസരിച്ച് ക്രമീകരിക്കുന്നു
         students.sort((a, b) => parseInt(a.rollNo) - parseInt(b.rollNo));
 
         tbody.innerHTML = "";
@@ -2150,13 +2157,25 @@ async function loadStudentTable(mode) {
             const isFemale = s.gender?.toLowerCase() === 'female';
             const genderClass = isFemale ? 'text-red' : 'text-black';
             
+            // --- തീയതി ക്രമീകരണം (YYYY-MM-DD -> DD-MM-YYYY) ---
+            let displayDate = '-';
+            const rawDate = s.dob || s.admDate;
+            if (rawDate && rawDate !== '-') {
+                const parts = rawDate.split('-');
+                if (parts.length === 3) {
+                    displayDate = `${parts[2]}-${parts[1]}-${parts[0]}`; // DD-MM-YYYY
+                } else {
+                    displayDate = rawDate;
+                }
+            }
+            
             if(mode === 'view-list') {
                 tbody.innerHTML += `
                     <tr class="${genderClass}">
                         <td>${s.rollNo || '-'}</td>
                         <td>${s.admNo || '-'}</td>
                         <td class="text-left"><b>${s.name || '-'}</b></td>
-                        <td>${s.dob || s.admDate || '-'}</td> <td>Class ${s.class || '-'}</td>
+                        <td>${displayDate}</td> <td>Class ${s.class || '-'}</td>
                         <td>${s.gender || '-'}</td>
                         <td>${s.mobile || '-'}</td>
                         <td class="no-print">

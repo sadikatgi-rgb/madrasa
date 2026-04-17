@@ -400,187 +400,193 @@ input:focus, select:focus {
     .no-print { display: none !important; }
     .mag-table th { background: #f0f0f0 !important; color: #000 !important; }
 }
-/* --- പരീക്ഷാ വിഭാഗത്തിലെ പുതിയ സ്റ്റൈലുകൾ --- */
+/* --- 🎨 Exam Management Styles --- */
 
-/* 1. പേജിലെ പ്രധാന ടൈറ്റിൽ */
-.form-title {
-    color: #e65100;
-    margin-bottom: 15px;
-    font-size: 16px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+.sam-container {
+    padding: 15px;
+    background: #f4f6f9;
+    min-height: 90vh;
 }
 
-/* 2. ഫുൾ വിഡ്ത്ത് ബട്ടൺ */
-.full-width {
-    width: 100% !important;
-    padding: 12px;
-    font-weight: bold;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-/* 3. ലിസ്റ്റ് ഹെഡർ ഏരിയ (ഫിൽട്ടറും പ്രിന്റും ഉള്ള ഭാഗം) */
-.list-header-card {
-    border-top: 4px solid #2e7d32 !important;
-    margin-top: 20px;
-}
-
-.list-header-flex {
+.sam-header {
+    background: #e65100;
+    color: white;
+    padding: 15px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
 }
 
-.list-header-flex h4 {
-    color: #2e7d32;
-}
-
-/* 4. പ്രിന്റ് ബട്ടൺ (Header) */
-.print-header-btn {
-    background: #455a64;
+.sam-back-btn {
+    background: rgba(255,255,255,0.2);
     color: white;
     border: none;
-    padding: 8px 15px;
+    padding: 8px 12px;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 13px;
-    transition: 0.3s;
 }
 
-.print-header-btn:hover {
-    background: #37474f;
-}
-
-/* 5. ടേബിളിലെ വരികൾക്കും പേരുകൾക്കും ഉള്ള പ്രത്യേക നിറങ്ങൾ */
-.female-row {
-    background-color: #fff5f5 !important; /* പെൺകുട്ടികൾക്ക് നേരിയ ചുവപ്പ് ബാക്ക്ഗ്രൗണ്ട് */
-}
-
-.female-name {
-    color: #d32f2f !important; /* പെൺകുട്ടികളുടെ പേര് ചുവപ്പ് നിറത്തിൽ */
-    font-weight: bold;
-}
-
-.male-name {
-    color: #1a73e8 !important; /* ആൺകുട്ടികളുടെ പേര് നീല നിറത്തിൽ */
-    font-weight: bold;
-}
-
-/* 6. ആക്ഷൻ ബട്ടണുകൾ (Edit, Promote, Delete) */
-.action-btn-group {
+.sam-avatar {
+    width: 35px;
+    height: 35px;
+    background: white;
+    color: #e65100;
+    border-radius: 50%;
     display: flex;
-    gap: 12px;
     align-items: center;
-}
-
-.action-btn-group i {
-    font-size: 18px;
-    cursor: pointer;
-    transition: transform 0.2s;
-}
-
-.action-btn-group i:active {
-    transform: scale(0.9);
-}
-
-/* ഓരോ ഐക്കണിനും പ്രത്യേക നിറം */
-.edit-btn { color: #1a73e8; }      /* Edit - നീല */
-.btn-promote { color: #2e7d32; }   /* Promote - പച്ച */
-.btn-depromote { color: #ef6c00; } /* Demote - ഓറഞ്ച് */
-.delete-btn { color: #ea4335; }    /* Delete - ചുവപ്പ് */
-
-/* 7. സമ്മറി ബോക്സ് (Summary Box) */
-.summary-box {
-    background: #fff9f4;
-    border-left: 5px solid #e65100;
-    padding: 15px;
-    border-radius: 8px;
-    margin-top: 15px;
-    font-size: 14px;
+    justify-content: center;
     font-weight: bold;
-    color: #333;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
 
-/* 8. പ്രിന്റ് എടുക്കുമ്പോൾ ടേബിൾ ഭംഗിയായി വരാൻ */
-@media print {
-    .mag-table {
-        width: 100% !important;
-        border: 1px solid #ccc;
-    }
-    .mag-table th {
-        background-color: #f0f0f0 !important;
-        color: #000 !important;
-        border: 1px solid #ccc;
-    }
-    .mag-table td {
-        border: 1px solid #ccc;
-    }
+/* Tabs */
+.sam-tab-bar {
+    display: flex;
+    gap: 5px;
+    background: #ddd;
+    padding: 5px;
+    border-radius: 8px;
+    margin-bottom: 20px;
 }
-/* മൊബൈലിൽ വശങ്ങളിലേക്ക് സ്ക്രോൾ ചെയ്യാൻ */
-.table-container-scroll {
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+
+.sam-tab {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-weight: bold;
+    color: #666;
+    font-size: 13px;
+}
+
+.sam-tab.active {
+    background: #e65100;
+    color: white;
+    border-radius: 6px;
+}
+
+/* Cards */
+.sam-card {
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.border-orange { border-top: 5px solid #e65100; }
+.border-green { border-top: 5px solid #2e7d32; }
+.border-blue { border-top: 5px solid #1a73e8; }
+
+.title-orange { color: #e65100; }
+.title-green { color: #2e7d32; }
+.title-blue { color: #1a73e8; }
+
+/* Form Grid */
+.sam-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
     margin-top: 15px;
-    border: 1px solid #ddd;
+}
+
+.sam-input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.sam-btn-orange {
+    width: 100%;
+    margin-top: 15px;
+    padding: 12px;
+    background: #e65100;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* Table Styles */
+.table-scroll {
+    overflow-x: auto;
+    width: 100%;
+    background: white;
     border-radius: 8px;
 }
 
-/* ടേബിളിന്റെ കുറഞ്ഞ വീതി 800px ആക്കി വെക്കുന്നു */
-.mag-table.result-table {
-    min-width: 900px;
+.sam-main-table {
+    width: 100%;
+    min-width: 850px;
     border-collapse: collapse;
 }
 
-.mark-input {
+.sam-main-table th {
+    background: #455a64;
+    color: white;
+    padding: 12px;
+    font-size: 12px;
+}
+
+.sam-main-table td {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+    text-align: center;
+    font-size: 13px;
+}
+
+.text-left { text-align: left !important; }
+
+/* Female Highlight */
+.female-row { background: #fff5f5; }
+.female-name { color: #d32f2f; }
+.male-name { color: #1a73e8; }
+
+/* Mark Inputs */
+.sam-mark-input {
     width: 50px;
     padding: 5px;
     border: 1px solid #ccc;
     text-align: center;
+    border-radius: 4px;
     font-weight: bold;
+}
+
+/* Result Colors */
+.pass { color: green; font-weight: bold; }
+.fail { color: red; font-weight: bold; }
+
+.text-red { color: red; cursor: pointer; }
+.text-blue { color: #1a73e8; cursor: pointer; }
+
+.sam-btn-promote {
+    background: #2e7d32;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.flex-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.sam-print-btn {
+    background: #455a64;
+    color: white;
+    border: none;
+    padding: 5px 15px;
     border-radius: 4px;
 }
 
-.stats-summary-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-top: 10px;
-}
-
-.stat-card-mini {
-    background: #e65100;
-    color: white;
-    padding: 10px;
-    border-radius: 8px;
-    font-size: 12px;
-    text-align: center;
-    font-weight: bold;
-}
-
-/* ആക്ഷൻ ബട്ടണുകളുടെ സ്റ്റൈൽ (നിങ്ങൾ അയച്ച ഫോട്ടോ പോലെ) */
-.action-buttons {
-    display: flex;
-    gap: 5px;
-}
-
-.up-btn { background: #2e7d32; color: white; border: none; padding: 5px 10px; border-radius: 4px; }
-.del-btn-small { background: #d32f2f; color: white; border: none; padding: 5px 10px; border-radius: 4px; }
-
-.text-pass { color: green; font-weight: bold; }
-.text-fail { color: red; font-weight: bold; }
-
-.save-btn-orange {
-    background: #e65100;
-    color: white;
-    width: 100%;
-    padding: 12px;
-    border: none;
-    border-radius: 8px;
-    font-weight: bold;
-    cursor: pointer;
+@media print {
+    .no-print, .sam-tab-bar, .sam-header { display: none !important; }
+    .sam-card { border: none; box-shadow: none; }
 }

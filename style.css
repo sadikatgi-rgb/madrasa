@@ -520,3 +520,42 @@ input:focus, select:focus {
         border: 1px solid #ccc;
     }
 }
+/* ടേബിൾ സൈഡിലേക്ക് സ്ക്രോൾ ചെയ്യാൻ */
+.mag-table-wrapper {
+    width: 100%;
+    overflow-x: auto; /* സൈഡിലേക്ക് സ്ക്രോൾ ചെയ്യാൻ */
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.mag-table {
+    width: 100%;
+    min-width: 800px; /* ടേബിളിന്റെ കുറഞ്ഞ വീതി */
+    border-collapse: collapse;
+}
+
+.mag-table th, .mag-table td {
+    padding: 10px;
+    border: 1px solid #ddd;
+    text-align: center;
+    white-space: nowrap; /* വരികൾ മുറിഞ്ഞു പോകാതിരിക്കാൻ */
+}
+
+/* വിജയശതമാനം കാണിക്കുന്ന കാർഡ് */
+.stats-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.stat-box {
+    background: #fff;
+    padding: 15px;
+    border-radius: 10px;
+    border-top: 4px solid #e65100;
+    text-align: center;
+}
+
+.stat-box h2 { color: #e65100; margin: 5px 0; }

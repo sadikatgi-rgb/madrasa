@@ -2020,7 +2020,7 @@ function showStudentViewUI(container) {
     const user = JSON.parse(localStorage.getItem("activeUser"));
     
     // ലോഗിൻ ചെയ്തത് സദർ ആണോ എന്ന് കൃത്യമായി പരിശോധിക്കുന്നു
-    const isSadar = user && (user.role === 'Sadar' || user.role === 'sadar');
+    const isSadhar = user && (user.role === 'Sadhar' || user.role === 'sadhar');
 
     container.innerHTML = `
         <div class="sam-card border-blue">

@@ -2103,13 +2103,23 @@ function showMarkEntryUI(container) {
 }
 
 // --- 6. ഡാറ്റ ലോഡിംഗ് ഫങ്ക്ഷൻ (തീയതി ക്രമീകരിച്ചത്) ---
+// --- 6. ഡാറ്റ ലോഡിംഗ് ഫങ്ക്ഷൻ (Date Format & Sadhar Role Fix) ---
 async function loadStudentTable(mode) {
     const user = JSON.parse(localStorage.getItem("activeUser"));
     const tbody = document.getElementById(mode === 'view-list' ? 'student-view-body' : 'mark-entry-body');
     const statsArea = document.getElementById('class-stats-area');
     
+    // ലോഗിൻ ചെയ്ത ആൾ 'Sadhar' ആണോ എന്ന് പരിശോധിക്കുന്നു
+    const isSadharRole = user && (user.role === 'Sadhar' || user.role === 'sadhar');
+
+    // ഫിൽട്ടർ ഐഡി കണ്ടെത്തുന്നു
     const filterId = mode === 'view-list' ? 'filter-class' : 'filter-class-marks';
-    let filterValue = document.getElementById(filterId)?.value || (user.role === 'Usthad' ? user.assignedClass : "ALL");
+    
+    // ഡിഫോൾട്ട് വാല്യൂ നിശ്ചയിക്കുന്നു
+    let filterValue = document.getElementById(filterId)?.value;
+    if (!filterValue) {
+        filterValue = isSadharRole ? "ALL" : user.assignedClass;
+    }
 
     if(!tbody) return;
 
@@ -2117,10 +2127,15 @@ async function loadStudentTable(mode) {
 
     let query = db.collection("exam_students");
     
-    if (user.role === 'Usthad') {
+    // ഫിൽട്ടറിംഗ് ലോജിക്
+    if (isSadharRole) {
+        if (filterValue !== "ALL") {
+            query = query.where("class", "==", String(filterValue));
+        }
+        // ALL ആണെങ്കിൽ ഫിൽട്ടർ വേണ്ട, എല്ലാ കുട്ടികളെയും കാണിക്കും
+    } else {
+        // ഉസ്താദിന് സ്വന്തം ക്ലാസ്സ് മാത്രം
         query = query.where("class", "==", String(user.assignedClass));
-    } else if (filterValue !== "ALL") {
-        query = query.where("class", "==", String(filterValue));
     }
 
     try {
@@ -2144,7 +2159,8 @@ async function loadStudentTable(mode) {
             `;
         }
 
-        students.sort((a, b) => parseInt(a.rollNo) - parseInt(b.rollNo));
+        // റോൾ നമ്പർ അനുസരിച്ച് ക്രമീകരിക്കുന്നു
+        students.sort((a, b) => parseInt(a.rollNo || 0) - parseInt(b.rollNo || 0));
 
         tbody.innerHTML = "";
         
@@ -2160,10 +2176,11 @@ async function loadStudentTable(mode) {
             // --- തീയതി ക്രമീകരണം (YYYY-MM-DD -> DD-MM-YYYY) ---
             let displayDate = '-';
             const rawDate = s.dob || s.admDate;
-            if (rawDate && rawDate !== '-') {
+            if (rawDate && rawDate !== '-' && rawDate.includes('-')) {
                 const parts = rawDate.split('-');
                 if (parts.length === 3) {
-                    displayDate = `${parts[2]}-${parts[1]}-${parts[0]}`; // DD-MM-YYYY
+                    // വർഷം-മാസം-തിയ്യതി എന്നത് തിയ്യതി-മാസം-വർഷം ആക്കുന്നു
+                    displayDate = `${parts[2]}-${parts[1]}-${parts[0]}`; 
                 } else {
                     displayDate = rawDate;
                 }
@@ -2175,7 +2192,8 @@ async function loadStudentTable(mode) {
                         <td>${s.rollNo || '-'}</td>
                         <td>${s.admNo || '-'}</td>
                         <td class="text-left"><b>${s.name || '-'}</b></td>
-                        <td>${displayDate}</td> <td>Class ${s.class || '-'}</td>
+                        <td>${displayDate}</td> 
+                        <td>Class ${s.class || '-'}</td>
                         <td>${s.gender || '-'}</td>
                         <td>${s.mobile || '-'}</td>
                         <td class="no-print">
@@ -2205,6 +2223,7 @@ async function loadStudentTable(mode) {
         tbody.innerHTML = `<tr><td colspan="9" style="color:red;">ഡാറ്റാബേസ് കണക്ഷൻ പിശക് സംഭവിച്ചു.</td></tr>`;
     }
 }
+
 
 // --- 7. സേവ് & എഡിറ്റ് ലോജിക് ---
 async function saveExamStudent() {

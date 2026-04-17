@@ -2334,6 +2334,36 @@ async function deleteRemittance(id) {
         showCollectionReport();
     } catch (e) { alert("Error: " + e.message); }
 }
+// സദർ പേജിൽ ഓരോ ക്ലാസ്സിലെയും എണ്ണം കാണിക്കാൻ
+async function loadClassWiseSummary() {
+    const statsContainer = document.getElementById('class-grid-area'); // ഈ ഐഡി നിങ്ങളുടെ HTML-ൽ ഉണ്ടെന്ന് ഉറപ്പാക്കുക
+    if(!statsContainer) return;
+
+    const snap = await db.collection("exam_students").get();
+    let summary = {};
+    for(let i=1; i<=12; i++) summary[i] = { total: 0, boys: 0, girls: 0 };
+
+    snap.forEach(doc => {
+        const d = doc.data();
+        const cls = d.studentClass;
+        if(summary[cls]) {
+            summary[cls].total++;
+            if(d.gender === 'Male') summary[cls].boys++; else summary[cls].girls++;
+        }
+    });
+
+    statsContainer.innerHTML = "";
+    for(let i=1; i<=12; i++) {
+        if(summary[i].total > 0) {
+            statsContainer.innerHTML += `
+                <div class="class-stat-card" onclick="loadStudentTable('view-list', '${i}')">
+                    <div class="class-no">Class ${i}</div>
+                    <div class="class-counts">B: ${summary[i].boys} | G: ${summary[i].girls}</div>
+                    <div class="class-total">Total: ${summary[i].total}</div>
+                </div>`;
+        }
+    }
+}
 
 // ---  ശമ്പള മാനേജ്‌മെന്റ് ഫങ്ക്ഷനുകൾ ഇവിടെ തുടങ്ങുന്നു (മാറ്റമില്ലാതെ) ---
 // --- പരിഷ്കരിച്ച ശമ്പള മാനേജ്‌മെന്റ് ഫങ്ക്ഷനുകൾ ---

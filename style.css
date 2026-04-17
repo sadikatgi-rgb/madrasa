@@ -303,109 +303,15 @@ input:focus, select:focus {
     background-color: #f1f8e9;
 }
 
-/* എക്സാം സെക്ഷനിലെ ചെറിയ ഇൻപുട്ടുകൾ */
-.exam-input-small {
-    width: 55px;
-    padding: 6px;
-    border: 1.5px solid #ccc;
-    border-radius: 5px;
-    text-align: center;
-    font-weight: bold;
-}
-
-/* ആക്ഷൻ ബട്ടണുകൾ (Save/Edit/Delete) */
-.action-btn-group {
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-}
-
-.edit-btn { color: #1a73e8; cursor: pointer; }
-.delete-btn { color: #ea4335; cursor: pointer; }
-
-/* സേവ് ബട്ടൺ (പച്ച - മാർക്ക്, നീല - ഫീ) */
-.save-btn-green {
-    background: #2e7d32;
-    color: white;
-    border: none;
-    padding: 6px 10px;
-    border-radius: 6px;
-    cursor: pointer;
-}
-
-.save-btn-blue {
-    background: #1a73e8;
-    color: white;
-    border: none;
-    padding: 6px 10px;
-    border-radius: 6px;
-    cursor: pointer;
-}
-
-/* പ്രിന്റ് ഫ്രണ്ട്‌ലി സ്റ്റൈൽ */
-@media print {
-    .no-print { display: none !important; }
-    .mag-table-wrapper { border: none; }
-    .mag-table th { background: #eee !important; color: black; }
-}
-/* Exam Management Custom Styles */
-.exam-header { background: #e65100; color: white; padding: 15px; border-radius: 12px 12px 0 0; }
-.exam-tab-group { display: flex; gap: 5px; margin-bottom: 15px; background: #f5f5f5; padding: 5px; border-radius: 10px; }
-.exam-tab { flex: 1; padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; }
-.exam-tab.active { background: #e65100; color: white; }
-.exam-tab.inactive { background: #eee; color: #666; }
-
-.exam-card { background: #fff; padding: 15px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; border-top: 4px solid #e65100; }
-.exam-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-.exam-input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-
-.exam-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
-.exam-table th, .exam-table td { border: 1px solid #eee; padding: 10px; text-align: left; }
-.exam-table th { background: #fff3e0; color: #e65100; }
-
-.badge-male { background: #e3f2fd; color: #1a73e8; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
-.badge-female { background: #fce4ec; color: #d81b60; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
-
-.btn-promote { background: #2e7d32; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; }
-.btn-depromote { background: #d32f2f; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; }
-
-/* Summary Dashboard Card */
-.summary-box { background: #fff; border-left: 5px solid #e65100; padding: 12px; border-radius: 8px; margin-top: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-/* പെൺകുട്ടികൾക്കുള്ള സ്പെഷ്യൽ ബാഡ്ജ് */
-.badge-female {
-    background: #ffebee;
-    color: #c62828;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: bold;
-    border: 1px solid #ffcdd2;
-}
-
-.badge-male {
-    background: #e3f2fd;
-    color: #1565c0;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: bold;
-    border: 1px solid #bbdefb;
-}
-
-/* പ്രിന്റ് ചെയ്യുമ്പോൾ മാത്രം ആവശ്യമില്ലാത്തവ മറയ്ക്കാൻ */
-@media print {
-    body * { visibility: hidden; }
-    .mag-table-wrapper, .mag-table-wrapper * { visibility: visible; }
-    .mag-table-wrapper { position: absolute; left: 0; top: 0; width: 100%; }
-    .no-print { display: none !important; }
-    .mag-table th { background: #f0f0f0 !important; color: #000 !important; }
-}
-/* --- 🎨 Exam Management Styles --- */
+/* ============================================================
+   📝 SAMASTHA PORTAL - EXAM MANAGEMENT STYLES (NEW)
+   ============================================================ */
 
 .sam-container {
     padding: 15px;
     background: #f4f6f9;
     min-height: 90vh;
+    font-family: 'Inter', sans-serif;
 }
 
 .sam-header {
@@ -415,6 +321,7 @@ input:focus, select:focus {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    border-radius: 8px 8px 0 0;
 }
 
 .sam-back-btn {
@@ -426,51 +333,41 @@ input:focus, select:focus {
     cursor: pointer;
 }
 
-.sam-avatar {
-    width: 35px;
-    height: 35px;
-    background: white;
-    color: #e65100;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-}
-
-/* Tabs */
+/* --- Navigation Tabs --- */
 .sam-tab-bar {
     display: flex;
     gap: 5px;
-    background: #ddd;
+    background: #eee;
     padding: 5px;
-    border-radius: 8px;
+    border-radius: 10px;
     margin-bottom: 20px;
 }
 
 .sam-tab {
     flex: 1;
-    padding: 10px;
+    padding: 12px 5px;
     border: none;
     background: none;
     cursor: pointer;
     font-weight: bold;
     color: #666;
     font-size: 13px;
+    transition: 0.3s;
 }
 
 .sam-tab.active {
     background: #e65100;
     color: white;
-    border-radius: 6px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
-/* Cards */
+/* --- Cards --- */
 .sam-card {
     background: white;
-    padding: 15px;
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    padding: 18px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     margin-bottom: 20px;
 }
 
@@ -478,115 +375,167 @@ input:focus, select:focus {
 .border-green { border-top: 5px solid #2e7d32; }
 .border-blue { border-top: 5px solid #1a73e8; }
 
-.title-orange { color: #e65100; }
-.title-green { color: #2e7d32; }
-.title-blue { color: #1a73e8; }
+/* --- Statistics Boxes (Counting) --- */
+.stats-container {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
 
-/* Form Grid */
+.stat-box {
+    flex: 1;
+    min-width: 100px;
+    padding: 15px 10px;
+    background: #ffffff;
+    border-radius: 10px;
+    text-align: center;
+    font-size: 13px;
+    border: 1px solid #ddd;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+}
+
+.stat-box b {
+    display: block;
+    font-size: 18px;
+    margin-top: 5px;
+}
+
+.male-bg { background: #e3f2fd; color: #1565c0; border-color: #bbdefb; }
+.female-bg { background: #fff5f5; color: #c62828; border-color: #ffcdd2; }
+
+/* --- Form Elements --- */
 .sam-form-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
     margin-top: 15px;
 }
 
 .sam-input {
     width: 100%;
-    padding: 10px;
+    padding: 12px;
     border: 1px solid #ccc;
-    border-radius: 6px;
+    border-radius: 8px;
     font-size: 14px;
+    outline: none;
 }
+
+.sam-input:focus { border-color: #e65100; }
 
 .sam-btn-orange {
     width: 100%;
     margin-top: 15px;
-    padding: 12px;
+    padding: 14px;
     background: #e65100;
     color: white;
     border: none;
     border-radius: 8px;
     font-weight: bold;
     cursor: pointer;
+    font-size: 15px;
 }
 
-/* Table Styles */
+/* --- Table Styling --- */
 .table-scroll {
     overflow-x: auto;
     width: 100%;
     background: white;
+    border: 1px solid #eee;
     border-radius: 8px;
 }
 
 .sam-main-table {
     width: 100%;
-    min-width: 850px;
+    min-width: 900px;
     border-collapse: collapse;
 }
 
 .sam-main-table th {
     background: #455a64;
     color: white;
-    padding: 12px;
+    padding: 14px;
     font-size: 12px;
+    text-align: center;
 }
 
 .sam-main-table td {
     padding: 12px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid #f0f0f0;
     text-align: center;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .text-left { text-align: left !important; }
 
-/* Female Highlight */
-.female-row { background: #fff5f5; }
-.female-name { color: #d32f2f; }
-.male-name { color: #1a73e8; }
+/* --- Gender Based Row Coloring --- */
+/* പെൺകുട്ടികളുടെ വിവരങ്ങൾ ചുവപ്പ് നിറത്തിൽ */
+.text-red td, .text-red b {
+    color: #d32f2f !important;
+}
 
-/* Mark Inputs */
+/* ആൺകുട്ടികളുടെ വിവരങ്ങൾ കറുപ്പ് നിറത്തിൽ */
+.text-black td, .text-black b {
+    color: #212121 !important;
+}
+
+/* --- Mark Entry Inputs --- */
 .sam-mark-input {
-    width: 50px;
-    padding: 5px;
-    border: 1px solid #ccc;
+    width: 55px;
+    padding: 8px;
+    border: 1.5px solid #ccc;
     text-align: center;
-    border-radius: 4px;
+    border-radius: 6px;
     font-weight: bold;
+    color: #333;
 }
 
-/* Result Colors */
-.pass { color: green; font-weight: bold; }
-.fail { color: red; font-weight: bold; }
+.sam-mark-input:focus { border-color: #2e7d32; outline: none; }
 
-.text-red { color: red; cursor: pointer; }
-.text-blue { color: #1a73e8; cursor: pointer; }
+/* --- Status Colors --- */
+.pass { color: #2e7d32; font-weight: bold; }
+.fail { color: #d32f2f; font-weight: bold; }
 
-.sam-btn-promote {
-    background: #2e7d32;
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 4px;
+/* --- Icons --- */
+.edit-icon { color: #1a73e8; cursor: pointer; font-size: 16px; margin-right: 10px; }
+.delete-icon { color: #ea4335; cursor: pointer; font-size: 16px; }
+
+/* --- UI Helpers --- */
+.instruction-box {
+    margin-top: 15px;
+    padding: 12px;
+    background: #fff8e1;
+    color: #f57c00;
+    border-radius: 8px;
+    text-align: center;
+    border: 1px dashed #ffb300;
     cursor: pointer;
+    font-size: 13px;
 }
 
-.flex-between {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-}
-
-.sam-print-btn {
-    background: #455a64;
+.class-badge {
+    background: #37474f;
     color: white;
-    border: none;
-    padding: 5px 15px;
-    border-radius: 4px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
 }
 
+/* --- Printing --- */
 @media print {
-    .no-print, .sam-tab-bar, .sam-header { display: none !important; }
-    .sam-card { border: none; box-shadow: none; }
+    .no-print, .sam-tab-bar, .sam-header, .sam-back-btn, .instruction-box {
+        display: none !important;
+    }
+    .sam-card { box-shadow: none; border: none; padding: 0; }
+    .sam-main-table { min-width: 100%; }
+    .sam-main-table th { background: #f0f0f0 !important; color: black; border: 1px solid #ddd; }
+    .sam-main-table td { border: 1px solid #ddd; }
 }
+
+/* --- Mobile Fixes --- */
+@media (max-width: 600px) {
+    .sam-form-grid { grid-template-columns: 1fr 1fr; }
+    .stats-container { display: grid; grid-template-columns: 1fr 1fr; }
+    .stat-box:first-child { grid-column: span 2; }
+}
+

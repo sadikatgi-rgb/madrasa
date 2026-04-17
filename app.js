@@ -2072,19 +2072,25 @@ function showMarkEntryUI(container) {
 }
 
 // --- Core Data Loading Logic (Roll No & Gender Logic) ---
-async function loadStudentTable(mode) {
+
+   // --- 1. Core Data Loading Logic (Roll No & Gender Logic) ---
+async function loadStudentTable(mode, forceClass = null) {
     const user = JSON.parse(localStorage.getItem("activeUser"));
     const tbody = document.getElementById(mode === 'view-list' ? 'student-view-body' : 'mark-entry-body');
     const statsArea = document.getElementById('class-stats-area');
-    const filterClass = document.getElementById('filter-class')?.value || user.assignedClass || "ALL";
+    
+    // സദറിന് വേണ്ടി ഫോഴ്സ് ക്ലാസ്സ് ഉണ്ടെങ്കിൽ അത് എടുക്കും, അല്ലെങ്കിൽ ഫിൽട്ടറിൽ ഉള്ളത്
+    const filterClass = forceClass || document.getElementById('filter-class')?.value || user.assignedClass || "ALL";
 
     if(!tbody) return;
 
     let query = db.collection("exam_students");
+    
+    // ഉസ്താദ് ആണെങ്കിൽ സ്വന്തം ക്ലാസ്സ് മാത്രം, സദർ ആണെങ്കിൽ ഫിൽട്ടർ ചെയ്ത ക്ലാസ്സ്
     if (user.role === 'Usthad') {
-        query = query.where("class", "==", user.assignedClass);
+        query = query.where("studentClass", "==", user.assignedClass);
     } else if (filterClass !== "ALL") {
-        query = query.where("class", "==", filterClass);
+        query = query.where("studentClass", "==", filterClass);
     }
 
     const snap = await query.get();
@@ -2098,7 +2104,7 @@ async function loadStudentTable(mode) {
         if (d.gender === 'Male') stats.male++; else stats.female++;
     });
 
-    // Update Statistics
+    // സ്റ്റാറ്റിസ്റ്റിക്സ് കാണിക്കുന്നു (സദറിനും ഉസ്താദിനും)
     if(statsArea) {
         statsArea.innerHTML = `
             <div class="stat-box">Total: <b>${stats.total}</b></div>
@@ -2109,32 +2115,33 @@ async function loadStudentTable(mode) {
 
     // Sorting: Class -> Gender (Male First) -> Roll No
     students.sort((a, b) => {
-        if (a.class !== b.class) return parseInt(a.class) - parseInt(b.class);
+        if (a.studentClass !== b.studentClass) return parseInt(a.studentClass) - parseInt(b.studentClass);
         if (a.gender !== b.gender) return a.gender === 'Male' ? -1 : 1;
-        return parseInt(a.rollNo) - parseInt(b.rollNo);
+        return parseInt(a.studentRollNo) - parseInt(b.studentRollNo);
     });
 
     tbody.innerHTML = "";
     students.forEach((s, idx) => {
+        // പെൺകുട്ടികൾക്ക് റെഡ് കളർ, മറ്റുള്ളവർക്ക് ബ്ലാക്ക്
         const genderClass = s.gender === 'Female' ? 'text-red' : 'text-black';
         
         if(mode === 'view-list') {
             tbody.innerHTML += `
                 <tr class="${genderClass}">
-                    <td>${s.rollNo}</td><td>${s.admNo}</td>
-                    <td class="text-left"><b>${s.name}</b></td><td>Class ${s.class}</td>
-                    <td>${s.gender}</td><td>${s.fatherName}</td><td>${s.mobile}</td>
+                    <td>${s.studentRollNo || '-'}</td><td>${s.studentAdmNo || '-'}</td>
+                    <td class="text-left"><b>${s.studentName || '-'}</b></td><td>Class ${s.studentClass || '-'}</td>
+                    <td>${s.gender}</td><td>${s.fatherName || '-'}</td><td>${s.mobile || '-'}</td>
                     <td class="no-print">
-                        <i class="fas fa-edit edit-icon" onclick="editExamStudent('${s.id}')"></i>
-                        <i class="fas fa-trash delete-icon" onclick="deleteExamStudent('${s.id}')"></i>
+                        <i class="fas fa-edit edit-icon" onclick="editExamStudent('${s.id}')" title="Edit"></i>
+                        <i class="fas fa-trash delete-icon" onclick="deleteExamStudent('${s.id}')" title="Delete"></i>
                     </td>
                 </tr>`;
         } else if(mode === 'marks') {
             const total = (s.m1||0) + (s.m2||0) + (s.m3||0) + (s.m4||0);
             tbody.innerHTML += `
                 <tr class="${genderClass}">
-                    <td>${idx+1}</td><td>${s.admNo}</td>
-                    <td class="text-left"><b>${s.name}</b></td>
+                    <td>${idx+1}</td><td>${s.studentAdmNo}</td>
+                    <td class="text-left"><b>${s.studentName}</b></td>
                     <td><input type="number" value="${s.m1||0}" class="sam-mark-input" onchange="updateMark('${s.id}','m1',this.value)"></td>
                     <td><input type="number" value="${s.m2||0}" class="sam-mark-input" onchange="updateMark('${s.id}','m2',this.value)"></td>
                     <td><input type="number" value="${s.m3||0}" class="sam-mark-input" onchange="updateMark('${s.id}','m3',this.value)"></td>
@@ -2147,37 +2154,52 @@ async function loadStudentTable(mode) {
     });
 }
 
-// Helper Functions
-async function saveExamStudent() {
-    const data = {
-        admNo: document.getElementById('ex-adm').value,
-        rollNo: document.getElementById('ex-roll').value,
-        admDate: document.getElementById('ex-adm-date').value,
-        name: document.getElementById('ex-name').value,
-        class: document.getElementById('ex-class').value,
-        gender: document.getElementById('ex-gender').value,
-        fatherName: document.getElementById('ex-father').value,
-        mobile: document.getElementById('ex-phone').value,
-        m1:0, m2:0, m3:0, m4:0
-    };
-    if(!data.name || !data.class || !data.rollNo) return alert("ദയവായി പേരും ക്ലാസ്സും റോൾ നമ്പറും നൽകുക");
-    await db.collection("exam_students").add(data);
-    alert("Saved Successfully!");
-    switchExamTab('view-list');
-}
+// എഡിറ്റ് ഫങ്ക്ഷൻ (തിരുത്തലുകൾ വരുത്താൻ)
+async function editExamStudent(id) {
+    const doc = await db.collection("exam_students").doc(id).get();
+    if(!doc.exists) return alert("വിവരം ലഭ്യമല്ല");
+    const s = doc.data();
 
-async function updateMark(id, field, val) {
-    let d = {}; d[field] = parseInt(val) || 0;
-    await db.collection("exam_students").doc(id).update(d);
-    loadStudentTable('marks');
+    // അഡ്മിഷൻ ടാബിലേക്ക് മാറ്റി ഫോം ഫിൽ ചെയ്യുന്നു
+    switchExamTab('register');
+    
+    setTimeout(() => {
+        document.getElementById('ex-adm').value = s.studentAdmNo || "";
+        document.getElementById('ex-roll').value = s.studentRollNo || "";
+        document.getElementById('ex-name').value = s.studentName || "";
+        document.getElementById('ex-class').value = s.studentClass || "";
+        document.getElementById('ex-gender').value = s.gender || "Male";
+        document.getElementById('ex-father').value = s.fatherName || "";
+        document.getElementById('ex-phone').value = s.mobile || "";
+        
+        // സേവ് ബട്ടൺ മാറ്റുന്നു
+        const btn = document.querySelector('.sam-btn-orange');
+        btn.innerText = "UPDATE STUDENT INFO";
+        btn.onclick = async () => {
+            const upData = {
+                studentAdmNo: document.getElementById('ex-adm').value,
+                studentRollNo: document.getElementById('ex-roll').value,
+                studentName: document.getElementById('ex-name').value,
+                studentClass: document.getElementById('ex-class').value,
+                gender: document.getElementById('ex-gender').value,
+                fatherName: document.getElementById('ex-father').value,
+                mobile: document.getElementById('ex-phone').value
+            };
+            await db.collection("exam_students").doc(id).update(upData);
+            alert("വിവരങ്ങൾ അപ്ഡേറ്റ് ചെയ്തു!");
+            location.reload(); // പേജ് റിഫ്രഷ് ചെയ്ത് ലിസ്റ്റിലേക്ക് തിരിച്ചു വിടുന്നു
+        };
+    }, 500);
 }
 
 async function deleteExamStudent(id) {
     if(confirm("ഈ റെക്കോർഡ് നീക്കം ചെയ്യട്ടെ?")) {
         await db.collection("exam_students").doc(id).delete();
+        alert("ഡിലീറ്റ് ചെയ്തു.");
         loadStudentTable(currentExamTab);
     }
 }
+ 
 
 
 // 3. സദർ - ഉസ്താദ് പണമിടപാട് ടേബിൾ (പുതിയത്)

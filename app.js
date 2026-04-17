@@ -2022,20 +2022,30 @@ function showStudentViewUI(container) {
         <div class="sam-card border-blue">
             <div class="filter-header">
                 <h4 class="title-blue"><i class="fas fa-users"></i> Student List</h4>
+                
                 ${user.role === 'Sadar' ? `
-                    <select id="filter-class" onchange="loadStudentTable('view-list')" class="sam-input filter-select">
-                        <option value="ALL">All Classes</option>
-                        ${[1,2,3,4,5,6,7,8,9,10,11,12].map(c => `<option value="${c}">Class ${c}</option>`).join('')}
-                    </select>
+                    <div class="filter-box">
+                        <select id="filter-class" onchange="loadStudentTable('view-list')" class="sam-input filter-select">
+                            <option value="ALL">All Classes</option>
+                            ${[1,2,3,4,5,6,7,8,9,10,11,12].map(c => `<option value="${c}">Class ${c}</option>`).join('')}
+                        </select>
+                    </div>
                 ` : `<span class="class-badge">Class: ${user.assignedClass}</span>`}
             </div>
+            
             <div id="class-stats-area" class="stats-container"></div>
+            
             <div class="table-scroll">
                 <table class="sam-main-table">
                     <thead>
                         <tr>
-                            <th>Roll</th><th>Adm No</th><th>Name</th><th>Class</th>
-                            <th>Gender</th><th>Father</th><th>Mobile</th><th class="no-print">Action</th>
+                            <th>Roll</th>
+                            <th>Adm No</th>
+                            <th>Name</th>
+                            <th>DOB</th> <th>Class</th>
+                            <th>Gender</th>
+                            <th>Mobile</th>
+                            <th class="no-print">Action</th>
                         </tr>
                     </thead>
                     <tbody id="student-view-body"></tbody>
@@ -2043,8 +2053,10 @@ function showStudentViewUI(container) {
             </div>
         </div>
     `;
+    // പേജ് ലോഡ് ചെയ്യുമ്പോൾ ഡാറ്റ കാണിക്കാൻ
     loadStudentTable('view-list');
 }
+
 
 // --- 5. മാർക്ക് എൻട്രി ---
 function showMarkEntryUI(container) {
@@ -2083,18 +2095,18 @@ async function loadStudentTable(mode) {
     const tbody = document.getElementById(mode === 'view-list' ? 'student-view-body' : 'mark-entry-body');
     const statsArea = document.getElementById('class-stats-area');
     
-    // ഫിൽട്ടർ ഐഡി കണ്ടെത്തുന്നു (View List അല്ലെങ്കിൽ Mark Entry അനുസരിച്ച്)
+    // ഫിൽട്ടർ ഐഡി കണ്ടെത്തുന്നു
     const filterId = mode === 'view-list' ? 'filter-class' : 'filter-class-marks';
-    let filterValue = document.getElementById(filterId)?.value || user.assignedClass || "ALL";
+    let filterValue = document.getElementById(filterId)?.value || (user.role === 'Usthad' ? user.assignedClass : "ALL");
 
     if(!tbody) return;
 
     // ലോഡിംഗ് സമയത്ത് പഴയ ഡാറ്റ ക്ലിയർ ചെയ്യുന്നു
-    tbody.innerHTML = `<tr><td colspan="8" style="padding:20px;">ഡാറ്റ ലോഡ് ചെയ്യുന്നു...</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" style="padding:20px;">ഡാറ്റ ലോഡ് ചെയ്യുന്നു...</td></tr>`;
 
     let query = db.collection("exam_students");
     
-    // ഡാറ്റാബേസിലെ 'class' ഫീൽഡ് String ("1") ആയതുകൊണ്ട് String() ഉപയോഗിച്ച് കൃത്യമാക്കുന്നു
+    // ക്വറി ലോജിക്: സദർ 'ALL' ആണ് സെലക്ട് ചെയ്തതെങ്കിൽ ഫിൽട്ടർ ഒഴിവാക്കുന്നു
     if (user.role === 'Usthad') {
         query = query.where("class", "==", String(user.assignedClass));
     } else if (filterValue !== "ALL") {
@@ -2110,8 +2122,9 @@ async function loadStudentTable(mode) {
             const d = doc.data();
             students.push({ id: doc.id, ...d });
             stats.total++;
-            if (d.gender === 'Male' || d.gender === 'male') stats.male++; 
-            else if (d.gender === 'Female' || d.gender === 'female') stats.female++;
+            // ലിംഗഭേദം തിരിച്ചറിയാൻ ചെറിയ അക്ഷരങ്ങളും വലിയ അക്ഷരങ്ങളും നോക്കുന്നു
+            if (d.gender?.toLowerCase() === 'male') stats.male++; 
+            else if (d.gender?.toLowerCase() === 'female') stats.female++;
         });
 
         // സ്റ്റാറ്റിസ്റ്റിക്സ് അപ്ഡേറ്റ് ചെയ്യുന്നു
@@ -2129,7 +2142,7 @@ async function loadStudentTable(mode) {
         tbody.innerHTML = "";
         
         if (students.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" style="padding:20px; color:#d32f2f; font-weight:bold;">വിവരങ്ങൾ ഒന്നും ലഭ്യമല്ല (Class: ${filterValue})</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="9" style="padding:20px; color:#d32f2f; font-weight:bold;">വിവരങ്ങൾ ഒന്നും ലഭ്യമല്ല (Class: ${filterValue})</td></tr>`;
             return;
         }
 
@@ -2143,9 +2156,8 @@ async function loadStudentTable(mode) {
                         <td>${s.rollNo || '-'}</td>
                         <td>${s.admNo || '-'}</td>
                         <td class="text-left"><b>${s.name || '-'}</b></td>
-                        <td>Class ${s.class || '-'}</td>
+                        <td>${s.dob || s.admDate || '-'}</td> <td>Class ${s.class || '-'}</td>
                         <td>${s.gender || '-'}</td>
-                        <td>${s.fatherName || '-'}</td>
                         <td>${s.mobile || '-'}</td>
                         <td class="no-print">
                             <i class="fas fa-edit edit-icon" onclick="editExamStudent('${s.id}')"></i>
@@ -2171,7 +2183,7 @@ async function loadStudentTable(mode) {
         });
     } catch (error) {
         console.error("Error loading data:", error);
-        tbody.innerHTML = `<tr><td colspan="8" style="color:red;">ഡാറ്റാബേസ് കണക്ഷൻ പിശക് സംഭവിച്ചു.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" style="color:red;">ഡാറ്റാബേസ് കണക്ഷൻ പിശക് സംഭവിച്ചു.</td></tr>`;
     }
 }
 

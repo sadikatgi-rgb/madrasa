@@ -2147,60 +2147,70 @@ function loadExamStudents() {
     const container = document.getElementById('exam-dynamic-area');
     if (!container) return;
 
-    // 1 മുതൽ 12 വരെയുള്ള ക്ലാസുകൾ ഡൈനാമിക് ആയി നിർമ്മിക്കുന്നു
-    let classOptions = '';
-    for (let i = 1; i <= 12; i++) {
-        classOptions += `<option value="${i}">${i}-ാം ക്ലാസ്</option>`;
+    // വർഷം സെലക്ട് ചെയ്യാനുള്ള ഡ്രോപ്പ്ഡൗൺ (2024 മുതൽ 2030 വരെ)
+    let currentYear = new Date().getFullYear();
+    let yearOptions = '';
+    for(let y = 2024; y <= 2030; y++) {
+        yearOptions += `<option value="${y}" ${y == currentYear ? 'selected' : ''}>Year ${y}</option>`;
     }
 
-    // കണ്ടന്റ് ഏരിയ സെറ്റ് ചെയ്യുന്നു (Inline styles ഒഴിവാക്കി CSS Classes ഉപയോഗിച്ചു)
+    // 1 മുതൽ 12 വരെയുള്ള ക്ലാസുകൾ
+    let classOptions = '';
+    for (let i = 1; i <= 12; i++) {
+        classOptions += `<option value="${i}">ക്ലാസ് ${i}</option>`;
+    }
+
     container.innerHTML = `
+        <div class="exam-header-bar no-print">
+            <button onclick="loadMainDashboard()" class="back-btn"><i class="fas fa-arrow-left"></i> തിരികെ</button>
+            <h4>📝 Exam Management</h4>
+        </div>
+
         <div class="exam-card no-print">
-            <h4 class="form-title"><i class="fas fa-user-plus"></i> പുതിയ വിദ്യാർത്ഥിയെ ചേർക്കുക</h4>
+            <h4 class="card-title">Add New Student</h4>
             <div class="exam-grid">
-                <input type="text" id="ex-adm" placeholder="അഡ്മിഷൻ നമ്പർ" class="exam-input">
-                <input type="text" id="ex-name" placeholder="കുട്ടിയുടെ പേര്" class="exam-input">
-                <input type="text" id="ex-father" placeholder="പിതാവിന്റെ പേര്" class="exam-input">
-                <input type="date" id="ex-dob" class="exam-input" title="ജനനത്തീയതി">
-                <select id="ex-class" class="exam-input">
-                    <option value="">ക്ലാസ് തിരഞ്ഞെടുക്കുക</option>
-                    ${user.role === 'Sadar' ? classOptions : `<option value="${user.assignedClass}">${user.assignedClass}-ാം ക്ലാസ്</option>`}
+                <input type="text" id="ex-adm" placeholder="Admission No" class="exam-input">
+                <input type="text" id="ex-name" placeholder="Student Name" class="exam-input">
+                <select id="ex-class" class="exam-input" ${user.role === 'Usthad' ? 'disabled' : ''}>
+                    <option value="">Select Class</option>
+                    ${user.role === 'Sadar' ? classOptions : `<option value="${user.assignedClass}" selected>ക്ലാസ് ${user.assignedClass}</option>`}
                 </select>
+                <input type="text" id="ex-father" placeholder="Father's Name" class="exam-input">
                 <select id="ex-gender" class="exam-input">
-                    <option value="Male">Male (ആൺകുട്ടി)</option>
-                    <option value="Female">Female (പെൺകുട്ടി)</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                </select>
+                <select id="ex-year-reg" class="exam-input">${yearOptions}</select>
+                <input type="text" id="ex-mobile" placeholder="Mobile" class="exam-input">
+            </div>
+            <button onclick="saveExamStudent()" class="save-btn-orange">Save Student</button>
+        </div>
+
+        <div class="exam-card no-print list-controls">
+            <div class="filter-row">
+                <select id="filter-year" onchange="updateExamList()" class="exam-input">${yearOptions}</select>
+                <select id="filter-class" onchange="updateExamList()" class="exam-input" ${user.role === 'Usthad' ? 'disabled' : ''}>
+                    <option value="All">All Classes</option>
+                    ${classOptions}
                 </select>
             </div>
-            <button onclick="saveExamStudent()" class="save-btn-blue full-width">
-                <i class="fas fa-save"></i> വിദ്യാർത്ഥിയെ സേവ് ചെയ്യുക
-            </button>
+            <div id="stats-dashboard" class="stats-summary-grid"></div>
         </div>
 
-        <div class="exam-card no-print list-header-card">
-            <div class="list-header-flex">
-                <h4>വിദ്യാർത്ഥികളുടെ ലിസ്റ്റ്</h4>
-                <button onclick="window.print()" class="print-header-btn">
-                    <i class="fas fa-print"></i> Print
-                </button>
-            </div>
-            <select id="filter-class" onchange="loadExamStudents()" class="exam-input" ${user.role === 'Usthad' ? 'disabled' : ''}>
-                <option value="All">എല്ലാ ക്ലാസ്സും</option>
-                ${classOptions}
-            </select>
-            <div id="exam-summary-box"></div>
-        </div>
-
-        <div class="mag-table-wrapper">
-            <table class="mag-table">
+        <div class="table-container-scroll">
+            <table class="mag-table result-table">
                 <thead>
                     <tr>
-                        <th>Roll</th>
                         <th>Adm</th>
                         <th>Student Name</th>
-                        <th>Father Name</th>
-                        <th>Birth Date</th>
-                        <th>Gender</th>
-                        <th class="no-print">Actions</th>
+                        <th>Class</th>
+                        <th>Info</th>
+                        <th>Sub 1</th>
+                        <th>Sub 2</th>
+                        <th>Sub 3</th>
+                        <th>Total</th>
+                        <th>Result</th>
+                        <th class="no-print">Action</th>
                     </tr>
                 </thead>
                 <tbody id="exam-student-list-body"></tbody>
@@ -2208,13 +2218,22 @@ function loadExamStudents() {
         </div>
     `;
 
-    // ഉസ്താദ് ആണെങ്കിൽ അവരുടെ ക്ലാസ് ഓട്ടോമാറ്റിക് ആയി സെലക്ട് ചെയ്യുന്നു
+    // ഉസ്താദ് ആണെങ്കിൽ ക്ലാസ് ലോക്ക് ചെയ്യുന്നു
     if(user.role === 'Usthad') {
         document.getElementById('filter-class').value = user.assignedClass;
     }
 
-    let query = db.collection("exam_students");
+    updateExamList(); // ഡാറ്റ ലോഡ് ചെയ്യുന്നു
+}
+
+// ടേബിളും കണക്കുകളും അപ്‌ഡേറ്റ് ചെയ്യാനുള്ള ഫങ്ക്ഷൻ
+async function updateExamList() {
+    const user = JSON.parse(localStorage.getItem("activeUser"));
     const selCls = document.getElementById('filter-class').value;
+    const selYear = document.getElementById('filter-year').value;
+    const tbody = document.getElementById('exam-student-list-body');
+    
+    let query = db.collection("exam_students").where("year", "==", selYear);
     
     if (user.role === 'Usthad') {
         query = query.where("class", "==", user.assignedClass);
@@ -2222,41 +2241,63 @@ function loadExamStudents() {
         query = query.where("class", "==", selCls);
     }
 
-    query.orderBy("gender", "asc").orderBy("name", "asc").get().then(snapshot => {
-        const tbody = document.getElementById('exam-student-list-body');
-        let maleCount = 0; let femaleCount = 0;
-        tbody.innerHTML = "";
+    const snapshot = await query.get();
+    tbody.innerHTML = "";
+    
+    let maleTotal = 0, femaleTotal = 0, passedTotal = 0;
 
-        snapshot.forEach(doc => {
-            const s = doc.data();
-            const isFemale = s.gender === 'Female';
-            let rollNo;
-            if(!isFemale) { maleCount++; rollNo = maleCount; }
-            else { femaleCount++; rollNo = femaleCount; }
+    snapshot.forEach(doc => {
+        const s = doc.data();
+        const isFemale = s.gender === 'Female';
+        if(isFemale) femaleTotal++; else maleTotal++;
 
-            tbody.innerHTML += `
-                <tr class="${isFemale ? 'female-row' : ''}">
-                    <td><b>${rollNo}</b></td>
-                    <td>${s.admNo || '-'}</td>
-                    <td class="${isFemale ? 'female-name' : 'male-name'}">${s.name}</td>
-                    <td>${s.fatherName || '-'}</td>
-                    <td>${s.dob || '-'}</td>
-                    <td><span class="${isFemale ? 'badge-female' : 'badge-male'}">${s.gender}</span></td>
-                    <td class="no-print action-btn-group">
-                        <i class="fas fa-edit edit-btn" onclick="editExamStudent('${doc.id}')" title="എഡിറ്റ്"></i>
-                        <i class="fas fa-arrow-circle-up btn-promote" onclick="promoteStudent('${doc.id}', '${s.class}')" title="പ്രൊമോഷൻ"></i>
-                        <i class="fas fa-arrow-circle-down btn-depromote" onclick="depromoteStudent('${doc.id}', '${s.class}')" title="ഡി-പ്രൊമോഷൻ"></i>
-                        <i class="fas fa-trash delete-btn" onclick="deleteExamStudent('${doc.id}')" title="ഡിലീറ്റ്"></i>
-                    </td>
-                </tr>`;
-        });
+        // മാർക്ക് കണക്കാക്കുന്നു
+        const m1 = s.m1 || 0; const m2 = s.m2 || 0; const m3 = s.m3 || 0;
+        const total = m1 + m2 + m3;
+        const isPassed = (m1 >= 40 && m2 >= 40 && m3 >= 40); // പാസ് മാർക്ക് 40
+        if(isPassed) passedTotal++;
 
-        document.getElementById('exam-summary-box').innerHTML = `
-            <div class="summary-box">
-                ആകെ: ${snapshot.size} | ആൺ: ${maleCount} | പെൺ: ${femaleCount}
-            </div>`;
+        tbody.innerHTML += `
+            <tr class="${isFemale ? 'female-row' : ''}">
+                <td>${s.admNo}</td>
+                <td style="text-align:left;">
+                    <b>${s.name}</b><br>
+                    <span class="badge-${s.gender.toLowerCase()}">${s.gender}</span>
+                </td>
+                <td>${s.class} (${s.year})</td>
+                <td style="font-size:10px; text-align:left;">${s.fatherName}<br>${s.mobile || ''}</td>
+                <td><input type="number" value="${m1}" class="mark-input" onchange="saveMark('${doc.id}', 'm1', this.value)"></td>
+                <td><input type="number" value="${m2}" class="mark-input" onchange="saveMark('${doc.id}', 'm2', this.value)"></td>
+                <td><input type="number" value="${m3}" class="mark-input" onchange="saveMark('${doc.id}', 'm3', this.value)"></td>
+                <td><b>${total}</b></td>
+                <td class="${isPassed ? 'text-pass' : 'text-fail'}">${isPassed ? 'Passed' : 'Failed'}</td>
+                <td class="no-print action-buttons">
+                    <button class="up-btn" onclick="promoteStudent('${doc.id}', '${s.class}')"><i class="fas fa-arrow-up"></i></button>
+                    <button class="del-btn-small" onclick="deleteExamStudent('${doc.id}')"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>`;
     });
+
+    // സ്റ്റാറ്റിസ്റ്റിക്സ് അപ്‌ഡേറ്റ് ചെയ്യുന്നു
+    const totalCount = maleTotal + femaleTotal;
+    const passPercent = totalCount > 0 ? ((passedTotal / totalCount) * 100).toFixed(1) : 0;
+
+    document.getElementById('stats-dashboard').innerHTML = `
+        <div class="stat-card-mini">Total: ${totalCount}</div>
+        <div class="stat-card-mini">Boys: ${maleTotal} | Girls: ${femaleTotal}</div>
+        <div class="stat-card-mini">Passed: ${passedTotal}</div>
+        <div class="stat-card-mini">Result: ${passPercent}%</div>
+    `;
 }
+
+// മാർക്ക് മാത്രം സേവ് ചെയ്യാനുള്ള ഫങ്ക്ഷൻ
+async function saveMark(id, subject, value) {
+    let data = {};
+    data[subject] = parseInt(value) || 0;
+    await db.collection("exam_students").doc(id).update(data);
+    updateExamList(); // കണക്കുകൾ പുതുക്കാൻ
+}
+
 
 
 async function saveFee(sid, name, cls) {

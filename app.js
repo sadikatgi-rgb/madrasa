@@ -1995,10 +1995,7 @@ function showAddStudentUI(container) {
         <div class="sam-card border-orange">
             <h4 class="title-orange"><i class="fas fa-user-plus"></i> New Admission</h4>
             <div class="sam-form-grid">
-                <input id="ex-adm" placeholder="Admission No" class="sam-input">
-                <input id="ex-roll" type="number" placeholder="Roll No" class="sam-input">
-                <input id="ex-adm-date" type="date" class="sam-input">
-                <input id="ex-name" placeholder="Student Name" class="sam-input">
+                <input id="ex-adm" placeholder="Admission No" class="s Name" class="sam-input">
                 <select id="ex-class" class="sam-input">
                     <option value="">Select Class</option>
                     ${[1,2,3,4,5,6,7,8,9,10,11,12].map(c => `<option value="${c}">Class ${c}</option>`).join('')}
@@ -2028,7 +2025,7 @@ function showStudentViewUI(container) {
                 <h4 class="title-blue"><i class="fas fa-users"></i> Student List</h4>
                 
                 <div class="filter-box">
-                    ${isSadar ? `
+                    ${isSadhar ? `
                         <select id="filter-class" onchange="loadStudentTable('view-list')" class="sam-input" style="width: 160px; padding: 8px; border: 2px solid #007bff; border-radius: 6px; font-weight: bold;">
                             <option value="ALL">All Classes</option>
                             <option value="1">Class 1</option>
@@ -2078,7 +2075,7 @@ function showMarkEntryUI(container) {
         <div class="sam-card border-green">
             <div class="flex-between">
                 <h4 class="title-green"><i class="fas fa-edit"></i> Mark Entry</h4>
-                ${user.role === 'Sadar' ? `
+                ${user.role === 'Sadhar' ? `
                     <select id="filter-class-marks" onchange="loadStudentTable('marks')" class="sam-input filter-select">
                         <option value="ALL">All Classes</option>
                         ${[1,2,3,4,5,6,7,8,9,10,11,12].map(c => `<option value="${c}">Class ${c}</option>`).join('')}

@@ -1459,7 +1459,6 @@ function openSadarSection() {
                             <select id="contribution-type" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:5px; background:white;">
                                 <option value="ജില്ലാ വിഹിതം">ജില്ലാ വിഹിതം (District)</option>
                                 <option value="സ്റ്റേറ്റ് വിഹിതം">സ്റ്റേറ്റ് വിഹിതം (State)</option>
-                                <option value="കേന്ദ്ര വിഹിതം">കേന്ദ്ര വിഹിതം (Central)</option>
                             </select>
                         </div>
                         <input id="m-date" type="date" style="padding:10px; border:1px solid #ddd; border-radius:5px;">

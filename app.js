@@ -2052,7 +2052,7 @@ function showStudentViewUI(container) {
     loadStudentTable('view-list');
 }
 
-// --- 5. മാർക്ക് എൻട്രി ---
+// --- 5. മാർക്ക് എൻട്രി (Updated with Subjects, Quran & Hifz) ---
 function showMarkEntryUI(container) {
     const user = JSON.parse(localStorage.getItem("activeUser"));
     const isSadhar = user && (user.role === 'Sadhar' || user.role === 'sadhar');
@@ -2072,9 +2072,20 @@ function showMarkEntryUI(container) {
                 <table class="sam-main-table">
                     <thead>
                         <tr>
-                            <th>SL</th><th>Adm No</th><th>Name</th>
-                            <th>Sub 1</th><th>Sub 2</th><th>Sub 3</th><th>Sub 4</th>
-                            <th>Total</th><th>Result</th><th class="no-print">Action</th>
+                            <th rowspan="2">SL</th>
+                            <th rowspan="2">Name</th>
+                            <th colspan="5">Main Subjects</th>
+                            <th rowspan="2">Quran</th>
+                            <th rowspan="2">Hifz</th>
+                            <th rowspan="2">Total</th>
+                            <th rowspan="2" class="no-print">Action</th>
+                        </tr>
+                        <tr class="subject-names">
+                            <th>Sub 1</th>
+                            <th>Sub 2</th>
+                            <th>Sub 3</th>
+                            <th>Sub 4</th>
+                            <th>Sub 5</th>
                         </tr>
                     </thead>
                     <tbody id="mark-entry-body"></tbody>
@@ -2084,6 +2095,35 @@ function showMarkEntryUI(container) {
     `;
     loadStudentTable('marks');
 }
+
+// --- loadStudentTable ഫങ്ക്ഷനിൽ വരുത്തേണ്ട മാറ്റങ്ങൾ (Mark Section Only) ---
+// loadStudentTable-നുള്ളിലെ 'marks' കണ്ടീഷൻ താഴെ കാണുന്ന രീതിയിലേക്ക് മാറ്റുക:
+
+/* ഈ ഭാഗം loadStudentTable ഫങ്ക്ഷനിലെ 'else if(mode === "marks")' എന്ന ഭാഗത്ത് മാറ്റി നൽകുക
+*/
+
+            } else if(mode === 'marks') {
+                // എല്ലാ മാർക്കുകളും കൂട്ടി ടോട്ടൽ എടുക്കുന്നു
+                const mainTotal = (Number(s.m1)||0) + (Number(s.m2)||0) + (Number(s.m3)||0) + (Number(s.m4)||0) + (Number(s.m5)||0);
+                const quranMark = (Number(s.quran)||0);
+                const hifzMark = (Number(s.hifz)||0);
+                const grandTotal = mainTotal + quranMark + hifzMark;
+
+                tbody.innerHTML += `
+                    <tr class="${genderClass}">
+                        <td>${idx+1}</td>
+                        <td class="text-left"><b>${s.name || '-'}</b></td>
+                        <td><input type="number" value="${s.m1||0}" class="sam-mark-input" onchange="updateMark('${s.id}','m1',this.value)"></td>
+                        <td><input type="number" value="${s.m2||0}" class="sam-mark-input" onchange="updateMark('${s.id}','m2',this.value)"></td>
+                        <td><input type="number" value="${s.m3||0}" class="sam-mark-input" onchange="updateMark('${s.id}','m3',this.value)"></td>
+                        <td><input type="number" value="${s.m4||0}" class="sam-mark-input" onchange="updateMark('${s.id}','m4',this.value)"></td>
+                        <td><input type="number" value="${s.m5||0}" class="sam-mark-input" onchange="updateMark('${s.id}','m5',this.value)"></td>
+                        <td><input type="number" value="${s.quran||0}" class="sam-mark-input" style="background:#fff9c4;" onchange="updateMark('${s.id}','quran',this.value)"></td>
+                        <td><input type="number" value="${s.hifz||0}" class="sam-mark-input" style="background:#e1f5fe;" onchange="updateMark('${s.id}','hifz',this.value)"></td>
+                        <td><b>${grandTotal}</b></td>
+                        <td class="no-print"><i class="fas fa-edit edit-icon" onclick="editExamStudent('${s.id}')"></i></td>
+                    </tr>`;
+            }
 
 // --- 6. ഡാറ്റ ലോഡിംഗ് ഫങ്ക്ഷൻ (തീയതി ക്രമീകരിച്ചത്) ---
 async function loadStudentTable(mode) {

@@ -2096,7 +2096,6 @@ function showMarkEntryUI(container) {
     `;
     loadStudentTable('marks');
 }
-else if (mode === 'marks') {
 
 // --- 6. ഡാറ്റ ലോഡിംഗ് ഫങ്ക്ഷൻ (Updated for 5 Subjects & Quran/Hifz) ---
 async function loadStudentTable(mode) {

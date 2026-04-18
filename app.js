@@ -2097,32 +2097,7 @@ function showMarkEntryUI(container) {
     loadStudentTable('marks');
 }
 else if (mode === 'marks') {
-    // ഓരോ മാർക്കുകളും എടുക്കുന്നു
-    const m1 = Number(s.m1) || 0;
-    const m2 = Number(s.m2) || 0;
-    const m3 = Number(s.m3) || 0;
-    const m4 = Number(s.m4) || 0;
-    const m5 = Number(s.m5) || 0;
-    const quran = Number(s.quran) || 0;
-    const hifz = Number(s.hifz) || 0;
 
-    const grandTotal = m1 + m2 + m3 + m4 + m5 + quran + hifz;
-
-    tbody.innerHTML += `
-        <tr class="${genderClass}">
-            <td>${idx + 1}</td>
-            <td class="text-left"><b>${s.name || '-'}</b></td>
-            <td><input type="number" value="${m1}" class="sam-mark-input" onchange="updateMark('${s.id}','m1',this.value)"></td>
-            <td><input type="number" value="${m2}" class="sam-mark-input" onchange="updateMark('${s.id}','m2',this.value)"></td>
-            <td><input type="number" value="${m3}" class="sam-mark-input" onchange="updateMark('${s.id}','m3',this.value)"></td>
-            <td><input type="number" value="${m4}" class="sam-mark-input" onchange="updateMark('${s.id}','m4',this.value)"></td>
-            <td><input type="number" value="${m5}" class="sam-mark-input" onchange="updateMark('${s.id}','m5',this.value)"></td>
-            <td><input type="number" value="${quran}" class="sam-mark-input" style="background:#fff9c4;" onchange="updateMark('${s.id}','quran',this.value)"></td>
-            <td><input type="number" value="${hifz}" class="sam-mark-input" style="background:#e1f5fe;" onchange="updateMark('${s.id}','hifz',this.value)"></td>
-            <td><b>${grandTotal}</b></td>
-            <td class="no-print"><i class="fas fa-edit edit-icon" onclick="editExamStudent('${s.id}')"></i></td>
-        </tr>`;
-}
 // --- 6. ഡാറ്റ ലോഡിംഗ് ഫങ്ക്ഷൻ (Updated for 5 Subjects & Quran/Hifz) ---
 async function loadStudentTable(mode) {
     const user = JSON.parse(localStorage.getItem("activeUser"));

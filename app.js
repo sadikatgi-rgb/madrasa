@@ -2123,8 +2123,7 @@ else if (mode === 'marks') {
             <td class="no-print"><i class="fas fa-edit edit-icon" onclick="editExamStudent('${s.id}')"></i></td>
         </tr>`;
 }
-
-// --- 6. ഡാറ്റ ലോഡിംഗ് ഫങ്ക്ഷൻ (തീയതി ക്രമീകരിച്ചത്) ---
+// --- 6. ഡാറ്റ ലോഡിംഗ് ഫങ്ക്ഷൻ (Updated for 5 Subjects & Quran/Hifz) ---
 async function loadStudentTable(mode) {
     const user = JSON.parse(localStorage.getItem("activeUser"));
     const tbody = document.getElementById(mode === 'view-list' ? 'student-view-body' : 'mark-entry-body');
@@ -2135,7 +2134,8 @@ async function loadStudentTable(mode) {
     let filterValue = document.getElementById(filterId)?.value || (isSadhar ? "ALL" : user.assignedClass);
 
     if(!tbody) return;
-    tbody.innerHTML = `<tr><td colspan="9" style="padding:20px;">ഡാറ്റ ലോഡ് ചെയ്യുന്നു...</td></tr>`;
+    // ടേബിൾ കോളങ്ങൾ കൂടിയതുകൊണ്ട് colspan 10 ആക്കി
+    tbody.innerHTML = `<tr><td colspan="10" style="padding:20px;">ഡാറ്റ ലോഡ് ചെയ്യുന്നു...</td></tr>`;
 
     let query = db.collection("exam_students");
     if (isSadhar) {
@@ -2169,7 +2169,7 @@ async function loadStudentTable(mode) {
         tbody.innerHTML = "";
         
         if (students.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="9" style="padding:20px; color:#d32f2f;">വിവരങ്ങൾ ലഭ്യമല്ല.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="10" style="padding:20px; color:#d32f2f;">വിവരങ്ങൾ ലഭ്യമല്ല.</td></tr>`;
             return;
         }
 
@@ -2177,7 +2177,6 @@ async function loadStudentTable(mode) {
             const isFemale = s.gender?.toLowerCase() === 'female';
             const genderClass = isFemale ? 'text-red' : 'text-black';
             
-            // തീയതി ക്രമീകരണം
             let displayDate = '-';
             const rawDate = s.dob || s.admDate;
             if (rawDate && rawDate.includes('-')) {
@@ -2201,26 +2200,38 @@ async function loadStudentTable(mode) {
                         </td>
                     </tr>`;
             } else if(mode === 'marks') {
-                const total = (Number(s.m1)||0) + (Number(s.m2)||0) + (Number(s.m3)||0) + (Number(s.m4)||0);
+                // എല്ലാ മാർക്കുകളും കൂട്ടി ടോട്ടൽ എടുക്കുന്നു
+                const m1 = Number(s.m1) || 0;
+                const m2 = Number(s.m2) || 0;
+                const m3 = Number(s.m3) || 0;
+                const m4 = Number(s.m4) || 0;
+                const m5 = Number(s.m5) || 0;
+                const quran = Number(s.quran) || 0;
+                const hifz = Number(s.hifz) || 0;
+                
+                const grandTotal = m1 + m2 + m3 + m4 + m5 + quran + hifz;
+
                 tbody.innerHTML += `
                     <tr class="${genderClass}">
-                        <td>${idx+1}</td>
-                        <td>${s.admNo || '-'}</td>
+                        <td>${idx + 1}</td>
                         <td class="text-left"><b>${s.name || '-'}</b></td>
-                        <td><input type="number" value="${s.m1||0}" class="sam-mark-input" onchange="updateMark('${s.id}','m1',this.value)"></td>
-                        <td><input type="number" value="${s.m2||0}" class="sam-mark-input" onchange="updateMark('${s.id}','m2',this.value)"></td>
-                        <td><input type="number" value="${s.m3||0}" class="sam-mark-input" onchange="updateMark('${s.id}','m3',this.value)"></td>
-                        <td><input type="number" value="${s.m4||0}" class="sam-mark-input" onchange="updateMark('${s.id}','m4',this.value)"></td>
-                        <td><b>${total}</b></td>
-                        <td class="${total >= 160 ? 'pass' : 'fail'}">${total >= 160 ? 'Pass' : 'Fail'}</td>
+                        <td><input type="number" value="${m1}" class="sam-mark-input" onchange="updateMark('${s.id}','m1',this.value)"></td>
+                        <td><input type="number" value="${m2}" class="sam-mark-input" onchange="updateMark('${s.id}','m2',this.value)"></td>
+                        <td><input type="number" value="${m3}" class="sam-mark-input" onchange="updateMark('${s.id}','m3',this.value)"></td>
+                        <td><input type="number" value="${m4}" class="sam-mark-input" onchange="updateMark('${s.id}','m4',this.value)"></td>
+                        <td><input type="number" value="${m5}" class="sam-mark-input" onchange="updateMark('${s.id}','m5',this.value)"></td>
+                        <td><input type="number" value="${quran}" class="sam-mark-input" style="background:#fff9c4;" onchange="updateMark('${s.id}','quran',this.value)"></td>
+                        <td><input type="number" value="${hifz}" class="sam-mark-input" style="background:#e1f5fe;" onchange="updateMark('${s.id}','hifz',this.value)"></td>
+                        <td><b>${grandTotal}</b></td>
                         <td class="no-print"><i class="fas fa-edit edit-icon" onclick="editExamStudent('${s.id}')"></i></td>
                     </tr>`;
             }
         });
     } catch (error) {
-        tbody.innerHTML = `<tr><td colspan="9" style="color:red;">ഡാറ്റാബേസ് കണക്ഷൻ പിശക്.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" style="color:red;">ഡാറ്റാബേസ് കണക്ഷൻ പിശക്.</td></tr>`;
     }
 }
+
 
 // --- 7. സേവ് & എഡിറ്റ് ലോജിക് ---
 async function saveExamStudent() {

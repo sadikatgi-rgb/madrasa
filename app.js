@@ -2052,40 +2052,41 @@ function showStudentViewUI(container) {
     loadStudentTable('view-list');
 }
 
-// --- 5. മാർക്ക് എൻട്രി (Updated with Subjects, Quran & Hifz) ---
 function showMarkEntryUI(container) {
     const user = JSON.parse(localStorage.getItem("activeUser"));
     const isSadhar = user && (user.role === 'Sadhar' || user.role === 'sadhar');
 
     container.innerHTML = `
         <div class="sam-card border-green">
-            <div class="flex-between">
+            <div class="flex-between" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <h4 class="title-green"><i class="fas fa-edit"></i> Mark Entry</h4>
                 ${isSadhar ? `
-                    <select id="filter-class-marks" onchange="loadStudentTable('marks')" class="sam-input filter-select" style="width: 150px;">
+                    <select id="filter-class-marks" onchange="loadStudentTable('marks')" class="sam-input filter-select" style="width: 150px; border: 2px solid #28a745;">
                         <option value="ALL">All Classes</option>
                         ${[1,2,3,4,5,6,7,8,9,10,11,12].map(c => `<option value="${c}">Class ${c}</option>`).join('')}
                     </select>
-                ` : ''}
+                ` : `<span class="class-badge" style="background: #28a745; color: white; padding: 5px 12px; border-radius: 4px;">Class: ${user.assignedClass}</span>`}
             </div>
+
+            <div class="subject-naming-row no-print" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-bottom: 10px; background: #f0fff4; padding: 10px; border-radius: 8px; border: 1px solid #c6f6d5;">
+                <input type="text" id="sub1-name" placeholder="വിഷയം 1" class="sam-input-sm" style="font-size: 12px; padding: 5px;">
+                <input type="text" id="sub2-name" placeholder="വിഷയം 2" class="sam-input-sm" style="font-size: 12px; padding: 5px;">
+                <input type="text" id="sub3-name" placeholder="വിഷയം 3" class="sam-input-sm" style="font-size: 12px; padding: 5px;">
+                <input type="text" id="sub4-name" placeholder="വിഷയം 4" class="sam-input-sm" style="font-size: 12px; padding: 5px;">
+                <input type="text" id="sub5-name" placeholder="വിഷയം 5" class="sam-input-sm" style="font-size: 12px; padding: 5px;">
+            </div>
+
             <div class="table-scroll">
                 <table class="sam-main-table">
                     <thead>
-                        <tr>
-                            <th rowspan="2">SL</th>
-                            <th rowspan="2">Name</th>
-                            <th colspan="5">Main Subjects</th>
-                            <th rowspan="2">Quran</th>
-                            <th rowspan="2">Hifz</th>
-                            <th rowspan="2">Total</th>
-                            <th rowspan="2" class="no-print">Action</th>
-                        </tr>
-                        <tr class="subject-names">
-                            <th>Sub 1</th>
-                            <th>Sub 2</th>
-                            <th>Sub 3</th>
-                            <th>Sub 4</th>
-                            <th>Sub 5</th>
+                        <tr style="background: #e6fffa;">
+                            <th>SL</th>
+                            <th>Student Name</th>
+                            <th>S1</th><th>S2</th><th>S3</th><th>S4</th><th>S5</th>
+                            <th style="background: #fff9c4;">Quran</th>
+                            <th style="background: #e1f5fe;">Hifz</th>
+                            <th>Total</th>
+                            <th class="no-print">Action</th>
                         </tr>
                     </thead>
                     <tbody id="mark-entry-body"></tbody>
@@ -2095,35 +2096,33 @@ function showMarkEntryUI(container) {
     `;
     loadStudentTable('marks');
 }
+else if (mode === 'marks') {
+    // ഓരോ മാർക്കുകളും എടുക്കുന്നു
+    const m1 = Number(s.m1) || 0;
+    const m2 = Number(s.m2) || 0;
+    const m3 = Number(s.m3) || 0;
+    const m4 = Number(s.m4) || 0;
+    const m5 = Number(s.m5) || 0;
+    const quran = Number(s.quran) || 0;
+    const hifz = Number(s.hifz) || 0;
 
-// --- loadStudentTable ഫങ്ക്ഷനിൽ വരുത്തേണ്ട മാറ്റങ്ങൾ (Mark Section Only) ---
-// loadStudentTable-നുള്ളിലെ 'marks' കണ്ടീഷൻ താഴെ കാണുന്ന രീതിയിലേക്ക് മാറ്റുക:
+    const grandTotal = m1 + m2 + m3 + m4 + m5 + quran + hifz;
 
-/* ഈ ഭാഗം loadStudentTable ഫങ്ക്ഷനിലെ 'else if(mode === "marks")' എന്ന ഭാഗത്ത് മാറ്റി നൽകുക
-*/
-
-            } else if(mode === 'marks') {
-                // എല്ലാ മാർക്കുകളും കൂട്ടി ടോട്ടൽ എടുക്കുന്നു
-                const mainTotal = (Number(s.m1)||0) + (Number(s.m2)||0) + (Number(s.m3)||0) + (Number(s.m4)||0) + (Number(s.m5)||0);
-                const quranMark = (Number(s.quran)||0);
-                const hifzMark = (Number(s.hifz)||0);
-                const grandTotal = mainTotal + quranMark + hifzMark;
-
-                tbody.innerHTML += `
-                    <tr class="${genderClass}">
-                        <td>${idx+1}</td>
-                        <td class="text-left"><b>${s.name || '-'}</b></td>
-                        <td><input type="number" value="${s.m1||0}" class="sam-mark-input" onchange="updateMark('${s.id}','m1',this.value)"></td>
-                        <td><input type="number" value="${s.m2||0}" class="sam-mark-input" onchange="updateMark('${s.id}','m2',this.value)"></td>
-                        <td><input type="number" value="${s.m3||0}" class="sam-mark-input" onchange="updateMark('${s.id}','m3',this.value)"></td>
-                        <td><input type="number" value="${s.m4||0}" class="sam-mark-input" onchange="updateMark('${s.id}','m4',this.value)"></td>
-                        <td><input type="number" value="${s.m5||0}" class="sam-mark-input" onchange="updateMark('${s.id}','m5',this.value)"></td>
-                        <td><input type="number" value="${s.quran||0}" class="sam-mark-input" style="background:#fff9c4;" onchange="updateMark('${s.id}','quran',this.value)"></td>
-                        <td><input type="number" value="${s.hifz||0}" class="sam-mark-input" style="background:#e1f5fe;" onchange="updateMark('${s.id}','hifz',this.value)"></td>
-                        <td><b>${grandTotal}</b></td>
-                        <td class="no-print"><i class="fas fa-edit edit-icon" onclick="editExamStudent('${s.id}')"></i></td>
-                    </tr>`;
-            }
+    tbody.innerHTML += `
+        <tr class="${genderClass}">
+            <td>${idx + 1}</td>
+            <td class="text-left"><b>${s.name || '-'}</b></td>
+            <td><input type="number" value="${m1}" class="sam-mark-input" onchange="updateMark('${s.id}','m1',this.value)"></td>
+            <td><input type="number" value="${m2}" class="sam-mark-input" onchange="updateMark('${s.id}','m2',this.value)"></td>
+            <td><input type="number" value="${m3}" class="sam-mark-input" onchange="updateMark('${s.id}','m3',this.value)"></td>
+            <td><input type="number" value="${m4}" class="sam-mark-input" onchange="updateMark('${s.id}','m4',this.value)"></td>
+            <td><input type="number" value="${m5}" class="sam-mark-input" onchange="updateMark('${s.id}','m5',this.value)"></td>
+            <td><input type="number" value="${quran}" class="sam-mark-input" style="background:#fff9c4;" onchange="updateMark('${s.id}','quran',this.value)"></td>
+            <td><input type="number" value="${hifz}" class="sam-mark-input" style="background:#e1f5fe;" onchange="updateMark('${s.id}','hifz',this.value)"></td>
+            <td><b>${grandTotal}</b></td>
+            <td class="no-print"><i class="fas fa-edit edit-icon" onclick="editExamStudent('${s.id}')"></i></td>
+        </tr>`;
+}
 
 // --- 6. ഡാറ്റ ലോഡിംഗ് ഫങ്ക്ഷൻ (തീയതി ക്രമീകരിച്ചത്) ---
 async function loadStudentTable(mode) {

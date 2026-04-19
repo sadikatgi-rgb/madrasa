@@ -2051,6 +2051,7 @@ function showStudentViewUI(container) {
     loadStudentTable('view-list');
 }
 
+// --- പുതുക്കിയ മാർക്ക് എൻട്രി UI (വിഷയങ്ങൾ ഹെഡറിൽ എഡിറ്റ് ചെയ്യാം) ---
 function showMarkEntryUI(container) {
     const user = JSON.parse(localStorage.getItem("activeUser"));
     const isSadhar = user && (user.role === 'Sadhar' || user.role === 'sadhar');
@@ -2067,30 +2068,52 @@ function showMarkEntryUI(container) {
                 ` : `<span class="class-badge" style="background: #28a745; color: white; padding: 5px 12px; border-radius: 4px;">Class: ${user.assignedClass}</span>`}
             </div>
 
-            <div class="subject-naming-row no-print" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-bottom: 10px; background: #f0fff4; padding: 10px; border-radius: 8px; border: 1px solid #c6f6d5;">
-                <input type="text" id="sub1-name" placeholder="വിഷയം 1" class="sam-input-sm" style="font-size: 12px; padding: 5px;">
-                <input type="text" id="sub2-name" placeholder="വിഷയം 2" class="sam-input-sm" style="font-size: 12px; padding: 5px;">
-                <input type="text" id="sub3-name" placeholder="വിഷയം 3" class="sam-input-sm" style="font-size: 12px; padding: 5px;">
-                <input type="text" id="sub4-name" placeholder="വിഷയം 4" class="sam-input-sm" style="font-size: 12px; padding: 5px;">
-                <input type="text" id="sub5-name" placeholder="വിഷയം 5" class="sam-input-sm" style="font-size: 12px; padding: 5px;">
-            </div>
-
             <div class="table-scroll">
                 <table class="sam-main-table">
                     <thead>
                         <tr style="background: #e6fffa;">
-                            <th>SL</th>
-                            <th>Student Name</th>
+                            <th rowspan="2" style="width: 40px;">SL</th>
+                            <th rowspan="2" style="min-width: 150px;">Student Name</th>
+                            <th style="padding:2px;"><input type="text" id="sub1-label" placeholder="Sub 1" class="label-edit"></th>
+                            <th style="padding:2px;"><input type="text" id="sub2-label" placeholder="Sub 2" class="label-edit"></th>
+                            <th style="padding:2px;"><input type="text" id="sub3-label" placeholder="Sub 3" class="label-edit"></th>
+                            <th style="padding:2px;"><input type="text" id="sub4-label" placeholder="Sub 4" class="label-edit"></th>
+                            <th style="padding:2px;"><input type="text" id="sub5-label" placeholder="Sub 5" class="label-edit"></th>
+                            <th rowspan="2" style="background: #fff9c4; width: 60px;">Quran</th>
+                            <th rowspan="2" style="width: 60px;">Total</th>
+                            <th rowspan="2" class="no-print" style="width: 50px;">Action</th>
+                        </tr>
+                        <tr style="background: #f0fff4; font-size: 10px;">
                             <th>S1</th><th>S2</th><th>S3</th><th>S4</th><th>S5</th>
-                            <th style="background: #fff9c4;">Quran</th>
-                            <th style="background: #e1f5fe;">Hifz</th>
-                            <th>Total</th>
-                            <th class="no-print">Action</th>
                         </tr>
                     </thead>
                     <tbody id="mark-entry-body"></tbody>
                 </table>
             </div>
+            
+            <style>
+                .label-edit {
+                    width: 100%;
+                    border: none;
+                    background: transparent;
+                    text-align: center;
+                    font-weight: bold;
+                    font-size: 11px;
+                    color: #2d3748;
+                    outline: none;
+                }
+                .label-edit:focus { 
+                    border-bottom: 2px solid #28a745;
+                    background: #fff;
+                }
+                .sam-mark-input {
+                    width: 45px;
+                    padding: 5px;
+                    border: 1px solid #ddd;
+                    border-radius: 4px;
+                    text-align: center;
+                }
+            </style>
         </div>
     `;
     loadStudentTable('marks');

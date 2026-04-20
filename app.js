@@ -2195,40 +2195,51 @@ async function loadStudentTable(mode) {
                             <i class="fas fa-trash delete-icon" onclick="deleteExamStudent('${s.id}')"></i>
                         </td>
                     </tr>`;
-            } else if(mode === 'marks') {
-                // എല്ലാ മാർക്കുകളും കൂട്ടി ടോട്ടൽ എടുക്കുന്നു
-                const m1 = Number(s.m1) || 0;
-                const m2 = Number(s.m2) || 0;
-                const m3 = Number(s.m3) || 0;
-                const m4 = Number(s.m4) || 0;
-                const m5 = Number(s.m5) || 0;
-                const quran = Number(s.quran) || 0;
-                const hifz = Number(s.hifz) || 0;
-                
-                const grandTotal = m1 + m2 + m3 + m4 + m5 + quran + hifz;
+            else if (mode === 'marks') {
+    // മാർക്കുകൾ എടുക്കുന്നു (Hifz ഒഴിവാക്കി)
+    const m1 = Number(s.m1) || 0;
+    const m2 = Number(s.m2) || 0;
+    const m3 = Number(s.m3) || 0;
+    const m4 = Number(s.m4) || 0;
+    const m5 = Number(s.m5) || 0;
+    const quran = Number(s.quran) || 0;
 
-                tbody.innerHTML += `
-                    <tr class="${genderClass}">
-                        <td>${idx + 1}</td>
-                        <td class="text-left"><b>${s.name || '-'}</b></td>
-                        <td><input type="number" value="${m1}" class="sam-mark-input" onchange="updateMark('${s.id}','m1',this.value)"></td>
-                        <td><input type="number" value="${m2}" class="sam-mark-input" onchange="updateMark('${s.id}','m2',this.value)"></td>
-                        <td><input type="number" value="${m3}" class="sam-mark-input" onchange="updateMark('${s.id}','m3',this.value)"></td>
-                        <td><input type="number" value="${m4}" class="sam-mark-input" onchange="updateMark('${s.id}','m4',this.value)"></td>
-                        <td><input type="number" value="${m5}" class="sam-mark-input" onchange="updateMark('${s.id}','m5',this.value)"></td>
-                        <td><input type="number" value="${quran}" class="sam-mark-input" style="background:#fff9c4;" onchange="updateMark('${s.id}','quran',this.value)"></td>
-                        <td><input type="number" value="${hifz}" class="sam-mark-input" style="background:#e1f5fe;" onchange="updateMark('${s.id}','hifz',this.value)"></td>
-                        <td><b>${grandTotal}</b></td>
-                        <td class="no-print"><i class="fas fa-edit edit-icon" onclick="editExamStudent('${s.id}')"></i></td>
-                    </tr>`;
-            }
-        });
+    // ആകെ മാർക്ക് കണക്കാക്കുന്നു (Grand Total)
+    const grandTotal = m1 + m2 + m3 + m4 + m5 + quran;
+    
+    // ശതമാനം കണക്കാക്കുന്നു (Total 600 ആണെങ്കിൽ)
+    const percentage = ((grandTotal / 600) * 100).toFixed(1);
+    
+    // പാസ്സ് സ്റ്റാറ്റസ് (40% അതായത് 240 മാർക്ക് ഉണ്ടെങ്കിൽ PASS)
+    const isPassed = grandTotal >= 240;
+    const statusText = isPassed ? 'PASS' : 'FAIL';
+    const statusClass = isPassed ? 'status-pass' : 'status-fail';
+
+    tbody.innerHTML += `
+        <tr class="${genderClass}">
+            <td>${idx + 1}</td>
+            <td class="text-left"><b>${s.name || '-'}</b></td>
+            <td><input type="number" value="${m1}" class="sam-mark-input" onchange="updateMark('${s.id}','m1',this.value)"></td>
+            <td><input type="number" value="${m2}" class="sam-mark-input" onchange="updateMark('${s.id}','m2',this.value)"></td>
+            <td><input type="number" value="${m3}" class="sam-mark-input" onchange="updateMark('${s.id}','m3',this.value)"></td>
+            <td><input type="number" value="${m4}" class="sam-mark-input" onchange="updateMark('${s.id}','m4',this.value)"></td>
+            <td><input type="number" value="${m5}" class="sam-mark-input" onchange="updateMark('${s.id}','m5',this.value)"></td>
+            <td><input type="number" value="${quran}" class="sam-mark-input quran-input" onchange="updateMark('${s.id}','quran',this.value)"></td>
+            
+            <td class="total-cell"><b>${grandTotal}</b></td>
+            <td>${percentage}%</td>
+            <td class="${statusClass}"><b>${statusText}</b></td>
+            
+            <td class="no-print">
+                <i class="fas fa-edit edit-icon" title="Edit Student Info" onclick="editExamStudent('${s.id}')"></i>
+            </td>
+        </tr>`;
+}
+    });
     } catch (error) {
         tbody.innerHTML = `<tr><td colspan="10" style="color:red;">ഡാറ്റാബേസ് കണക്ഷൻ പിശക്.</td></tr>`;
     }
 }
-
-
 // --- 7. സേവ് & എഡിറ്റ് ലോജിക് ---
 async function saveExamStudent() {
     const data = {
@@ -2283,11 +2294,34 @@ async function editExamStudent(id) {
     }, 500);
 }
 
+// --- പുതുക്കിയ മാർക്ക് അപ്ഡേറ്റ് ഫങ്ക്ഷൻ ---
 async function updateMark(id, field, val) {
-    let d = {}; d[field] = parseInt(val) || 0;
-    await db.collection("exam_students").doc(id).update(d);
-    loadStudentTable('marks');
+    // ഇൻപുട്ട് ചെയ്യുന്ന വാല്യൂ നമ്പർ ആക്കി മാറ്റുന്നു
+    const markValue = parseInt(val) || 0;
+    
+    // മാർക്ക് 0-നും 100-നും ഇടയിലാണോ എന്ന് വേണമെങ്കിൽ ഇവിടെ പരിശോധിക്കാം
+    if (markValue < 0 || markValue > 100) {
+        alert("ദയവായി 0-നും 100-നും ഇടയിലുള്ള മാർക്ക് നൽകുക");
+        return;
+    }
+
+    try {
+        let updateData = {}; 
+        updateData[field] = markValue;
+
+        // ഫയർബേസ് ഡാറ്റാബേസിൽ അപ്ഡേറ്റ് ചെയ്യുന്നു
+        await db.collection("exam_students").doc(id).update(updateData);
+
+        // മാർക്ക് അപ്ഡേറ്റ് ആയതിന് ശേഷം ടേബിൾ റിഫ്രഷ് ചെയ്യുന്നു
+        // ഇത് ചെയ്യുന്നതിലൂടെ Total, Percentage, Status എന്നിവ തനിയെ അപ്ഡേറ്റ് ആകും
+        loadStudentTable('marks');
+        
+    } catch (error) {
+        console.error("Error updating mark: ", error);
+        alert("മാർക്ക് സേവ് ചെയ്യുന്നതിൽ പിശക് സംഭവിച്ചു.");
+    }
 }
+
 
 async function deleteExamStudent(id) {
     if(confirm("ഈ റെക്കോർഡ് നീക്കം ചെയ്യട്ടെ?")) {

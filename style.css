@@ -302,227 +302,64 @@ input:focus, select:focus {
 .mag-table tr:hover {
     background-color: #f1f8e9;
 }
-/* ============================================================
-   📝 SAMASTHA PORTAL - EXAM MANAGEMENT STYLES (UPDATED)
+    /* ============================================================
+   📝 SAMASTHA EXAM MANAGEMENT - FULL STYLES
    ============================================================ */
 
-.sam-container {
-    padding: 15px;
-    background: #f4f6f9;
-    min-height: 90vh;
-    font-family: 'Inter', sans-serif;
+.sam-container { padding: 15px; background: #f4f6f9; min-height: 90vh; font-family: 'Inter', sans-serif; }
+
+.sam-header { 
+    background: #e65100; color: white; padding: 15px; 
+    display: flex; justify-content: space-between; align-items: center; 
+    border-radius: 8px 8px 0 0; 
 }
 
-.sam-header {
-    background: #e65100;
-    color: white;
-    padding: 15px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-radius: 8px 8px 0 0;
-}
+.sam-back-btn { background: rgba(255,255,255,0.2); color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
 
-.sam-back-btn {
-    background: rgba(255,255,255,0.2);
-    color: white;
-    border: none;
-    padding: 8px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-}
+/* Tabs */
+.sam-tab-bar { display: flex; gap: 5px; background: #eee; padding: 5px; border-radius: 10px; margin-bottom: 20px; overflow-x: auto; }
+.sam-tab { flex: 1; padding: 12px 5px; border: none; background: none; cursor: pointer; font-weight: bold; color: #666; font-size: 13px; transition: 0.3s; white-space: nowrap; }
+.sam-tab.active { background: #e65100; color: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
 
-/* --- Navigation Tabs --- */
-.sam-tab-bar {
-    display: flex;
-    gap: 5px;
-    background: #eee;
-    padding: 5px;
-    border-radius: 10px;
-    margin-bottom: 20px;
-    overflow-x: auto; /* മൊബൈലിൽ ടാബുകൾ വരിയായി കാണാൻ */
-}
-
-.sam-tab {
-    flex: 1;
-    padding: 12px 5px;
-    border: none;
-    background: none;
-    cursor: pointer;
-    font-weight: bold;
-    color: #666;
-    font-size: 13px;
-    transition: 0.3s;
-    white-space: nowrap;
-}
-
-.sam-tab.active {
-    background: #e65100;
-    color: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-/* --- Cards --- */
-.sam-card {
-    background: white;
-    padding: 18px;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    margin-bottom: 20px;
-}
-
+/* Cards & Stats */
+.sam-card { background: white; padding: 18px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 20px; }
 .border-orange { border-top: 5px solid #e65100; }
 .border-green { border-top: 5px solid #2e7d32; }
 .border-blue { border-top: 5px solid #1a73e8; }
 
-/* --- Statistics Boxes --- */
-.stats-container {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-}
-
-.stat-box {
-    flex: 1;
-    min-width: 100px;
-    padding: 15px 10px;
-    background: #ffffff;
-    border-radius: 10px;
-    text-align: center;
-    font-size: 13px;
-    border: 1px solid #ddd;
-}
-
-.stat-box b {
-    display: block;
-    font-size: 18px;
-    margin-top: 5px;
-}
-
+.stats-container { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+.stat-box { flex: 1; min-width: 100px; padding: 15px 10px; background: #ffffff; border-radius: 10px; text-align: center; font-size: 13px; border: 1px solid #ddd; }
 .male-bg { background: #e3f2fd; color: #1565c0; border-color: #bbdefb; }
 .female-bg { background: #fff5f5; color: #c62828; border-color: #ffcdd2; }
 
-/* --- Filters & Headers --- */
-.filter-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-    flex-wrap: wrap;
-    gap: 10px;
-}
+/* Forms */
+.sam-form-grid { display: grid; grid-template-columns: repeat(auto-fit, min-width(180px, 1fr)); gap: 12px; margin-top: 15px; }
+.sam-input { width: 100%; padding: 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 14px; box-sizing: border-box; }
+.sam-btn-orange { width: 100%; padding: 14px; background: #e65100; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; }
 
-.filter-select {
-    padding: 8px 12px;
-    border: 2px solid #1a73e8;
-    border-radius: 8px;
-    font-weight: bold;
-    color: #1a73e8;
-    background: white;
-}
+/* Table System */
+.table-scroll { overflow-x: auto; background: white; border-radius: 8px; }
+.sam-main-table { width: 100%; min-width: 900px; border-collapse: collapse; }
+.sam-main-table th { background: #37474f; color: white; padding: 12px; font-size: 13px; border: 1px solid #546e7a; text-align: center; }
+.sam-main-table td { padding: 10px; border-bottom: 1px solid #f0f0f0; text-align: center; }
 
-/* --- Form Elements --- */
-.sam-form-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 12px;
-    margin-top: 15px;
-}
+/* Mark Entry Specials */
+.label-edit { width: 100%; border: none; background: transparent; text-align: center; font-weight: bold; font-size: 12px; color: white; outline: none; }
+.sam-mark-input { width: 45px; padding: 6px; border: 1.5px solid #ccc; text-align: center; border-radius: 5px; font-weight: bold; }
+.quran-input { background-color: #fffde7 !important; border: 2px solid #fbc02d !important; }
 
-.sam-input {
-    width: 100%;
-    padding: 12px;
-    border: 1.5px solid #ddd;
-    border-radius: 8px;
-    font-size: 14px;
-    box-sizing: border-box;
-}
-
-.sam-input:focus { border-color: #e65100; outline: none; }
-
-.sam-btn-orange {
-    width: 100%;
-    margin-top: 20px;
-    padding: 14px;
-    background: #e65100;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-weight: bold;
-    cursor: pointer;
-    font-size: 16px;
-    transition: 0.3s;
-}
-
-.sam-btn-orange:hover { background: #bf4300; }
-
-/* --- Table Styling --- */
-.table-scroll {
-    overflow-x: auto;
-    background: white;
-    border-radius: 8px;
-}
-
-.sam-main-table {
-    width: 100%;
-    min-width: 850px;
-    border-collapse: collapse;
-}
-
-.sam-main-table th {
-    background: #37474f;
-    color: white;
-    padding: 14px;
-    font-size: 13px;
-    position: sticky;
-    top: 0;
-}
-
-.sam-main-table td {
-    padding: 12px;
-    border-bottom: 1px solid #f0f0f0;
-    text-align: center;
-}
-
-/* Gender Based Coloring */
+/* Result Colors */
+.total-cell { background: #f1f8e9; font-weight: bold; color: #2e7d32; }
+.status-pass { color: #2e7d32; font-weight: bold; }
+.status-fail { color: #d32f2f; font-weight: bold; }
 .text-red td, .text-red b { color: #d32f2f !important; }
-.text-black td, .text-black b { color: #212121 !important; }
 
-/* Mark Entry Inputs */
-.sam-mark-input {
-    width: 50px;
-    padding: 6px;
-    border: 1.5px solid #ccc;
-    text-align: center;
-    border-radius: 5px;
-    font-weight: bold;
-}
-
-/* Status Labels */
-.pass { color: #2e7d32; font-weight: bold; }
-.fail { color: #d32f2f; font-weight: bold; }
-
-/* Action Icons */
-.edit-icon { color: #1a73e8; cursor: pointer; margin-right: 12px; transition: 0.2s; }
-.delete-icon { color: #ea4335; cursor: pointer; transition: 0.2s; }
-.edit-icon:hover, .delete-icon:hover { opacity: 0.7; }
-
-/* Helpers */
-.flex-between { display: flex; justify-content: space-between; align-items: center; }
+/* Icons */
+.edit-icon { color: #1a73e8; cursor: pointer; margin-right: 12px; }
+.delete-icon { color: #ea4335; cursor: pointer; }
 
 @media print {
-    .no-print, .sam-tab-bar, .sam-header, .sam-back-btn, .filter-select {
-        display: none !important;
-    }
-    .sam-card { box-shadow: none; border: none; padding: 0; }
-    .sam-main-table { min-width: 100%; font-size: 12px; }
-    .sam-main-table td, .sam-main-table th { border: 1px solid #999 !important; padding: 8px 5px; }
+    .no-print, .sam-tab-bar, .sam-header, .sam-back-btn { display: none !important; }
+    .sam-main-table { min-width: 100%; font-size: 11px; }
+    .sam-main-table td, .sam-main-table th { border: 1px solid #999 !important; }
 }
-
-@media (max-width: 600px) {
-    .sam-form-grid { grid-template-columns: 1fr; }
-    .stats-container { display: grid; grid-template-columns: 1fr 1fr; }
-}
-

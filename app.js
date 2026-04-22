@@ -1931,26 +1931,64 @@ async function deleteMagSub(id) {
     }
 }
 
-// --- പ്രധാന ടാബ് മാറ്റുന്ന ലോജിക് ---
+/* ============================================================
+   📝 SAMASTHA EXAM MANAGEMENT - FULL LOGIC (UPDATED)
+   ============================================================ */
+
+let currentExamTab = 'register';
+
+// 1. മെയിൻ സെക്ഷൻ ഓപ്പൺ ചെയ്യുന്നു
+function openExamSection() {
+    const dashboard = document.getElementById('usthad-dashboard');
+    const content = document.getElementById('dynamic-content');
+    const user = JSON.parse(localStorage.getItem("activeUser"));
+
+    if (!user) return alert("ദയവായി ലോഗിൻ ചെയ്യുക");
+
+    dashboard.style.display = 'none';
+    content.style.display = 'block';
+
+    content.innerHTML = `
+        <div class="sam-header">
+            <button onclick="closeExamSection()" class="sam-back-btn"><i class="fas fa-arrow-left"></i></button>
+            <h3>Exam Management Portal</h3>
+            <div class="sam-avatar">${user.name[0]}</div>
+        </div>
+        <div class="sam-container">
+            <div class="sam-tab-bar no-print">
+                <button onclick="switchExamTab('register')" id="tab-register" class="sam-tab active">Admission</button>
+                <button onclick="switchExamTab('view-list')" id="tab-view-list" class="sam-tab">Student View</button>
+                <button onclick="switchExamTab('marks')" id="tab-marks" class="sam-tab">Mark Entry</button>
+            </div>
+            <div id="exam-dynamic-area"></div>
+        </div>`;
+    switchExamTab('register');
+}
+
+function closeExamSection() {
+    document.getElementById('usthad-dashboard').style.display = 'block';
+    document.getElementById('dynamic-content').style.display = 'none';
+}
+
 function switchExamTab(tab) {
     currentExamTab = tab;
     const container = document.getElementById('exam-dynamic-area');
-    if(!container) return;
+    if (!container) return;
     
     document.querySelectorAll('.sam-tab').forEach(b => b.classList.remove('active'));
     document.getElementById(`tab-${tab}`).classList.add('active');
 
-    if(tab === 'register') showAddStudentUI(container);
-    else if(tab === 'view-list') showStudentViewUI(container);
-    else if(tab === 'marks') showMarkEntryUI(container);
+    if (tab === 'register') showAddStudentUI(container);
+    else if (tab === 'view-list') showStudentViewUI(container);
+    else if (tab === 'marks') showMarkEntryUI(container);
 }
 
-// 1. അഡ്മിഷൻ ഫോം UI
+// 2. UI നിർമ്മാണ ഫങ്ക്ഷനുകൾ
 function showAddStudentUI(container) {
     container.innerHTML = `
         <div class="sam-card border-orange">
             <h4 class="title-orange"><i class="fas fa-user-plus"></i> New Admission</h4>
-            <div class="sam-form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div class="sam-form-grid">
                 <input type="text" id="ex-adm" placeholder="Admission No" class="sam-input">
                 <input type="number" id="ex-roll" placeholder="Roll No" class="sam-input">
                 <input type="date" id="ex-dob" class="sam-input">
@@ -1960,43 +1998,63 @@ function showAddStudentUI(container) {
                     ${[1,2,3,4,5,6,7,8,9,10,11,12].map(c => `<option value="${c}">Class ${c}</option>`).join('')}
                 </select>
                 <select id="ex-gender" class="sam-input">
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
+                    <option value="Male">Male</option><option value="Female">Female</option>
                 </select>
                 <input type="text" id="ex-father" placeholder="Father's Name" class="sam-input">
                 <input type="text" id="ex-phone" placeholder="Mobile" class="sam-input">
             </div>
-            <button onclick="saveExamStudent()" id="save-btn" class="sam-btn-orange" style="width:100%; margin-top:15px; padding:12px; background:#e65100; color:white; border:none; border-radius:8px; font-weight:bold;">SAVE STUDENT</button>
-        </div>
-    `;
+            <button onclick="saveExamStudent()" id="save-btn" class="sam-btn-orange">SAVE STUDENT</button>
+        </div>`;
 }
 
-// 2. മാർക്ക് എൻട്രി UI
-function showMarkEntryUI(container) {
+function showStudentViewUI(container) {
     const user = JSON.parse(localStorage.getItem("activeUser"));
-    const isSadhar = user && (user.role === 'Sadhar' || user.role === 'sadhar');
-
+    const isSadhar = user && (user.role.toLowerCase() === 'sadhar');
     container.innerHTML = `
-        <div class="sam-card border-green">
-            <div class="flex-between" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <h4 class="title-green"><i class="fas fa-edit"></i> Mark Entry</h4>
-                ${isSadhar ? `<select id="filter-class-marks" onchange="loadStudentTable('marks')" class="sam-input" style="width:150px; border:2px solid #2e7d32; border-radius:6px; font-weight:bold;">
+        <div class="sam-card border-blue">
+            <div class="flex-between">
+                <h4><i class="fas fa-users"></i> Student List</h4>
+                ${isSadhar ? `<select id="filter-class" onchange="loadStudentTable('view-list')" class="sam-input" style="width:130px;">
                     <option value="ALL">All Classes</option>
                     ${[1,2,3,4,5,6,7,8,9,10,11,12].map(c => `<option value="${c}">Class ${c}</option>`).join('')}
-                </select>` : `<span class="badge">Class: ${user.assignedClass}</span>`}
+                </select>` : `<span>Class: ${user.assignedClass}</span>`}
+            </div>
+            <div class="table-scroll">
+                <table class="sam-main-table">
+                    <thead>
+                        <tr><th>Roll</th><th>Adm No</th><th>Name</th><th>Class</th><th>Gender</th><th>Action</th></tr>
+                    </thead>
+                    <tbody id="student-view-body"></tbody>
+                </table>
+            </div>
+        </div>`;
+    loadStudentTable('view-list');
+}
+
+function showMarkEntryUI(container) {
+    const user = JSON.parse(localStorage.getItem("activeUser"));
+    const isSadhar = user && (user.role.toLowerCase() === 'sadhar');
+    container.innerHTML = `
+        <div class="sam-card border-green">
+            <div class="flex-between">
+                <h4><i class="fas fa-edit"></i> Mark Entry</h4>
+                ${isSadhar ? `<select id="filter-class-marks" onchange="loadStudentTable('marks')" class="sam-input" style="width:130px;">
+                    <option value="ALL">All Classes</option>
+                    ${[1,2,3,4,5,6,7,8,9,10,11,12].map(c => `<option value="${c}">Class ${c}</option>`).join('')}
+                </select>` : `<span>Class: ${user.assignedClass}</span>`}
             </div>
             <div class="table-scroll">
                 <table class="sam-main-table">
                     <thead>
                         <tr>
-                            <th rowspan="2">SL</th><th rowspan="2" style="min-width:150px;">Student Name</th>
-                            <th><input type="text" id="sub1-label" value="Sub 1" class="label-edit"></th>
-                            <th><input type="text" id="sub2-label" value="Sub 2" class="label-edit"></th>
-                            <th><input type="text" id="sub3-label" value="Sub 3" class="label-edit"></th>
-                            <th><input type="text" id="sub4-label" value="Sub 4" class="label-edit"></th>
-                            <th><input type="text" id="sub5-label" value="Sub 5" class="label-edit"></th>
+                            <th rowspan="2">SL</th><th rowspan="2">Student Name</th>
+                            <th><input type="text" value="Sub 1" class="label-edit"></th>
+                            <th><input type="text" value="Sub 2" class="label-edit"></th>
+                            <th><input type="text" value="Sub 3" class="label-edit"></th>
+                            <th><input type="text" value="Sub 4" class="label-edit"></th>
+                            <th><input type="text" value="Sub 5" class="label-edit"></th>
                             <th rowspan="2" style="background:#fbc02d; color:black !important;">Quran</th>
-                            <th rowspan="2">Total</th><th rowspan="2">Result</th><th rowspan="2" class="no-print">Action</th>
+                            <th rowspan="2">Total</th><th rowspan="2">Result</th><th rowspan="2">Action</th>
                         </tr>
                         <tr style="background:#455a64; font-size:10px;">
                             <th>M1</th><th>M2</th><th>M3</th><th>M4</th><th>M5</th>
@@ -2005,20 +2063,20 @@ function showMarkEntryUI(container) {
                     <tbody id="mark-entry-body"></tbody>
                 </table>
             </div>
-        </div>
-    `;
+        </div>`;
     loadStudentTable('marks');
 }
-// --- ഡാറ്റ ലോഡ് ചെയ്യുന്നു ---
+
+// 3. ഡാറ്റ ലോജിക്
 async function loadStudentTable(mode) {
     const user = JSON.parse(localStorage.getItem("activeUser"));
     const tbody = document.getElementById(mode === 'view-list' ? 'student-view-body' : 'mark-entry-body');
-    const isSadhar = user && (user.role === 'Sadhar' || user.role === 'sadhar');
-    
+    if(!tbody) return;
+
+    const isSadhar = user && (user.role.toLowerCase() === 'sadhar');
     let filterValue = isSadhar ? (document.getElementById(mode === 'view-list' ? 'filter-class' : 'filter-class-marks')?.value || "ALL") : user.assignedClass;
 
-    if(!tbody) return;
-    tbody.innerHTML = `<tr><td colspan="11">ഡാറ്റ ലോഡ് ചെയ്യുന്നു...</td></tr>`;
+    tbody.innerHTML = "<tr><td colspan='12'>Loading...</td></tr>";
 
     let query = db.collection("exam_students");
     if (filterValue !== "ALL") query = query.where("class", "==", String(filterValue));
@@ -2031,66 +2089,75 @@ async function loadStudentTable(mode) {
         students.sort((a, b) => parseInt(a.rollNo || 0) - parseInt(b.rollNo || 0));
 
         students.forEach((s, idx) => {
-            const isFemale = s.gender?.toLowerCase() === 'female';
-            const genderClass = isFemale ? 'text-red' : 'text-black';
-
+            const genderClass = s.gender?.toLowerCase() === 'female' ? 'text-red' : 'text-black';
             if (mode === 'marks') {
-                const m1 = Number(s.m1)||0, m2 = Number(s.m2)||0, m3 = Number(s.m3)||0, m4 = Number(s.m4)||0, m5 = Number(s.m5)||0, quran = Number(s.quran)||0;
-                const grandTotal = m1 + m2 + m3 + m4 + m5 + quran;
-                const percentage = ((grandTotal / 600) * 100).toFixed(1);
-                const isPassed = grandTotal >= 240;
-
+                const m = [Number(s.m1)||0, Number(s.m2)||0, Number(s.m3)||0, Number(s.m4)||0, Number(s.m5)||0];
+                const q = Number(s.quran)||0;
+                const total = m.reduce((a,b) => a+b, 0) + q;
+                const passed = total >= 240;
                 tbody.innerHTML += `
                     <tr class="${genderClass}">
-                        <td>${idx + 1}</td><td class="text-left"><b>${s.name}</b></td>
-                        <td><input type="number" value="${m1}" class="sam-mark-input" onchange="updateMark('${s.id}','m1',this.value)"></td>
-                        <td><input type="number" value="${m2}" class="sam-mark-input" onchange="updateMark('${s.id}','m2',this.value)"></td>
-                        <td><input type="number" value="${m3}" class="sam-mark-input" onchange="updateMark('${s.id}','m3',this.value)"></td>
-                        <td><input type="number" value="${m4}" class="sam-mark-input" onchange="updateMark('${s.id}','m4',this.value)"></td>
-                        <td><input type="number" value="${m5}" class="sam-mark-input" onchange="updateMark('${s.id}','m5',this.value)"></td>
-                        <td><input type="number" value="${quran}" class="sam-mark-input quran-input" onchange="updateMark('${s.id}','quran',this.value)"></td>
-                        <td class="total-cell">${grandTotal}</td>
-                        <td class="${isPassed ? 'status-pass' : 'status-fail'}">${isPassed ? 'PASS' : 'FAIL'} (${percentage}%)</td>
-                        <td class="no-print">
+                        <td>${idx + 1}</td><td><b>${s.name}</b></td>
+                        ${m.map((val, i) => `<td><input type="number" value="${val}" class="sam-mark-input" onchange="updateMark('${s.id}','m${i+1}',this.value)"></td>`).join('')}
+                        <td><input type="number" value="${q}" class="sam-mark-input quran-input" onchange="updateMark('${s.id}','quran',this.value)"></td>
+                        <td class="total-cell"><b>${total}</b></td>
+                        <td class="${passed ? 'status-pass' : 'status-fail'}">${passed ? 'PASS' : 'FAIL'}</td>
+                        <td><i class="fas fa-trash delete-icon" onclick="deleteExamStudent('${s.id}')"></i></td>
+                    </tr>`;
+            } else {
+                tbody.innerHTML += `
+                    <tr class="${genderClass}">
+                        <td>${s.rollNo || '-'}</td><td>${s.admNo || '-'}</td>
+                        <td class="text-left"><b>${s.name}</b></td><td>Class ${s.class}</td><td>${s.gender}</td>
+                        <td>
                             <i class="fas fa-edit edit-icon" onclick="editExamStudent('${s.id}')"></i>
                             <i class="fas fa-trash delete-icon" onclick="deleteExamStudent('${s.id}')"></i>
                         </td>
                     </tr>`;
             }
         });
-    } catch (e) { console.error(e); }
+    } catch (e) { tbody.innerHTML = "Error!"; }
 }
 
-// --- മാർക്ക് അപ്ഡേറ്റ് ചെയ്യുന്നു ---
 async function updateMark(id, field, val) {
-    const markValue = parseInt(val) || 0;
-    if (markValue < 0 || markValue > 100) return alert("0-100 പരിധി നൽകുക");
-    await db.collection("exam_students").doc(id).update({ [field]: markValue });
+    const v = parseInt(val) || 0;
+    await db.collection("exam_students").doc(id).update({ [field]: v });
     loadStudentTable('marks');
 }
 
-// --- വിദ്യാർത്ഥിയുടെ വിവരങ്ങൾ എഡിറ്റ് ചെയ്യുന്നു ---
+async function saveExamStudent() {
+    const data = {
+        admNo: document.getElementById('ex-adm').value,
+        rollNo: document.getElementById('ex-roll').value,
+        dob: document.getElementById('ex-dob').value,
+        name: document.getElementById('ex-name').value,
+        class: String(document.getElementById('ex-class').value),
+        gender: document.getElementById('ex-gender').value,
+        m1:0, m2:0, m3:0, m4:0, m5:0, quran:0
+    };
+    await db.collection("exam_students").add(data);
+    alert("സേവ് ചെയ്തു!");
+    switchExamTab('view-list');
+}
+
 async function editExamStudent(id) {
     const doc = await db.collection("exam_students").doc(id).get();
     const s = doc.data();
     switchExamTab('register');
-    
     setTimeout(() => {
         document.getElementById('ex-adm').value = s.admNo || "";
         document.getElementById('ex-roll').value = s.rollNo || "";
-        document.getElementById('ex-dob').value = s.dob || "";
         document.getElementById('ex-name').value = s.name || "";
         document.getElementById('ex-class').value = s.class || "";
         document.getElementById('ex-gender').value = s.gender || "Male";
-        
         const btn = document.getElementById('save-btn');
         btn.innerText = "UPDATE INFO";
         btn.onclick = async () => {
             const upData = {
-                admNo: document.getElementById('ex-adm').value,
-                rollNo: document.getElementById('ex-roll').value,
                 name: document.getElementById('ex-name').value,
                 class: document.getElementById('ex-class').value,
+                rollNo: document.getElementById('ex-roll').value,
+                admNo: document.getElementById('ex-adm').value,
                 gender: document.getElementById('ex-gender').value
             };
             await db.collection("exam_students").doc(id).update(upData);
@@ -2100,11 +2167,9 @@ async function editExamStudent(id) {
     }, 500);
 }
 
-// --- വിദ്യാർത്ഥിയെ നീക്കം ചെയ്യുന്നു ---
 async function deleteExamStudent(id) {
-    if(confirm("ഈ റെക്കോർഡ് നീക്കം ചെയ്യട്ടെ?")) {
+    if(confirm("ഡിലീറ്റ് ചെയ്യട്ടെ?")) {
         await db.collection("exam_students").doc(id).delete();
-        alert("നീക്കം ചെയ്തു!");
         loadStudentTable(currentExamTab);
     }
 }

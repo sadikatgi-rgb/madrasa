@@ -1,0 +1,22 @@
+{
+  "name": "Islahul Uloom Smart Madrasa",
+  "short_name": "Smart Madrasa",
+  "description": "Islahul Uloom Madrasa Management Portal",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#e65100",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "log.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "log.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

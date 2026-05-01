@@ -7,6 +7,17 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#e65100">
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('firebase-messaging-sw.js')
+        .then(reg => console.log('Service Worker Registered'))
+        .catch(err => console.log('Service Worker Error', err));
+    });
+  }
+</script> 
     <link rel="stylesheet" href="style.css">
 </head>
 

@@ -1959,6 +1959,7 @@ function openExamSection() {
                 <button onclick="switchExamTab('register')" id="tab-register" class="sam-tab active">Admission</button>
                 <button onclick="switchExamTab('view-list')" id="tab-view-list" class="sam-tab">Student View</button>
                 <button onclick="switchExamTab('marks')" id="tab-marks" class="sam-tab">Mark Entry</button>
+                <button onclick="switchExamTab('monthly')" id="tab-monthly" class="sam-tab">Monthly Report</button>
             </div>
             <div id="exam-dynamic-area"></div>
         </div>`;
@@ -1981,6 +1982,7 @@ function switchExamTab(tab) {
     if (tab === 'register') showAddStudentUI(container);
     else if (tab === 'view-list') showStudentViewUI(container);
     else if (tab === 'marks') showMarkEntryUI(container);
+    if (tab === 'monthly') showMonthlyAssessmentUI(container);
 }
 
 // 2. UI നിർമ്മാണ ഫങ്ക്ഷനുകൾ
@@ -2172,6 +2174,95 @@ async function deleteExamStudent(id) {
         await db.collection("exam_students").doc(id).delete();
         loadStudentTable(currentExamTab);
     }
+}
+function showMonthlyAssessmentUI(container) {
+    const user = JSON.parse(localStorage.getItem("activeUser"));
+    const isSadhar = user && (user.role.toLowerCase() === 'sadhar');
+    
+    container.innerHTML = `
+        <div class="sam-card border-purple">
+            <div class="flex-between" style="flex-wrap: wrap; gap: 10px;">
+                <h4><i class="fas fa-calendar-check"></i> പ്രതിമാസ മാർക്ക് രജിസ്റ്റർ</h4>
+                <div style="display: flex; gap: 10px;">
+                    <select id="assess-month" class="sam-input" onchange="loadMonthlyTable()">
+                        <option value="dul-qa">ദുൽഖഅദ്</option>
+                        <option value="dul-hajj">ദുൽഹിജ്ജ</option>
+                        <option value="muharram">മുഹറം</option>
+                        <option value="safar">സഫർ</option>
+                        <option value="rabi-1">റബീഉൽ അവ്വൽ</option>
+                        <option value="rabi-2">റബീഉൽ ആഖിർ</option>
+                        <option value="jumad-1">ജുമാദൽ ഊലാ</option>
+                        <option value="jumad-2">ജുമാദൽ ആഖിറ:</option>
+                        <option value="rajab">റജബ്</option>
+                    </select>
+                    ${isSadhar ? `
+                    <select id="assess-class" onchange="loadMonthlyTable()" class="sam-input">
+                        ${[1,2,3,4,5,6,7,8,9,10,11,12].map(c => `<option value="${c}">Class ${c}</option>`).join('')}
+                    </select>` : `<span>Class: ${user.assignedClass}</span>`}
+                </div>
+            </div>
+            
+            <div class="table-scroll" style="margin-top:15px;">
+                <table class="sam-main-table assessment-table">
+                    <thead>
+                        <tr>
+                            <th>പേര്</th>
+                            <th>വായന (20)</th>
+                            <th>എഴുത്ത് (20)</th>
+                            <th>കർമ്മം (20)</th>
+                            <th>ശീലം (15)</th>
+                            <th>വേഷം (15)</th>
+                            <th>ഹാജർ (10)</th>
+                            <th>അസൈൻമെന്റ് (10)</th>
+                            <th>ഖുർആൻ ഹിഫ്ള് (100)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="monthly-body"></tbody>
+                </table>
+            </div>
+        </div>`;
+    loadMonthlyTable();
+}
+async function loadMonthlyTable() {
+    const tbody = document.getElementById('monthly-body');
+    const month = document.getElementById('assess-month').value;
+    const user = JSON.parse(localStorage.getItem("activeUser"));
+    const selectedClass = document.getElementById('assess-class')?.value || user.assignedClass;
+
+    tbody.innerHTML = "<tr><td colspan='9'>Loading...</td></tr>";
+
+    try {
+        const snap = await db.collection("exam_students")
+                       .where("class", "==", String(selectedClass))
+                       .get();
+        
+        tbody.innerHTML = "";
+        snap.forEach(doc => {
+            const s = doc.data();
+            // ആ മാസത്തെ ഡാറ്റ ഉണ്ടോ എന്ന് നോക്കുന്നു, ഇല്ലെങ്കിൽ ശൂന്യമായി നൽകുന്നു
+            const mData = s.monthlyData && s.monthlyData[month] ? s.monthlyData[month] : {};
+
+            tbody.innerHTML += `
+                <tr>
+                    <td class="text-left"><b>${s.name}</b></td>
+                    <td><input type="number" value="${mData.reading || 0}" onchange="saveMonthlyMark('${doc.id}', '${month}', 'reading', this.value)"></td>
+                    <td><input type="number" value="${mData.writing || 0}" onchange="saveMonthlyMark('${doc.id}', '${month}', 'writing', this.value)"></td>
+                    <td><input type="number" value="${mData.karma || 0}" onchange="saveMonthlyMark('${doc.id}', '${month}', 'karma', this.value)"></td>
+                    <td><input type="number" value="${mData.habit || 0}" onchange="saveMonthlyMark('${doc.id}', '${month}', 'habit', this.value)"></td>
+                    <td><input type="number" value="${mData.dress || 0}" onchange="saveMonthlyMark('${doc.id}', '${month}', 'dress', this.value)"></td>
+                    <td><input type="number" value="${mData.attendance || 0}" onchange="saveMonthlyMark('${doc.id}', '${month}', 'attendance', this.value)"></td>
+                    <td><input type="number" value="${mData.assignment || 0}" onchange="saveMonthlyMark('${doc.id}', '${month}', 'assignment', this.value)"></td>
+                    <td><input type="number" value="${mData.hifz || 0}" onchange="saveMonthlyMark('${doc.id}', '${month}', 'hifz', this.value)"></td>
+                </tr>`;
+        });
+    } catch (e) { tbody.innerHTML = "Error loading data!"; }
+}
+
+async function saveMonthlyMark(studentId, month, field, value) {
+    const updatePath = `monthlyData.${month}.${field}`;
+    await db.collection("exam_students").doc(studentId).update({
+        [updatePath]: parseInt(value) || 0
+    });
 }
 
 // 3. സദർ - ഉസ്താദ് പണമിടപാട് ടേബിൾ (പുതിയത്)

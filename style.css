@@ -492,24 +492,58 @@ input:focus, select:focus {
     align-items: center; 
 }
 
-/* പ്രിന്റ് സെറ്റിംഗ്സ് */
 @media print {
-    .no-print, .sam-tab-bar, .sam-header, .sam-back-btn, .filter-select { 
+    /* അനാവശ്യ ഭാഗങ്ങൾ ഒഴിവാക്കുന്നു */
+    .no-print, .sam-tab-bar, .sam-header, .sam-back-btn, .filter-select, .sam-btn-orange { 
         display: none !important; 
     }
-    .sam-container { padding: 0; background: white; }
-    .sam-card { box-shadow: none; border: none; padding: 0; }
-    .sam-main-table { min-width: 100%; font-size: 11px; }
-    .sam-main-table td, .sam-main-table th { 
-        border: 1px solid #999 !important; 
-        color: black !important;
-    }
-    /* പ്രിന്റ് ചെയ്യുമ്പോൾ പെൺകുട്ടികളുടെ കളർ നിലനിർത്താൻ */
-    .text-red td { color: #d32f2f !important; -webkit-print-color-adjust: exact; }
-}
 
-/* മൊബൈൽ റെസ്പോൺസീവ്നെസ്സ് */
-@media (max-width: 600px) {
-    .sam-form-grid { grid-template-columns: 1fr; }
-    .sam-main-table { font-size: 12px; }
+    /* പേജ് വിന്യാസം */
+    @page {
+        size: auto;
+        margin: 5mm; /* മാർജിൻ കുറക്കുന്നത് വഴി കൂടുതൽ സ്ഥലം ലഭിക്കും */
+    }
+
+    .sam-container { padding: 0; margin: 0; width: 100%; }
+    
+    /* കാർഡിന്റെ ബോർഡറുകൾ ഒഴിവാക്കുന്നു */
+    .sam-card { 
+        box-shadow: none !important; 
+        border: none !important; 
+        padding: 0 !important; 
+        margin-bottom: 20px !important;
+        width: 100% !important;
+    }
+
+    /* ടേബിൾ സെറ്റിംഗ്സ് */
+    .sam-main-table { 
+        width: 100% !important; 
+        min-width: 100% !important; 
+        font-size: 13px !important; /* അക്ഷരങ്ങൾ അല്പം വലുതാക്കി */
+        table-layout: auto; 
+    }
+
+    .sam-main-table td, .sam-main-table th { 
+        border: 1px solid #333 !important; 
+        padding: 5px 2px !important; /* പാഡിംഗ് കുറച്ചു */
+        text-align: center;
+    }
+
+    /* പുതിയ റിപ്പോർട്ട് സമ്മറി പ്രിന്റിൽ നന്നായി വരാൻ */
+    .summary-section {
+        display: block !important;
+        width: 100% !important;
+        border: 1px solid #ccc !important;
+        background-color: #f9f9f9 !important;
+        -webkit-print-color-adjust: exact;
+        padding: 15px !important;
+        margin-top: 10px !important;
+    }
+
+    /* പെൺകുട്ടികളുടെ റെഡ് കളർ പ്രിന്റിലും വരാൻ */
+    .text-red, .text-red td, .text-red b { 
+        color: #d32f2f !important; 
+        -webkit-print-color-adjust: exact; 
+        print-color-adjust: exact;
+    }
 }

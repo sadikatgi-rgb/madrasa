@@ -2084,41 +2084,59 @@ function showMarkEntryUI(container) {
         </div>`;
     loadStudentTable('marks');
 }
-
-// 3. ഡാറ്റ ലോജിക്
+// 3. ഡാറ്റ ലോജിക് (UPDATED WITH SUMMARY & NEW MARK LOGIC)
 async function loadStudentTable(mode) {
     const user = JSON.parse(localStorage.getItem("activeUser"));
     const tbody = document.getElementById(mode === 'view-list' ? 'student-view-body' : 'mark-entry-body');
     if(!tbody) return;
 
     const isSadhar = user && (user.role.toLowerCase() === 'sadhar' || user.role.toLowerCase() === 'sadar');
-    let filterValue = isSadhar ? (document.getElementById(mode === 'view-list' ? 'filter-class' : 'filter-class-marks')?.value || "ALL") : user.assignedClass;
+    
+    // ഫിൽട്ടർ വാല്യൂ നിശ്ചയിക്കുന്നു
+    let filterValue = isSadhar ? (document.getElementById(mode === 'view-list' ? 'filter-class' : 'filter-class-marks')?.value || "ALL") : String(user.assignedClass || "");
 
-    tbody.innerHTML = "<tr><td colspan='12'>Loading...</td></tr>";
+    tbody.innerHTML = "<tr><td colspan='12'>Loading Data...</td></tr>";
 
     let query = db.collection("exam_students");
-    if (filterValue !== "ALL") query = query.where("class", "==", String(filterValue));
+    if (filterValue !== "ALL" && filterValue !== "") {
+        query = query.where("class", "==", filterValue);
+    }
 
     try {
         const snap = await query.get();
         tbody.innerHTML = "";
         let students = [];
         snap.forEach(doc => students.push({ id: doc.id, ...doc.data() }));
+        
+        // റോൾ നമ്പർ അനുസരിച്ച് ക്രമീകരിക്കുന്നു
         students.sort((a, b) => parseInt(a.rollNo || 0) - parseInt(b.rollNo || 0));
+
+        if (students.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="12">ക്ലാസ് ${filterValue}-ൽ കുട്ടികളെ കണ്ടെത്തിയില്ല.</td></tr>`;
+            // പഴയ സമ്മറി ഉണ്ടെങ്കിൽ അത് മാറ്റുന്നു
+            const oldSum = document.querySelector('.summary-section');
+            if (oldSum) oldSum.remove();
+            return;
+        }
 
         students.forEach((s, idx) => {
             const genderClass = s.gender?.toLowerCase() === 'female' ? 'text-red' : 'text-black';
             
             if (mode === 'marks') {
+                // --- മാർക്ക് ലോജിക് ആരംഭം ---
                 const m = [Number(s.m1)||0, Number(s.m2)||0, Number(s.m3)||0, Number(s.m4)||0, Number(s.m5)||0];
                 const q = Number(s.quran)||0;
-                
-                // ടോട്ടൽ കണക്കാക്കുന്നു
+
+                // മാർക്ക് രേഖപ്പെടുത്തിയ വിഷയങ്ങൾ മാത്രം (Entered Subjects)
+                const enteredMarks = m.filter(val => val > 0);
+                const subjectCount = enteredMarks.length + (q > 0 ? 1 : 0);
                 const total = m.reduce((a,b) => a+b, 0) + q;
+
+                // തോൽവി പരിശോധന (ഏതെങ്കിലും വിഷയത്തിന് 40-ൽ താഴെയാണോ എന്ന്)
+                const isFailedBySub = enteredMarks.some(val => val < 40) || (q > 0 && q < 40);
                 
-                // വിജയിക്കാൻ എല്ലാ വിഷയത്തിനും 40 മാർക്കിൽ കൂടുതൽ ഉണ്ടോ എന്ന് പരിശോധിക്കുന്നു
-                const isFailed = m.some(val => val > 0 && val < 40) || (q > 0 && q < 40);
-                const passed = total >= 240 && !isFailed;
+                // വിജയിക്കാൻ: വിഷയം തോൽക്കരുത് + മൊത്തം മാർക്കിന്റെ 40% വേണം
+                const passed = subjectCount > 0 && !isFailedBySub && (total >= (subjectCount * 40));
 
                 tbody.innerHTML += `
                     <tr class="${genderClass}">
@@ -2130,12 +2148,12 @@ async function loadStudentTable(mode) {
                         <td class="${passed ? 'status-pass' : 'status-fail'}">${passed ? 'PASS' : 'FAIL'}</td>
                     </tr>`;
             } else {
-                // Student View പഴയതുപോലെ തന്നെ തുടരാം
+                // --- സ്റ്റുഡന്റ് വ്യൂ ലോജിക് ---
                 tbody.innerHTML += `
                     <tr class="${genderClass}">
                         <td>${s.rollNo || '-'}</td>
                         <td class="text-left"><b>${s.name}</b><br><small>DOB: ${s.dob || '-'}</small></td>
-                        <td>Class ${s.class}</td>
+                        <td>${s.class}</td>
                         <td>${s.father || '-'}<br><small>${s.phone || '-'}</small></td>
                         <td>${s.gender}</td>
                         <td>
@@ -2145,14 +2163,65 @@ async function loadStudentTable(mode) {
                     </tr>`;
             }
         });
-    } catch (e) { tbody.innerHTML = "Error!"; }
+
+        // --- റിപ്പോർട്ട് സമ്മറി (ലൂപ്പിന് ശേഷം) ---
+        const oldSummary = document.querySelector('.summary-section');
+        if (oldSummary) oldSummary.remove();
+
+        const stats = {
+            total: students.length,
+            boys: students.filter(st => st.gender === 'Male').length,
+            girls: students.filter(st => st.gender === 'Female').length,
+            passed: 0
+        };
+
+        // വിജയശതമാനം കണക്കാക്കാൻ ലൂപ്പ്
+        students.forEach(st => {
+            const sm = [Number(st.m1)||0, Number(st.m2)||0, Number(st.m3)||0, Number(st.m4)||0, Number(st.m5)||0, Number(st.quran)||0];
+            const tM = sm.reduce((a,b) => a+b, 0);
+            const sC = sm.filter(v => v > 0).length;
+            if(sC > 0 && !sm.some(v => v > 0 && v < 40) && tM >= (sC * 40)) stats.passed++;
+        });
+
+        const passPercent = stats.total > 0 ? ((stats.passed / stats.total) * 100).toFixed(1) : 0;
+
+        const summaryHtml = `
+            <div class="sam-card summary-section" style="margin-top:20px; background:#f9f9f9; border-left: 5px solid #ff9800;">
+                <h4 style="border-bottom:1px solid #ddd; padding-bottom:5px;">റിപ്പോർട്ട് സംഗ്രഹം (${filterValue === 'ALL' ? 'എല്ലാ ക്ലാസ്സുകളും' : 'ക്ലാസ്: ' + filterValue})</h4>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; padding:10px 0;">
+                    <div>ആകെ കുട്ടികൾ: <b>${stats.total}</b></div>
+                    <div>വിജയിച്ചവർ: <b>${stats.passed}</b></div>
+                    <div>ആൺകുട്ടികൾ: <b>${stats.boys}</b></div>
+                    <div>പെൺകുട്ടികൾ: <b>${stats.girls}</b></div>
+                    <div style="grid-column: span 2; font-size:1.1em; color:green; margin-top:5px;">
+                        മൊത്തം വിജയ ശതമാനം: <b>${passPercent}%</b>
+                    </div>
+                </div>
+                <button onclick="window.print()" class="sam-btn-orange no-print" style="width:100%; margin-top:10px;">
+                    <i class="fas fa-file-pdf"></i> PRINT / DOWNLOAD PDF
+                </button>
+            </div>`;
+
+        tbody.closest('.sam-card').insertAdjacentHTML('afterend', summaryHtml);
+
+    } catch (e) { 
+        console.error(e);
+        tbody.innerHTML = "Error!"; 
+    }
 }
 
+// മാർക്ക് അപ്‌ഡേറ്റ് ചെയ്യാനുള്ള ഫങ്ക്ഷൻ
 async function updateMark(id, field, val) {
     const v = parseInt(val) || 0;
-    await db.collection("exam_students").doc(id).update({ [field]: v });
-    loadStudentTable('marks');
+    try {
+        await db.collection("exam_students").doc(id).update({ [field]: v });
+        // മാർക്ക് അപ്‌ഡേറ്റ് ചെയ്ത ശേഷം ടേബിളും സമ്മറിയും പുതുക്കുന്നു
+        loadStudentTable('marks');
+    } catch (e) {
+        alert("മാർക്ക് സേവ് ചെയ്യുന്നതിൽ പിശക് സംഭവിച്ചു!");
+    }
 }
+
 async function saveExamStudent() {
     const data = {
         admNo: document.getElementById('ex-adm').value,

@@ -1987,6 +1987,9 @@ function switchExamTab(tab) {
 
 // 2. UI നിർമ്മാണ ഫങ്ക്ഷനുകൾ
 function showAddStudentUI(container) {
+    const user = JSON.parse(localStorage.getItem("activeUser"));
+    const isSadhar = user && (user.role.toLowerCase() === 'sadhar' || user.role.toLowerCase() === 'sadar');
+    
     container.innerHTML = `
         <div class="sam-card border-orange">
             <h4 class="title-orange"><i class="fas fa-user-plus"></i> New Admission</h4>
@@ -1995,10 +1998,14 @@ function showAddStudentUI(container) {
                 <input type="number" id="ex-roll" placeholder="Roll No" class="sam-input">
                 <input type="date" id="ex-dob" class="sam-input">
                 <input type="text" id="ex-name" placeholder="Student Name" class="sam-input">
+                
+                ${isSadhar ? `
                 <select id="ex-class" class="sam-input">
                     <option value="">Select Class</option>
                     ${[1,2,3,4,5,6,7,8,9,10,11,12].map(c => `<option value="${c}">Class ${c}</option>`).join('')}
-                </select>
+                </select>` : `
+                <input type="text" id="ex-class" value="${user.assignedClass}" class="sam-input" readonly style="background:#eee;">`}
+                
                 <select id="ex-gender" class="sam-input">
                     <option value="Male">Male</option><option value="Female">Female</option>
                 </select>
@@ -2008,17 +2015,20 @@ function showAddStudentUI(container) {
             <button onclick="saveExamStudent()" id="save-btn" class="sam-btn-orange">SAVE STUDENT</button>
         </div>`;
 }
+
 function showStudentViewUI(container) {
     const user = JSON.parse(localStorage.getItem("activeUser"));
     const isSadhar = user && (user.role.toLowerCase() === 'sadhar' || user.role.toLowerCase() === 'sadar');
+    
     container.innerHTML = `
         <div class="sam-card border-blue">
             <div class="flex-between">
                 <h4><i class="fas fa-users"></i> Student List</h4>
-                ${isSadhar ? `<select id="filter-class" onchange="loadStudentTable('view-list')" class="sam-input" style="width:130px;">
+                ${isSadhar ? `
+                <select id="filter-class" onchange="loadStudentTable('view-list')" class="sam-input" style="width:130px;">
                     <option value="ALL">All Classes</option>
                     ${[1,2,3,4,5,6,7,8,9,10,11,12].map(c => `<option value="${c}">Class ${c}</option>`).join('')}
-                </select>` : `<span class="badge-class">Class: ${user.assignedClass}</span>`}
+                </select>` : `<span class="sam-badge">Class: ${user.assignedClass}</span>`}
             </div>
             <div class="table-scroll">
                 <table class="sam-main-table">
@@ -2081,59 +2091,57 @@ async function loadStudentTable(mode) {
     const tbody = document.getElementById(mode === 'view-list' ? 'student-view-body' : 'mark-entry-body');
     if(!tbody) return;
 
-    // സദർ ആണോ എന്ന് പരിശോധിക്കുന്നു
     const isSadhar = user && (user.role.toLowerCase() === 'sadhar' || user.role.toLowerCase() === 'sadar');
     
-    // ഉസ്താദുമാർക്ക് അവരുടെ ക്ലാസ്സും സദറിന് സെലക്ട് ചെയ്ത ക്ലാസ്സും ഫിൽട്ടർ ചെയ്യുന്നു
-    let filterValue = isSadhar ? (document.getElementById(mode === 'view-list' ? 'filter-class' : 'filter-class-marks')?.value || "ALL") : user.assignedClass;
+    // ഉസ്താദ് ആണെങ്കിൽ യൂസർ പ്രൊഫൈലിലെ ക്ലാസ്സ് തന്നെ ഫിൽട്ടർ വാല്യൂ ആയി എടുക്കും
+    let filterValue;
+    if (isSadhar) {
+        filterValue = document.getElementById(mode === 'view-list' ? 'filter-class' : 'filter-class-marks')?.value || "ALL";
+    } else {
+        filterValue = String(user.assignedClass || ""); 
+    }
 
-    tbody.innerHTML = "<tr><td colspan='12'>Loading...</td></tr>";
+    tbody.innerHTML = "<tr><td colspan='6'>Loading...</td></tr>";
 
     let query = db.collection("exam_students");
-    if (filterValue !== "ALL") query = query.where("class", "==", String(filterValue));
+    
+    // ഫിൽട്ടറിംഗ്: ഉസ്താദുമാർക്ക് അവരുടെ ക്ലാസ്സ് മാത്രം
+    if (filterValue !== "ALL" && filterValue !== "") {
+        query = query.where("class", "==", filterValue);
+    }
 
     try {
         const snap = await query.get();
         tbody.innerHTML = "";
         let students = [];
         snap.forEach(doc => students.push({ id: doc.id, ...doc.data() }));
+        
         students.sort((a, b) => parseInt(a.rollNo || 0) - parseInt(b.rollNo || 0));
 
-        students.forEach((s, idx) => {
+        if (students.length === 0) {
+            tbody.innerHTML = "<tr><td colspan='6'>ഈ ക്ലാസ്സിൽ കുട്ടികളെ കണ്ടെത്തിയില്ല.</td></tr>";
+            return;
+        }
+
+        students.forEach((s) => {
             const genderClass = s.gender?.toLowerCase() === 'female' ? 'text-red' : 'text-black';
             
-            if (mode === 'marks') {
-                // Mark Entry ഭാഗം
-                const m = [Number(s.m1)||0, Number(s.m2)||0, Number(s.m3)||0, Number(s.m4)||0, Number(s.m5)||0];
-                const q = Number(s.quran)||0;
-                const total = m.reduce((a,b) => a+b, 0) + q;
-                const passed = total >= 240;
-                tbody.innerHTML += `
-                    <tr class="${genderClass}">
-                        <td>${s.rollNo || idx + 1}</td>
-                        <td class="text-left"><b>${s.name}</b></td>
-                        ${m.map((val, i) => `<td><input type="number" value="${val}" class="sam-mark-input" onchange="updateMark('${s.id}','m${i+1}',this.value)"></td>`).join('')}
-                        <td><input type="number" value="${q}" class="sam-mark-input quran-input" onchange="updateMark('${s.id}','quran',this.value)"></td>
-                        <td class="total-cell"><b>${total}</b></td>
-                        <td class="${passed ? 'status-pass' : 'status-fail'}">${passed ? 'PASS' : 'FAIL'}</td>
-                    </tr>`;
-            } else {
-                // Student View ഭാഗം (ഇവിടെ ഫാദർ നെയിം, മൊബൈൽ എന്നിവ ചേർത്തു)
-                tbody.innerHTML += `
-                    <tr class="${genderClass}">
-                        <td>${s.rollNo || '-'}</td>
-                        <td class="text-left"><b>${s.name}</b><br><small>DOB: ${s.dob || '-'}</small></td>
-                        <td>Class ${s.class}</td>
-                        <td>${s.father || '-'}<br><small>${s.phone || '-'}</small></td>
-                        <td>${s.gender}</td>
-                        <td>
-                            <i class="fas fa-edit edit-icon" onclick="editExamStudent('${s.id}')"></i>
-                            <i class="fas fa-trash delete-icon" onclick="deleteExamStudent('${s.id}')"></i>
-                        </td>
-                    </tr>`;
-            }
+            tbody.innerHTML += `
+                <tr class="${genderClass}">
+                    <td>${s.rollNo || '-'}</td>
+                    <td class="text-left"><b>${s.name}</b><br><small>DOB: ${s.dob || '-'}</small></td>
+                    <td>Class ${s.class}</td>
+                    <td>${s.father || '-'}<br><small>${s.phone || '-'}</small></td>
+                    <td>${s.gender}</td>
+                    <td>
+                        <i class="fas fa-edit edit-icon" onclick="editExamStudent('${s.id}')" style="cursor:pointer; color:blue;"></i>
+                        <i class="fas fa-trash delete-icon" onclick="deleteExamStudent('${s.id}')" style="cursor:pointer; color:red; margin-left:10px;"></i>
+                    </td>
+                </tr>`;
         });
-    } catch (e) { tbody.innerHTML = "Error!"; }
+    } catch (e) { 
+        tbody.innerHTML = "Error!"; 
+    }
 }
 
 async function updateMark(id, field, val) {

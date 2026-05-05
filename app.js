@@ -2008,10 +2008,9 @@ function showAddStudentUI(container) {
             <button onclick="saveExamStudent()" id="save-btn" class="sam-btn-orange">SAVE STUDENT</button>
         </div>`;
 }
-
 function showStudentViewUI(container) {
     const user = JSON.parse(localStorage.getItem("activeUser"));
-    const isSadhar = user && (user.role.toLowerCase() === 'sadhar');
+    const isSadhar = user && (user.role.toLowerCase() === 'sadhar' || user.role.toLowerCase() === 'sadar');
     container.innerHTML = `
         <div class="sam-card border-blue">
             <div class="flex-between">
@@ -2019,12 +2018,19 @@ function showStudentViewUI(container) {
                 ${isSadhar ? `<select id="filter-class" onchange="loadStudentTable('view-list')" class="sam-input" style="width:130px;">
                     <option value="ALL">All Classes</option>
                     ${[1,2,3,4,5,6,7,8,9,10,11,12].map(c => `<option value="${c}">Class ${c}</option>`).join('')}
-                </select>` : `<span>Class: ${user.assignedClass}</span>`}
+                </select>` : `<span class="badge-class">Class: ${user.assignedClass}</span>`}
             </div>
             <div class="table-scroll">
                 <table class="sam-main-table">
                     <thead>
-                        <tr><th>Roll</th><th>Adm No</th><th>Name</th><th>Class</th><th>Gender</th><th>Action</th></tr>
+                        <tr>
+                            <th>Roll</th>
+                            <th>Name & DOB</th>
+                            <th>Class</th>
+                            <th>Parent & Phone</th>
+                            <th>Gender</th>
+                            <th>Action</th>
+                        </tr>
                     </thead>
                     <tbody id="student-view-body"></tbody>
                 </table>
@@ -2075,7 +2081,10 @@ async function loadStudentTable(mode) {
     const tbody = document.getElementById(mode === 'view-list' ? 'student-view-body' : 'mark-entry-body');
     if(!tbody) return;
 
-    const isSadhar = user && (user.role.toLowerCase() === 'sadhar');
+    // സദർ ആണോ എന്ന് പരിശോധിക്കുന്നു
+    const isSadhar = user && (user.role.toLowerCase() === 'sadhar' || user.role.toLowerCase() === 'sadar');
+    
+    // ഉസ്താദുമാർക്ക് അവരുടെ ക്ലാസ്സും സദറിന് സെലക്ട് ചെയ്ത ക്ലാസ്സും ഫിൽട്ടർ ചെയ്യുന്നു
     let filterValue = isSadhar ? (document.getElementById(mode === 'view-list' ? 'filter-class' : 'filter-class-marks')?.value || "ALL") : user.assignedClass;
 
     tbody.innerHTML = "<tr><td colspan='12'>Loading...</td></tr>";
@@ -2092,25 +2101,31 @@ async function loadStudentTable(mode) {
 
         students.forEach((s, idx) => {
             const genderClass = s.gender?.toLowerCase() === 'female' ? 'text-red' : 'text-black';
+            
             if (mode === 'marks') {
+                // Mark Entry ഭാഗം
                 const m = [Number(s.m1)||0, Number(s.m2)||0, Number(s.m3)||0, Number(s.m4)||0, Number(s.m5)||0];
                 const q = Number(s.quran)||0;
                 const total = m.reduce((a,b) => a+b, 0) + q;
                 const passed = total >= 240;
                 tbody.innerHTML += `
                     <tr class="${genderClass}">
-                        <td>${idx + 1}</td><td><b>${s.name}</b></td>
+                        <td>${s.rollNo || idx + 1}</td>
+                        <td class="text-left"><b>${s.name}</b></td>
                         ${m.map((val, i) => `<td><input type="number" value="${val}" class="sam-mark-input" onchange="updateMark('${s.id}','m${i+1}',this.value)"></td>`).join('')}
                         <td><input type="number" value="${q}" class="sam-mark-input quran-input" onchange="updateMark('${s.id}','quran',this.value)"></td>
                         <td class="total-cell"><b>${total}</b></td>
                         <td class="${passed ? 'status-pass' : 'status-fail'}">${passed ? 'PASS' : 'FAIL'}</td>
-                        <td><i class="fas fa-trash delete-icon" onclick="deleteExamStudent('${s.id}')"></i></td>
                     </tr>`;
             } else {
+                // Student View ഭാഗം (ഇവിടെ ഫാദർ നെയിം, മൊബൈൽ എന്നിവ ചേർത്തു)
                 tbody.innerHTML += `
                     <tr class="${genderClass}">
-                        <td>${s.rollNo || '-'}</td><td>${s.admNo || '-'}</td>
-                        <td class="text-left"><b>${s.name}</b></td><td>Class ${s.class}</td><td>${s.gender}</td>
+                        <td>${s.rollNo || '-'}</td>
+                        <td class="text-left"><b>${s.name}</b><br><small>DOB: ${s.dob || '-'}</small></td>
+                        <td>Class ${s.class}</td>
+                        <td>${s.father || '-'}<br><small>${s.phone || '-'}</small></td>
+                        <td>${s.gender}</td>
                         <td>
                             <i class="fas fa-edit edit-icon" onclick="editExamStudent('${s.id}')"></i>
                             <i class="fas fa-trash delete-icon" onclick="deleteExamStudent('${s.id}')"></i>
@@ -2126,7 +2141,6 @@ async function updateMark(id, field, val) {
     await db.collection("exam_students").doc(id).update({ [field]: v });
     loadStudentTable('marks');
 }
-
 async function saveExamStudent() {
     const data = {
         admNo: document.getElementById('ex-adm').value,
@@ -2135,10 +2149,12 @@ async function saveExamStudent() {
         name: document.getElementById('ex-name').value,
         class: String(document.getElementById('ex-class').value),
         gender: document.getElementById('ex-gender').value,
+        father: document.getElementById('ex-father').value, // പുതിയത്
+        phone: document.getElementById('ex-phone').value,   // പുതിയത്
         m1:0, m2:0, m3:0, m4:0, m5:0, quran:0
     };
     await db.collection("exam_students").add(data);
-    alert("സേവ് ചെയ്തു!");
+    alert("വിവരങ്ങൾ സേവ് ചെയ്തു!");
     switchExamTab('view-list');
 }
 

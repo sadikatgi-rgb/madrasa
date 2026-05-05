@@ -2051,31 +2051,31 @@ function showStudentViewUI(container) {
 
 function showMarkEntryUI(container) {
     const user = JSON.parse(localStorage.getItem("activeUser"));
-    const isSadhar = user && (user.role.toLowerCase() === 'sadhar');
+    const isSadhar = user && (user.role.toLowerCase() === 'sadhar' || user.role.toLowerCase() === 'sadar');
+    
     container.innerHTML = `
         <div class="sam-card border-green">
             <div class="flex-between">
-                <h4><i class="fas fa-edit"></i> Mark Entry</h4>
-                ${isSadhar ? `<select id="filter-class-marks" onchange="loadStudentTable('marks')" class="sam-input" style="width:130px;">
+                <h4><i class="fas fa-edit"></i> പ്രധാന പരീക്ഷാ രജിസ്റ്റർ</h4>
+                ${isSadhar ? `
+                <select id="filter-class-marks" onchange="loadStudentTable('marks')" class="sam-input" style="width:130px;">
                     <option value="ALL">All Classes</option>
                     ${[1,2,3,4,5,6,7,8,9,10,11,12].map(c => `<option value="${c}">Class ${c}</option>`).join('')}
-                </select>` : `<span>Class: ${user.assignedClass}</span>`}
+                </select>` : `<span class="sam-badge">Class: ${user.assignedClass}</span>`}
             </div>
             <div class="table-scroll">
                 <table class="sam-main-table">
                     <thead>
                         <tr>
-                            <th rowspan="2">SL</th><th rowspan="2">Student Name</th>
-                            <th><input type="text" value="Sub 1" class="label-edit"></th>
-                            <th><input type="text" value="Sub 2" class="label-edit"></th>
-                            <th><input type="text" value="Sub 3" class="label-edit"></th>
-                            <th><input type="text" value="Sub 4" class="label-edit"></th>
-                            <th><input type="text" value="Sub 5" class="label-edit"></th>
+                            <th rowspan="2">Roll</th>
+                            <th rowspan="2">Student Name</th>
+                            <th colspan="5">Subjects (Max 100)</th>
                             <th rowspan="2" style="background:#fbc02d; color:black !important;">Quran</th>
-                            <th rowspan="2">Total</th><th rowspan="2">Result</th><th rowspan="2">Action</th>
+                            <th rowspan="2">Total</th>
+                            <th rowspan="2">Result</th>
                         </tr>
-                        <tr style="background:#455a64; font-size:10px;">
-                            <th>M1</th><th>M2</th><th>M3</th><th>M4</th><th>M5</th>
+                        <tr style="background:#455a64; font-size:10px; color:white;">
+                            <th>Sub 1</th><th>Sub 2</th><th>Sub 3</th><th>Sub 4</th><th>Sub 5</th>
                         </tr>
                     </thead>
                     <tbody id="mark-entry-body"></tbody>
@@ -2092,56 +2092,60 @@ async function loadStudentTable(mode) {
     if(!tbody) return;
 
     const isSadhar = user && (user.role.toLowerCase() === 'sadhar' || user.role.toLowerCase() === 'sadar');
-    
-    // ഉസ്താദ് ആണെങ്കിൽ യൂസർ പ്രൊഫൈലിലെ ക്ലാസ്സ് തന്നെ ഫിൽട്ടർ വാല്യൂ ആയി എടുക്കും
-    let filterValue;
-    if (isSadhar) {
-        filterValue = document.getElementById(mode === 'view-list' ? 'filter-class' : 'filter-class-marks')?.value || "ALL";
-    } else {
-        filterValue = String(user.assignedClass || ""); 
-    }
+    let filterValue = isSadhar ? (document.getElementById(mode === 'view-list' ? 'filter-class' : 'filter-class-marks')?.value || "ALL") : user.assignedClass;
 
-    tbody.innerHTML = "<tr><td colspan='6'>Loading...</td></tr>";
+    tbody.innerHTML = "<tr><td colspan='12'>Loading...</td></tr>";
 
     let query = db.collection("exam_students");
-    
-    // ഫിൽട്ടറിംഗ്: ഉസ്താദുമാർക്ക് അവരുടെ ക്ലാസ്സ് മാത്രം
-    if (filterValue !== "ALL" && filterValue !== "") {
-        query = query.where("class", "==", filterValue);
-    }
+    if (filterValue !== "ALL") query = query.where("class", "==", String(filterValue));
 
     try {
         const snap = await query.get();
         tbody.innerHTML = "";
         let students = [];
         snap.forEach(doc => students.push({ id: doc.id, ...doc.data() }));
-        
         students.sort((a, b) => parseInt(a.rollNo || 0) - parseInt(b.rollNo || 0));
 
-        if (students.length === 0) {
-            tbody.innerHTML = "<tr><td colspan='6'>ഈ ക്ലാസ്സിൽ കുട്ടികളെ കണ്ടെത്തിയില്ല.</td></tr>";
-            return;
-        }
-
-        students.forEach((s) => {
+        students.forEach((s, idx) => {
             const genderClass = s.gender?.toLowerCase() === 'female' ? 'text-red' : 'text-black';
             
-            tbody.innerHTML += `
-                <tr class="${genderClass}">
-                    <td>${s.rollNo || '-'}</td>
-                    <td class="text-left"><b>${s.name}</b><br><small>DOB: ${s.dob || '-'}</small></td>
-                    <td>Class ${s.class}</td>
-                    <td>${s.father || '-'}<br><small>${s.phone || '-'}</small></td>
-                    <td>${s.gender}</td>
-                    <td>
-                        <i class="fas fa-edit edit-icon" onclick="editExamStudent('${s.id}')" style="cursor:pointer; color:blue;"></i>
-                        <i class="fas fa-trash delete-icon" onclick="deleteExamStudent('${s.id}')" style="cursor:pointer; color:red; margin-left:10px;"></i>
-                    </td>
-                </tr>`;
+            if (mode === 'marks') {
+                const m = [Number(s.m1)||0, Number(s.m2)||0, Number(s.m3)||0, Number(s.m4)||0, Number(s.m5)||0];
+                const q = Number(s.quran)||0;
+                
+                // ടോട്ടൽ കണക്കാക്കുന്നു
+                const total = m.reduce((a,b) => a+b, 0) + q;
+                
+                // വിജയിക്കാൻ എല്ലാ വിഷയത്തിനും 40 മാർക്കിൽ കൂടുതൽ ഉണ്ടോ എന്ന് പരിശോധിക്കുന്നു
+                const isFailed = m.some(val => val > 0 && val < 40) || (q > 0 && q < 40);
+                const passed = total >= 240 && !isFailed;
+
+                tbody.innerHTML += `
+                    <tr class="${genderClass}">
+                        <td>${s.rollNo || idx + 1}</td>
+                        <td class="text-left"><b>${s.name}</b></td>
+                        ${m.map((val, i) => `<td><input type="number" value="${val}" class="sam-mark-input" onchange="updateMark('${s.id}','m${i+1}',this.value)"></td>`).join('')}
+                        <td><input type="number" value="${q}" class="sam-mark-input quran-input" onchange="updateMark('${s.id}','quran',this.value)"></td>
+                        <td class="total-cell"><b>${total}</b></td>
+                        <td class="${passed ? 'status-pass' : 'status-fail'}">${passed ? 'PASS' : 'FAIL'}</td>
+                    </tr>`;
+            } else {
+                // Student View പഴയതുപോലെ തന്നെ തുടരാം
+                tbody.innerHTML += `
+                    <tr class="${genderClass}">
+                        <td>${s.rollNo || '-'}</td>
+                        <td class="text-left"><b>${s.name}</b><br><small>DOB: ${s.dob || '-'}</small></td>
+                        <td>Class ${s.class}</td>
+                        <td>${s.father || '-'}<br><small>${s.phone || '-'}</small></td>
+                        <td>${s.gender}</td>
+                        <td>
+                            <i class="fas fa-edit edit-icon" onclick="editExamStudent('${s.id}')" style="cursor:pointer; color:blue;"></i>
+                            <i class="fas fa-trash delete-icon" onclick="deleteExamStudent('${s.id}')" style="cursor:pointer; color:red; margin-left:10px;"></i>
+                        </td>
+                    </tr>`;
+            }
         });
-    } catch (e) { 
-        tbody.innerHTML = "Error!"; 
-    }
+    } catch (e) { tbody.innerHTML = "Error!"; }
 }
 
 async function updateMark(id, field, val) {

@@ -2061,7 +2061,7 @@ function showMarkEntryUI(container) {
                 <select id="filter-class-marks" onchange="loadStudentTable('marks')" class="sam-input" style="width:130px;">
                     <option value="ALL">All Classes</option>
                     ${[1,2,3,4,5,6,7,8,9,10,11,12].map(c => `<option value="${c}">Class ${c}</option>`).join('')}
-                </select>` : `<span class="sam-badge">Class: ${user.assignedClass}</span>`}
+                </select>` : `<span class="sam-badge">${user.assignedClass}</span>`}
             </div>
             <div class="table-scroll">
                 <table class="sam-main-table">
@@ -2164,45 +2164,51 @@ async function loadStudentTable(mode) {
             }
         });
 
-        // --- റിപ്പോർട്ട് സമ്മറി (ലൂപ്പിന് ശേഷം) ---
+                // --- റിപ്പോർട്ട് സംഗ്രഹം (ലൂപ്പിന് ശേഷം ഇവിടെ മാറ്റം വരുത്തുക) ---
+        
+        // പഴയ സംഗ്രഹം (summary) ഉണ്ടെങ്കിൽ എപ്പോഴും അത് നീക്കം ചെയ്യുക
         const oldSummary = document.querySelector('.summary-section');
         if (oldSummary) oldSummary.remove();
 
-        const stats = {
-            total: students.length,
-            boys: students.filter(st => st.gender === 'Male').length,
-            girls: students.filter(st => st.gender === 'Female').length,
-            passed: 0
-        };
+        // മാർക്ക് എൻട്രി മോഡിലാണെങ്കിൽ (mode === 'marks') മാത്രം പുതിയ സംഗ്രഹം കാണിക്കുക
+        if (mode === 'marks' && students.length > 0) {
+            const stats = {
+                total: students.length,
+                boys: students.filter(st => st.gender === 'Male').length,
+                girls: students.filter(st => st.gender === 'Female').length,
+                passed: 0
+            };
 
-        // വിജയശതമാനം കണക്കാക്കാൻ ലൂപ്പ്
-        students.forEach(st => {
-            const sm = [Number(st.m1)||0, Number(st.m2)||0, Number(st.m3)||0, Number(st.m4)||0, Number(st.m5)||0, Number(st.quran)||0];
-            const tM = sm.reduce((a,b) => a+b, 0);
-            const sC = sm.filter(v => v > 0).length;
-            if(sC > 0 && !sm.some(v => v > 0 && v < 40) && tM >= (sC * 40)) stats.passed++;
-        });
+            // വിജയശതമാനം കണക്കാക്കുന്നു
+            students.forEach(st => {
+                const sm = [Number(st.m1)||0, Number(st.m2)||0, Number(st.m3)||0, Number(st.m4)||0, Number(st.m5)||0, Number(st.quran)||0];
+                const tM = sm.reduce((a,b) => a+b, 0);
+                const sC = sm.filter(v => v > 0).length;
+                // എല്ലാ വിഷയങ്ങൾക്കും 40 മാർക്കെങ്കിലും ഉണ്ടെങ്കിൽ വിജയിച്ചതായി കണക്കാക്കുന്നു
+                if(sC > 0 && !sm.some(v => v > 0 && v < 40) && tM >= (sC * 40)) stats.passed++;
+            });
 
-        const passPercent = stats.total > 0 ? ((stats.passed / stats.total) * 100).toFixed(1) : 0;
+            const passPercent = stats.total > 0 ? ((stats.passed / stats.total) * 100).toFixed(1) : 0;
 
-        const summaryHtml = `
-            <div class="sam-card summary-section" style="margin-top:20px; background:#f9f9f9; border-left: 5px solid #ff9800;">
-                <h4 style="border-bottom:1px solid #ddd; padding-bottom:5px;">റിപ്പോർട്ട് സംഗ്രഹം (${filterValue === 'ALL' ? 'എല്ലാ ക്ലാസ്സുകളും' : 'ക്ലാസ്: ' + filterValue})</h4>
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; padding:10px 0;">
-                    <div>ആകെ കുട്ടികൾ: <b>${stats.total}</b></div>
-                    <div>വിജയിച്ചവർ: <b>${stats.passed}</b></div>
-                    <div>ആൺകുട്ടികൾ: <b>${stats.boys}</b></div>
-                    <div>പെൺകുട്ടികൾ: <b>${stats.girls}</b></div>
-                    <div style="grid-column: span 2; font-size:1.1em; color:green; margin-top:5px;">
-                        മൊത്തം വിജയ ശതമാനം: <b>${passPercent}%</b>
+            const summaryHtml = `
+                <div class="sam-card summary-section" style="margin-top:20px; background:#f9f9f9; border-left: 5px solid #ff9800;">
+                    <h4 style="border-bottom:1px solid #ddd; padding-bottom:5px;">റിപ്പോർട്ട് സംഗ്രഹം (${filterValue === 'ALL' ? 'എല്ലാ ക്ലാസ്സുകളും' : 'ക്ലാസ്: ' + filterValue})</h4>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; padding:10px 0;">
+                        <div>ആകെ കുട്ടികൾ: <b>${stats.total}</b></div>
+                        <div>വിജയിച്ചവർ: <b>${stats.passed}</b></div>
+                        <div>ആൺകുട്ടികൾ: <b>${stats.boys}</b></div>
+                        <div>പെൺകുട്ടികൾ: <b>${stats.girls}</b></div>
+                        <div style="grid-column: span 2; font-size:1.1em; color:green; margin-top:5px;">
+                            മൊത്തം വിജയ ശതമാനം: <b>${passPercent}%</b>
+                        </div>
                     </div>
-                </div>
-                <button onclick="window.print()" class="sam-btn-orange no-print" style="width:100%; margin-top:10px;">
-                    <i class="fas fa-file-pdf"></i> PRINT / DOWNLOAD PDF
-                </button>
-            </div>`;
+                    <button onclick="window.print()" class="sam-btn-orange no-print" style="width:100%; margin-top:10px;">
+                        <i class="fas fa-file-pdf"></i> PRINT / DOWNLOAD PDF
+                    </button>
+                </div>`;
 
-        tbody.closest('.sam-card').insertAdjacentHTML('afterend', summaryHtml);
+            tbody.closest('.sam-card').insertAdjacentHTML('afterend', summaryHtml);
+        }
 
     } catch (e) { 
         console.error(e);

@@ -1930,9 +1930,8 @@ async function deleteMagSub(id) {
         loadMagazineList();
     }
 }
-
-/* ============================================================
-   📝 SAMASTHA EXAM MANAGEMENT - FULL LOGIC (UPDATED)
+    /* ============================================================
+   📝 SAMASTHA EXAM MANAGEMENT - FULL LOGIC (FIXED)
    ============================================================ */
 
 let currentExamTab = 'register';
@@ -1988,7 +1987,7 @@ function switchExamTab(tab) {
 // 2. UI നിർമ്മാണ ഫങ്ക്ഷനുകൾ
 function showAddStudentUI(container) {
     const user = JSON.parse(localStorage.getItem("activeUser"));
-    const isSadhar = user && (user.role.toLowerCase() === 'sadhar' || user.role.toLowerCase() === 'sadar');
+    const isSadhar = user && (user.role === 'Sadhar');
     
     container.innerHTML = `
         <div class="sam-card border-orange">
@@ -2018,7 +2017,7 @@ function showAddStudentUI(container) {
 
 function showStudentViewUI(container) {
     const user = JSON.parse(localStorage.getItem("activeUser"));
-    const isSadhar = user && (user.role.toLowerCase() === 'sadhar' || user.role.toLowerCase() === 'sadar');
+    const isSadhar = user && (user.role === 'Sadhar');
     
     container.innerHTML = `
         <div class="sam-card border-blue">
@@ -2051,7 +2050,7 @@ function showStudentViewUI(container) {
 
 function showMarkEntryUI(container) {
     const user = JSON.parse(localStorage.getItem("activeUser"));
-    const isSadhar = user && (user.role.toLowerCase() === 'sadhar' || user.role.toLowerCase() === 'sadar');
+    const isSadhar = user && (user.role === 'Sadhar');
     
     container.innerHTML = `
         <div class="sam-card border-green">
@@ -2061,7 +2060,7 @@ function showMarkEntryUI(container) {
                 <select id="filter-class-marks" onchange="loadStudentTable('marks')" class="sam-input" style="width:130px;">
                     <option value="ALL">All Classes</option>
                     ${[1,2,3,4,5,6,7,8,9,10,11,12].map(c => `<option value="${c}">Class ${c}</option>`).join('')}
-                </select>` : `<span class="sam-badge">${user.assignedClass}</span>`}
+                </select>` : `<span class="sam-badge">Class: ${user.assignedClass}</span>`}
             </div>
             <div class="table-scroll">
                 <table class="sam-main-table">
@@ -2084,16 +2083,22 @@ function showMarkEntryUI(container) {
         </div>`;
     loadStudentTable('marks');
 }
-// 3. ഡാറ്റ ലോജിക് (UPDATED WITH SUMMARY & NEW MARK LOGIC)
+
+// 3. ഡാറ്റ ലോജിക്
 async function loadStudentTable(mode) {
     const user = JSON.parse(localStorage.getItem("activeUser"));
     const tbody = document.getElementById(mode === 'view-list' ? 'student-view-body' : 'mark-entry-body');
     if(!tbody) return;
 
-    const isSadhar = user && (user.role.toLowerCase() === 'sadhar' || user.role.toLowerCase() === 'sadar');
+    const isSadhar = user && (user.role === 'Sadhar');
     
-    // ഫിൽട്ടർ വാല്യൂ നിശ്ചയിക്കുന്നു
-    let filterValue = isSadhar ? (document.getElementById(mode === 'view-list' ? 'filter-class' : 'filter-class-marks')?.value || "ALL") : String(user.assignedClass || "");
+    // ഫിൽട്ടർ ലോജിക്
+    let filterValue;
+    if (isSadhar) {
+        filterValue = document.getElementById(mode === 'view-list' ? 'filter-class' : 'filter-class-marks')?.value || "ALL";
+    } else {
+        filterValue = String(user.assignedClass || "");
+    }
 
     tbody.innerHTML = "<tr><td colspan='12'>Loading Data...</td></tr>";
 
@@ -2108,12 +2113,10 @@ async function loadStudentTable(mode) {
         let students = [];
         snap.forEach(doc => students.push({ id: doc.id, ...doc.data() }));
         
-        // റോൾ നമ്പർ അനുസരിച്ച് ക്രമീകരിക്കുന്നു
         students.sort((a, b) => parseInt(a.rollNo || 0) - parseInt(b.rollNo || 0));
 
         if (students.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="12">ക്ലാസ് ${filterValue}-ൽ കുട്ടികളെ കണ്ടെത്തിയില്ല.</td></tr>`;
-            // പഴയ സമ്മറി ഉണ്ടെങ്കിൽ അത് മാറ്റുന്നു
+            tbody.innerHTML = `<tr><td colspan="12">ഡാറ്റ കണ്ടെത്തിയില്ല.</td></tr>`;
             const oldSum = document.querySelector('.summary-section');
             if (oldSum) oldSum.remove();
             return;
@@ -2123,19 +2126,12 @@ async function loadStudentTable(mode) {
             const genderClass = s.gender?.toLowerCase() === 'female' ? 'text-red' : 'text-black';
             
             if (mode === 'marks') {
-                // --- മാർക്ക് ലോജിക് ആരംഭം ---
                 const m = [Number(s.m1)||0, Number(s.m2)||0, Number(s.m3)||0, Number(s.m4)||0, Number(s.m5)||0];
                 const q = Number(s.quran)||0;
-
-                // മാർക്ക് രേഖപ്പെടുത്തിയ വിഷയങ്ങൾ മാത്രം (Entered Subjects)
                 const enteredMarks = m.filter(val => val > 0);
                 const subjectCount = enteredMarks.length + (q > 0 ? 1 : 0);
                 const total = m.reduce((a,b) => a+b, 0) + q;
-
-                // തോൽവി പരിശോധന (ഏതെങ്കിലും വിഷയത്തിന് 40-ൽ താഴെയാണോ എന്ന്)
                 const isFailedBySub = enteredMarks.some(val => val < 40) || (q > 0 && q < 40);
-                
-                // വിജയിക്കാൻ: വിഷയം തോൽക്കരുത് + മൊത്തം മാർക്കിന്റെ 40% വേണം
                 const passed = subjectCount > 0 && !isFailedBySub && (total >= (subjectCount * 40));
 
                 tbody.innerHTML += `
@@ -2148,7 +2144,6 @@ async function loadStudentTable(mode) {
                         <td class="${passed ? 'status-pass' : 'status-fail'}">${passed ? 'PASS' : 'FAIL'}</td>
                     </tr>`;
             } else {
-                // --- സ്റ്റുഡന്റ് വ്യൂ ലോജിക് ---
                 tbody.innerHTML += `
                     <tr class="${genderClass}">
                         <td>${s.rollNo || '-'}</td>
@@ -2164,13 +2159,10 @@ async function loadStudentTable(mode) {
             }
         });
 
-                // --- റിപ്പോർട്ട് സംഗ്രഹം (ലൂപ്പിന് ശേഷം ഇവിടെ മാറ്റം വരുത്തുക) ---
-        
-        // പഴയ സംഗ്രഹം (summary) ഉണ്ടെങ്കിൽ എപ്പോഴും അത് നീക്കം ചെയ്യുക
+        // റിപ്പോർട്ട് സമ്മറി കാണിക്കുന്നു (Mark Entry ടാബിൽ മാത്രം)
         const oldSummary = document.querySelector('.summary-section');
         if (oldSummary) oldSummary.remove();
 
-        // മാർക്ക് എൻട്രി മോഡിലാണെങ്കിൽ (mode === 'marks') മാത്രം പുതിയ സംഗ്രഹം കാണിക്കുക
         if (mode === 'marks' && students.length > 0) {
             const stats = {
                 total: students.length,
@@ -2179,12 +2171,10 @@ async function loadStudentTable(mode) {
                 passed: 0
             };
 
-            // വിജയശതമാനം കണക്കാക്കുന്നു
             students.forEach(st => {
                 const sm = [Number(st.m1)||0, Number(st.m2)||0, Number(st.m3)||0, Number(st.m4)||0, Number(st.m5)||0, Number(st.quran)||0];
                 const tM = sm.reduce((a,b) => a+b, 0);
                 const sC = sm.filter(v => v > 0).length;
-                // എല്ലാ വിഷയങ്ങൾക്കും 40 മാർക്കെങ്കിലും ഉണ്ടെങ്കിൽ വിജയിച്ചതായി കണക്കാക്കുന്നു
                 if(sC > 0 && !sm.some(v => v > 0 && v < 40) && tM >= (sC * 40)) stats.passed++;
             });
 
@@ -2216,19 +2206,17 @@ async function loadStudentTable(mode) {
     }
 }
 
-// മാർക്ക് അപ്‌ഡേറ്റ് ചെയ്യാനുള്ള ഫങ്ക്ഷൻ
+// മാർക്ക് അപ്‌ഡേറ്റ്
 async function updateMark(id, field, val) {
     const v = parseInt(val) || 0;
     try {
         await db.collection("exam_students").doc(id).update({ [field]: v });
-        // മാർക്ക് അപ്‌ഡേറ്റ് ചെയ്ത ശേഷം ടേബിളും സമ്മറിയും പുതുക്കുന്നു
         loadStudentTable('marks');
-    } catch (e) {
-        alert("മാർക്ക് സേവ് ചെയ്യുന്നതിൽ പിശക് സംഭവിച്ചു!");
-    }
+    } catch (e) { alert("Error saving mark!"); }
 }
 
 async function saveExamStudent() {
+    const user = JSON.parse(localStorage.getItem("activeUser"));
     const data = {
         admNo: document.getElementById('ex-adm').value,
         rollNo: document.getElementById('ex-roll').value,
@@ -2236,8 +2224,8 @@ async function saveExamStudent() {
         name: document.getElementById('ex-name').value,
         class: String(document.getElementById('ex-class').value),
         gender: document.getElementById('ex-gender').value,
-        father: document.getElementById('ex-father').value, // പുതിയത്
-        phone: document.getElementById('ex-phone').value,   // പുതിയത്
+        father: document.getElementById('ex-father').value,
+        phone: document.getElementById('ex-phone').value,
         m1:0, m2:0, m3:0, m4:0, m5:0, quran:0
     };
     await db.collection("exam_students").add(data);
@@ -2245,6 +2233,7 @@ async function saveExamStudent() {
     switchExamTab('view-list');
 }
 
+// എഡിറ്റിംഗ്
 async function editExamStudent(id) {
     const doc = await db.collection("exam_students").doc(id).get();
     const s = doc.data();
@@ -2255,6 +2244,10 @@ async function editExamStudent(id) {
         document.getElementById('ex-name').value = s.name || "";
         document.getElementById('ex-class').value = s.class || "";
         document.getElementById('ex-gender').value = s.gender || "Male";
+        document.getElementById('ex-dob').value = s.dob || "";
+        document.getElementById('ex-father').value = s.father || "";
+        document.getElementById('ex-phone').value = s.phone || "";
+
         const btn = document.getElementById('save-btn');
         btn.innerText = "UPDATE INFO";
         btn.onclick = async () => {
@@ -2263,7 +2256,10 @@ async function editExamStudent(id) {
                 class: document.getElementById('ex-class').value,
                 rollNo: document.getElementById('ex-roll').value,
                 admNo: document.getElementById('ex-adm').value,
-                gender: document.getElementById('ex-gender').value
+                gender: document.getElementById('ex-gender').value,
+                dob: document.getElementById('ex-dob').value,
+                father: document.getElementById('ex-father').value,
+                phone: document.getElementById('ex-phone').value
             };
             await db.collection("exam_students").doc(id).update(upData);
             alert("Updated!");
@@ -2278,9 +2274,11 @@ async function deleteExamStudent(id) {
         loadStudentTable(currentExamTab);
     }
 }
+
+// പ്രതിമാസ മാർക്ക് സെക്ഷൻ
 function showMonthlyAssessmentUI(container) {
     const user = JSON.parse(localStorage.getItem("activeUser"));
-    const isSadhar = user && (user.role.toLowerCase() === 'sadhar');
+    const isSadhar = user && (user.role === 'Sadhar');
     
     container.innerHTML = `
         <div class="sam-card border-purple">
@@ -2304,20 +2302,14 @@ function showMonthlyAssessmentUI(container) {
                     </select>` : `<span>Class: ${user.assignedClass}</span>`}
                 </div>
             </div>
-            
             <div class="table-scroll" style="margin-top:15px;">
                 <table class="sam-main-table assessment-table">
                     <thead>
                         <tr>
                             <th>പേര്</th>
-                            <th>വായന (20)</th>
-                            <th>എഴുത്ത് (20)</th>
-                            <th>കർമ്മം (20)</th>
-                            <th>ശീലം (15)</th>
-                            <th>വേഷം (15)</th>
-                            <th>ഹാജർ (10)</th>
-                            <th>അസൈൻമെന്റ് (10)</th>
-                            <th>ഖുർആൻ ഹിഫ്ള് (100)</th>
+                            <th>വായന (20)</th><th>എഴുത്ത് (20)</th><th>കർമ്മം (20)</th>
+                            <th>ശീലം (15)</th><th>വേഷം (15)</th><th>ഹാജർ (10)</th>
+                            <th>അസൈൻമെന്റ് (10)</th><th>ഖുർആൻ ഹിഫ്ള് (100)</th>
                         </tr>
                     </thead>
                     <tbody id="monthly-body"></tbody>
@@ -2326,6 +2318,7 @@ function showMonthlyAssessmentUI(container) {
         </div>`;
     loadMonthlyTable();
 }
+
 async function loadMonthlyTable() {
     const tbody = document.getElementById('monthly-body');
     const month = document.getElementById('assess-month').value;
@@ -2342,7 +2335,6 @@ async function loadMonthlyTable() {
         tbody.innerHTML = "";
         snap.forEach(doc => {
             const s = doc.data();
-            // ആ മാസത്തെ ഡാറ്റ ഉണ്ടോ എന്ന് നോക്കുന്നു, ഇല്ലെങ്കിൽ ശൂന്യമായി നൽകുന്നു
             const mData = s.monthlyData && s.monthlyData[month] ? s.monthlyData[month] : {};
 
             tbody.innerHTML += `
@@ -2358,7 +2350,7 @@ async function loadMonthlyTable() {
                     <td><input type="number" value="${mData.hifz || 0}" onchange="saveMonthlyMark('${doc.id}', '${month}', 'hifz', this.value)"></td>
                 </tr>`;
         });
-    } catch (e) { tbody.innerHTML = "Error loading data!"; }
+    } catch (e) { tbody.innerHTML = "Error!"; }
 }
 
 async function saveMonthlyMark(studentId, month, field, value) {

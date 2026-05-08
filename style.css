@@ -547,3 +547,30 @@ input:focus, select:focus {
         print-color-adjust: exact;
     }
 }
+/* പേരും ഐക്കണുകളും ഒരേ വരിയിൽ വരാൻ */
+.student-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+    gap: 10px;
+}
+
+.student-header h4 {
+    margin: 0 !important;
+    flex: 1; /* പേരിന് കൂടുതൽ സ്ഥലം നൽകുന്നു */
+    font-size: 16px;
+    line-height: 1.4;
+}
+
+.action-icons {
+    display: flex;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+/* പഴയ absolute പൊസിഷൻ ഒഴിവാക്കാൻ */
+.student-item i {
+    position: static !important; 
+    font-size: 18px;
+}

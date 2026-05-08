@@ -563,16 +563,20 @@ async function loadStudents(filterClass = 'all') {
         const oldBal = Number(s.balance) || 0;
         const totalPending = pendingMonthsFee + oldBal;
 
-        // --- 3. സ്റ്റുഡന്റ് കാർഡ് ഡിസൈൻ ---
+                // --- 3. സ്റ്റുഡന്റ് കാർഡ് ഡിസൈൻ (പുതിയത്) ---
         listArea.innerHTML += `
-            <div class="student-item" style="position:relative; background:white; padding:15px; margin:10px; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.1); border-left:5px solid #1a73e8;">
-                <div style="position:absolute; right:10px; top:10px;">
-                    ${(user.role === 'Sadhar' || (user.role === 'Usthad' && user.assignedClass == s.class)) ? `
-                        <i class="fas fa-edit" onclick="editStudent('${doc.id}')" style="color:blue; cursor:pointer; margin-right:15px; font-size:18px;"></i>
-                        <i class="fas fa-trash" onclick="deleteStudent('${doc.id}')" style="color:red; cursor:pointer; font-size:18px;"></i>
-                    ` : ''}
+            <div class="student-item" style="background:white; padding:15px; margin:10px; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.1); border-left:5px solid #1a73e8;">
+                
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 8px;">
+                    <h4 style="margin:0; color:#1a73e8; font-size:16px; flex:1;">${s.name} (ക്ലാസ്: ${s.class})</h4>
+                    
+                    <div style="display: flex; gap: 12px; white-space: nowrap;">
+                        ${(user.role === 'Sadhar' || (user.role === 'Usthad' && user.assignedClass == s.class)) ? `
+                            <i class="fas fa-edit" onclick="editStudent('${doc.id}')" style="color:blue; cursor:pointer; font-size:18px;"></i>
+                            <i class="fas fa-trash" onclick="deleteStudent('${doc.id}')" style="color:red; cursor:pointer; font-size:18px;"></i>
+                        ` : ''}
+                    </div>
                 </div>
-                <h4 style="margin:0 0 5px 0; color:#1a73e8; font-size:16px;">${s.name} (ക്ലാസ്: ${s.class})</h4>
                 
                 ${siblingDetailsHTML}
                 <div style="font-size:11px; color:#666; margin:10px 0;">
@@ -583,26 +587,26 @@ async function loadStudents(filterClass = 'all') {
                 ${monthTableHTML}
                 
                 <div style="background:#fff3f3; padding:12px; border-radius:10px; border:1px solid #ffebeb; margin-top:10px;">
-    <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:5px;">
-        <span>ബാക്കി മാസങ്ങൾ (${unpaidCount}):</span>
-        <b style="color:#d32f2f;">₹${pendingMonthsFee}</b>
-    </div>
-    
-    <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; padding-top:8px; border-top:1px dashed #ffdada;">
-        <span>പഴയ ബാക്കി: <b style="color:#d32f2f;">₹${oldBal}</b></span>
-        ${oldBal > 0 ? `<button onclick="payOldBalance('${doc.id}', '${s.parentPhone}', '${s.name}')" style="background:#d32f2f; color:white; border:none; padding:8px 15px; border-radius:6px; font-size:12px; cursor:pointer; font-weight:bold; pointer-events: auto;">Pay Old</button>` : ''}
-    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:5px;">
+                        <span>ബാക്കി മാസങ്ങൾ (${unpaidCount}):</span>
+                        <b style="color:#d32f2f;">₹${pendingMonthsFee}</b>
+                    </div>
+                    
+                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; padding-top:8px; border-top:1px dashed #ffdada;">
+                        <span>പഴയ ബാക്കി: <b style="color:#d32f2f;">₹${oldBal}</b></span>
+                        ${oldBal > 0 ? `<button onclick="payOldBalance('${doc.id}', '${s.parentPhone}', '${s.name}')" style="background:#d32f2f; color:white; border:none; padding:8px 15px; border-radius:6px; font-size:12px; cursor:pointer; font-weight:bold; pointer-events: auto;">Pay Old</button>` : ''}
+                    </div>
 
-    <div class="history-container">
-    <span onclick="viewOldPayHistory('${doc.id}', '${s.name}')" class="view-old-history">
-        <i class="fas fa-history"></i> View Old History
-    </span>
-</div>
+                    <div class="history-container">
+                        <span onclick="viewOldPayHistory('${doc.id}', '${s.name}')" class="view-old-history">
+                            <i class="fas fa-history"></i> View Old History
+                        </span>
+                    </div>
 
-    <div style="text-align:right; margin-top:8px; font-weight:bold; border-top:1px solid #ffdada; padding-top:8px; color:#000; font-size:14px;">
-        ആകെ കുടിശ്ശിക: ₹${totalPending}
-    </div>
-</div>
+                    <div style="text-align:right; margin-top:8px; font-weight:bold; border-top:1px solid #ffdada; padding-top:8px; color:#000; font-size:14px;">
+                        ആകെ കുടിശ്ശിക: ₹${totalPending}
+                    </div>
+                </div>
 
                 <div style="display:flex; gap:8px; margin-top:12px;">
                     <button onclick="payFee('${doc.id}')" style="flex:1; background:#28a745; color:white; border:none; padding:10px; border-radius:8px; cursor:pointer; font-weight:bold;">Pay Month</button>

@@ -2163,52 +2163,191 @@ async function loadStudentTable(mode) {
             }
         });
 
-        // റിപ്പോർട്ട് സമ്മറി കാണിക്കുന്നു (Mark Entry ടാബിൽ മാത്രം)
-        const oldSummary = document.querySelector('.summary-section');
-        if (oldSummary) oldSummary.remove();
+        async function generateConsolidatedReport() {
+    const reportArea = document.getElementById('printable-report-area');
+    if (!reportArea) return;
 
-        if (mode === 'marks' && students.length > 0) {
-            const stats = {
-                total: students.length,
-                boys: students.filter(st => st.gender === 'Male').length,
-                girls: students.filter(st => st.gender === 'Female').length,
-                passed: 0
-            };
+    reportArea.innerHTML = "<div class='no-print' style='text-align:center; padding:20px;'><i class='fas fa-spinner fa-spin'></i> റിപ്പോർട്ട് തയ്യാറാക്കുന്നു...</div>";
 
-            students.forEach(st => {
-                const sm = [Number(st.m1)||0, Number(st.m2)||0, Number(st.m3)||0, Number(st.m4)||0, Number(st.m5)||0, Number(st.quran)||0];
-                const tM = sm.reduce((a,b) => a+b, 0);
-                const sC = sm.filter(v => v > 0).length;
-                if(sC > 0 && !sm.some(v => v > 0 && v < 40) && tM >= (sC * 40)) stats.passed++;
+    try {
+        const snap = await db.collection("exam_students").get();
+        let allStudents = [];
+        snap.forEach(doc => allStudents.push({ id: doc.id, ...doc.data() }));
+
+        const classes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+        let tableRows = "";
+        
+        let grandTotal = { total: 0, boys: 0, girls: 0, attended: 0, pBoys: 0, pGirls: 0, pTotal: 0 };
+
+        classes.forEach(cls => {
+            const clsStudents = allStudents.filter(s => String(s.class) === String(cls));
+            if (clsStudents.length === 0) return;
+
+            let stats = { b: 0, g: 0, att: 0, pb: 0, pg: 0 };
+            stats.b = clsStudents.filter(s => s.gender === 'Male').length;
+            stats.g = clsStudents.filter(s => s.gender === 'Female').length;
+
+            clsStudents.forEach(s => {
+                const marks = [Number(s.m1)||0, Number(s.m2)||0, Number(s.m3)||0, Number(s.m4)||0, Number(s.m5)||0, Number(s.quran)||0];
+                const hasMarks = marks.some(v => v > 0);
+                if (hasMarks) stats.att++;
+                const passed = hasMarks && !marks.some(v => v > 0 && v < 40);
+                if (passed) {
+                    if (s.gender === 'Male') stats.pb++;
+                    else stats.pg++;
+                }
             });
 
-            const passPercent = stats.total > 0 ? ((stats.passed / stats.total) * 100).toFixed(1) : 0;
+            const totalPassed = stats.pb + stats.pg;
+            const passPercent = stats.att > 0 ? ((totalPassed / stats.att) * 100).toFixed(0) : 0;
 
-            const summaryHtml = `
-                <div class="sam-card summary-section" style="margin-top:20px; background:#f9f9f9; border-left: 5px solid #ff9800;">
-                    <h4 style="border-bottom:1px solid #ddd; padding-bottom:5px;">റിപ്പോർട്ട് സംഗ്രഹം (${filterValue === 'ALL' ? 'എല്ലാ ക്ലാസ്സുകളും' : 'ക്ലാസ്: ' + filterValue})</h4>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; padding:10px 0;">
-                        <div>ആകെ കുട്ടികൾ: <b>${stats.total}</b></div>
-                        <div>വിജയിച്ചവർ: <b>${stats.passed}</b></div>
-                        <div>ആൺകുട്ടികൾ: <b>${stats.boys}</b></div>
-                        <div>പെൺകുട്ടികൾ: <b>${stats.girls}</b></div>
-                        <div style="grid-column: span 2; font-size:1.1em; color:green; margin-top:5px;">
-                            മൊത്തം വിജയ ശതമാനം: <b>${passPercent}%</b>
-                        </div>
+            grandTotal.total += clsStudents.length;
+            grandTotal.boys += stats.b;
+            grandTotal.girls += stats.g;
+            grandTotal.attended += stats.att;
+            grandTotal.pBoys += stats.pb;
+            grandTotal.pGirls += stats.pg;
+            grandTotal.pTotal += totalPassed;
+
+            tableRows += `
+                <tr>
+                    <td class="cls-cell">${cls}</td>
+                    <td>${stats.b}</td>
+                    <td>${stats.g}</td>
+                    <td class="total-col">${clsStudents.length}</td>
+                    <td class="total-col">${stats.att}</td>
+                    <td>${stats.pb}</td>
+                    <td>${stats.pg}</td>
+                    <td class="total-col">${totalPassed}</td>
+                    <td class="percent-col">${passPercent}%</td>
+                </tr>`;
+        });
+
+        const overallPassPercent = grandTotal.attended > 0 ? ((grandTotal.pTotal / grandTotal.attended) * 100).toFixed(1) : 0;
+
+        reportArea.innerHTML = `
+            <div class="main-report-card">
+                <div class="report-header-box">
+                    <h1 class="m-title">ഇസ്‌ലാഹുൽ ഉലൂം സെക്കണ്ടറി മദ്‌റസ</h1>
+                    <p class="m-sub">AR നഗർ | REG NO: 1205</p>
+                    <div class="title-divider"></div>
+                    <h2 class="report-main-subject">വിദ്യാർത്ഥികളുടെ എണ്ണം & പരീക്ഷാ ഫലം (2025 - 2026)</h2>
+                </div>
+
+                <table class="styled-report-table">
+                    <thead>
+                        <tr class="head-row-1">
+                            <th rowspan="2">ക്ലാസ്</th>
+                            <th colspan="2">രജിസ്റ്റർ ചെയ്തവർ</th>
+                            <th rowspan="2">ആകെ കുട്ടികൾ</th>
+                            <th rowspan="2">പരീക്ഷ എഴുതിയവർ</th>
+                            <th colspan="3">വിജയിച്ചവർ</th>
+                            <th rowspan="2">വിജയ ശതമാനം</th>
+                        </tr>
+                        <tr class="head-row-2">
+                            <th>ആൺ</th><th>പെൺ</th>
+                            <th>ആൺ</th><th>പെൺ</th><th>ആകെ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tableRows}
+                    </tbody>
+                    <tfoot class="total-footer">
+                        <tr>
+                            <td>TOTAL</td>
+                            <td>${grandTotal.boys}</td>
+                            <td>${grandTotal.girls}</td>
+                            <td>${grandTotal.total}</td>
+                            <td>${grandTotal.attended}</td>
+                            <td>${grandTotal.pBoys}</td>
+                            <td>${grandTotal.pGirls}</td>
+                            <td>${grandTotal.pTotal}</td>
+                            <td>${overallPassPercent}%</td>
+                        </tr>
+                    </tfoot>
+                </table>
+
+                <div class="signature-section">
+                    <div class="sig-box">
+                        <p>Place: AR Nagar</p>
+                        <p>Date: ${new Date().toLocaleDateString('en-GB')}</p>
                     </div>
-                    <button onclick="window.print()" class="sam-btn-orange no-print" style="width:100%; margin-top:10px;">
-                        <i class="fas fa-file-pdf"></i> PRINT / DOWNLOAD PDF
-                    </button>
-                </div>`;
+                    <div class="sig-box" style="text-align:center;">
+                        <div class="sig-line"></div>
+                        <p>Head Master / Sadar</p>
+                    </div>
+                    <div class="sig-box" style="text-align:center;">
+                        <div class="sig-line"></div>
+                        <p>Office Seal</p>
+                    </div>
+                </div>
+            </div>
 
-            tbody.closest('.sam-card').insertAdjacentHTML('afterend', summaryHtml);
-        }
+            <style>
+                .main-report-card {
+                    background: white;
+                    padding: 40px;
+                    border: 1px solid #ddd;
+                    min-height: 800px;
+                    position: relative;
+                }
+                .report-header-box {
+                    text-align: center;
+                    margin-bottom: 30px;
+                    border: 3px double #333;
+                    padding: 15px;
+                }
+                .m-title { font-size: 28px; margin: 0; color: #1a237e; font-weight: 900; }
+                .m-sub { font-size: 16px; margin: 5px 0; font-weight: bold; }
+                .title-divider { height: 2px; background: #333; margin: 10px auto; width: 80%; }
+                .report-main-subject { 
+                    font-size: 18px; 
+                    background: #f0f0f0; 
+                    display: inline-block; 
+                    padding: 5px 20px; 
+                    border-radius: 5px;
+                    text-transform: uppercase;
+                }
 
-    } catch (e) { 
-        console.error(e);
-        tbody.innerHTML = "Error!"; 
+                .styled-report-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-bottom: 40px;
+                }
+                .styled-report-table th, .styled-report-table td {
+                    border: 1px solid #000;
+                    padding: 12px 8px;
+                    text-align: center;
+                    font-size: 15px;
+                }
+                .head-row-1 { background: #ffd600 !important; font-weight: bold; }
+                .head-row-2 { background: #fffde7 !important; }
+                .total-col { background: #f5f5f5; font-weight: bold; }
+                .percent-col { background: #e8f5e9; font-weight: bold; color: #2e7d32; }
+                .cls-cell { font-weight: bold; background: #fafafa; font-size: 16px; }
+
+                .total-footer { background: #333; color: white; font-weight: bold; }
+                .total-footer td { border-color: #444; padding: 15px 8px; }
+
+                .signature-section {
+                    margin-top: 60px;
+                    display: flex;
+                    justify-content: space-between;
+                }
+                .sig-line { width: 150px; border-top: 1px solid #000; margin: 50px auto 5px auto; }
+                
+                @media print {
+                    .no-print { display: none !important; }
+                    .main-report-card { border: none; padding: 0; }
+                    body { background: white; }
+                }
+            </style>
+        `;
+    } catch (e) {
+        reportArea.innerHTML = "Error loading report.";
     }
 }
+
 
 // മാർക്ക് അപ്‌ഡേറ്റ്
 async function updateMark(id, field, val) {

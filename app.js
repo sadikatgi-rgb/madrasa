@@ -1934,7 +1934,8 @@ async function deleteMagSub(id) {
         loadMagazineList();
     }
 }
-    /* ============================================================
+    
+/* ============================================================
    📝 SAMASTHA EXAM MANAGEMENT - FULL LOGIC (FIXED)
    ============================================================ */
 
@@ -1955,7 +1956,7 @@ function openExamSection() {
         <div class="sam-header">
             <button onclick="closeExamSection()" class="sam-back-btn"><i class="fas fa-arrow-left"></i></button>
             <h3>Exam Management Portal</h3>
-            <div class="sam-avatar">${user.name[0]}</div>
+            <div class="sam-avatar">${user.name ? user.name[0] : 'U'}</div>
         </div>
         <div class="sam-container">
             <div class="sam-tab-bar no-print">
@@ -1980,12 +1981,13 @@ function switchExamTab(tab) {
     if (!container) return;
     
     document.querySelectorAll('.sam-tab').forEach(b => b.classList.remove('active'));
-    document.getElementById(`tab-${tab}`).classList.add('active');
+    const activeTabBtn = document.getElementById(`tab-${tab}`);
+    if(activeTabBtn) activeTabBtn.classList.add('active');
 
     if (tab === 'register') showAddStudentUI(container);
     else if (tab === 'view-list') showStudentViewUI(container);
     else if (tab === 'marks') showMarkEntryUI(container);
-    if (tab === 'monthly') showMonthlyAssessmentUI(container);
+    else if (tab === 'monthly') showMonthlyAssessmentUI(container);
 }
 
 // 2. UI നിർമ്മാണ ഫങ്ക്ഷനുകൾ
@@ -2095,8 +2097,6 @@ async function loadStudentTable(mode) {
     if(!tbody) return;
 
     const isSadhar = user && (user.role === 'Sadhar');
-    
-    // ഫിൽട്ടർ ലോജിക്
     let filterValue;
     if (isSadhar) {
         filterValue = document.getElementById(mode === 'view-list' ? 'filter-class' : 'filter-class-marks')?.value || "ALL";
@@ -2116,13 +2116,10 @@ async function loadStudentTable(mode) {
         tbody.innerHTML = "";
         let students = [];
         snap.forEach(doc => students.push({ id: doc.id, ...doc.data() }));
-        
         students.sort((a, b) => parseInt(a.rollNo || 0) - parseInt(b.rollNo || 0));
 
         if (students.length === 0) {
             tbody.innerHTML = `<tr><td colspan="12">ഡാറ്റ കണ്ടെത്തിയില്ല.</td></tr>`;
-            const oldSum = document.querySelector('.summary-section');
-            if (oldSum) oldSum.remove();
             return;
         }
 
@@ -2132,11 +2129,11 @@ async function loadStudentTable(mode) {
             if (mode === 'marks') {
                 const m = [Number(s.m1)||0, Number(s.m2)||0, Number(s.m3)||0, Number(s.m4)||0, Number(s.m5)||0];
                 const q = Number(s.quran)||0;
-                const enteredMarks = m.filter(val => val > 0);
-                const subjectCount = enteredMarks.length + (q > 0 ? 1 : 0);
                 const total = m.reduce((a,b) => a+b, 0) + q;
-                const isFailedBySub = enteredMarks.some(val => val < 40) || (q > 0 && q < 40);
-                const passed = subjectCount > 0 && !isFailedBySub && (total >= (subjectCount * 40));
+                
+                // ലളിതമായ പാസ്സ്/ഫെയിൽ ലോജിക്
+                const isFailed = [...m, q].some(v => v > 0 && v < 40);
+                const passed = total > 0 && !isFailed;
 
                 tbody.innerHTML += `
                     <tr class="${genderClass}">
@@ -2156,18 +2153,24 @@ async function loadStudentTable(mode) {
                         <td>${s.father || '-'}<br><small>${s.phone || '-'}</small></td>
                         <td>${s.gender}</td>
                         <td>
-                            <i class="fas fa-edit edit-icon" onclick="editExamStudent('${s.id}')" style="cursor:pointer; color:blue;"></i>
-                            <i class="fas fa-trash delete-icon" onclick="deleteExamStudent('${s.id}')" style="cursor:pointer; color:red; margin-left:10px;"></i>
+                            <i class="fas fa-edit" onclick="editExamStudent('${s.id}')" style="cursor:pointer; color:blue;"></i>
+                            <i class="fas fa-trash" onclick="deleteExamStudent('${s.id}')" style="cursor:pointer; color:red; margin-left:10px;"></i>
                         </td>
                     </tr>`;
             }
         });
+    } catch (e) {
+        console.error(e);
+        tbody.innerHTML = "Error loading data.";
+    }
+}
 
-        async function generateConsolidatedReport() {
+// 4. റിപ്പോർട്ട് ജനറേഷൻ (ഇത് സ്വതന്ത്രമായ ഫങ്ക്ഷൻ ആണ്)
+async function generateConsolidatedReport() {
     const reportArea = document.getElementById('printable-report-area');
     if (!reportArea) return;
 
-    reportArea.innerHTML = "<div class='no-print' style='text-align:center; padding:20px;'><i class='fas fa-spinner fa-spin'></i> റിപ്പോർട്ട് തയ്യാറാക്കുന്നു...</div>";
+    reportArea.innerHTML = "Loading...";
 
     try {
         const snap = await db.collection("exam_students").get();
@@ -2176,190 +2179,57 @@ async function loadStudentTable(mode) {
 
         const classes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
         let tableRows = "";
-        
-        let grandTotal = { total: 0, boys: 0, girls: 0, attended: 0, pBoys: 0, pGirls: 0, pTotal: 0 };
+        let grandTotal = { total: 0, boys: 0, girls: 0, attended: 0, pTotal: 0 };
 
         classes.forEach(cls => {
             const clsStudents = allStudents.filter(s => String(s.class) === String(cls));
             if (clsStudents.length === 0) return;
 
-            let stats = { b: 0, g: 0, att: 0, pb: 0, pg: 0 };
+            let stats = { b: 0, g: 0, att: 0, pass: 0 };
             stats.b = clsStudents.filter(s => s.gender === 'Male').length;
             stats.g = clsStudents.filter(s => s.gender === 'Female').length;
 
             clsStudents.forEach(s => {
                 const marks = [Number(s.m1)||0, Number(s.m2)||0, Number(s.m3)||0, Number(s.m4)||0, Number(s.m5)||0, Number(s.quran)||0];
-                const hasMarks = marks.some(v => v > 0);
-                if (hasMarks) stats.att++;
-                const passed = hasMarks && !marks.some(v => v > 0 && v < 40);
-                if (passed) {
-                    if (s.gender === 'Male') stats.pb++;
-                    else stats.pg++;
+                if (marks.some(v => v > 0)) {
+                    stats.att++;
+                    if (!marks.some(v => v > 0 && v < 40)) stats.pass++;
                 }
             });
-
-            const totalPassed = stats.pb + stats.pg;
-            const passPercent = stats.att > 0 ? ((totalPassed / stats.att) * 100).toFixed(0) : 0;
 
             grandTotal.total += clsStudents.length;
             grandTotal.boys += stats.b;
             grandTotal.girls += stats.g;
             grandTotal.attended += stats.att;
-            grandTotal.pBoys += stats.pb;
-            grandTotal.pGirls += stats.pg;
-            grandTotal.pTotal += totalPassed;
+            grandTotal.pTotal += stats.pass;
 
             tableRows += `
                 <tr>
-                    <td class="cls-cell">${cls}</td>
-                    <td>${stats.b}</td>
-                    <td>${stats.g}</td>
-                    <td class="total-col">${clsStudents.length}</td>
-                    <td class="total-col">${stats.att}</td>
-                    <td>${stats.pb}</td>
-                    <td>${stats.pg}</td>
-                    <td class="total-col">${totalPassed}</td>
-                    <td class="percent-col">${passPercent}%</td>
+                    <td>${cls}</td>
+                    <td>${stats.b}</td><td>${stats.g}</td>
+                    <td>${clsStudents.length}</td>
+                    <td>${stats.att}</td>
+                    <td>${stats.pass}</td>
+                    <td>${stats.att > 0 ? ((stats.pass/stats.att)*100).toFixed(0) : 0}%</td>
                 </tr>`;
         });
 
-        const overallPassPercent = grandTotal.attended > 0 ? ((grandTotal.pTotal / grandTotal.attended) * 100).toFixed(1) : 0;
-
-        reportArea.innerHTML = `
-            <div class="main-report-card">
-                <div class="report-header-box">
-                    <h1 class="m-title">ഇസ്‌ലാഹുൽ ഉലൂം സെക്കണ്ടറി മദ്‌റസ</h1>
-                    <p class="m-sub">AR നഗർ | REG NO: 1205</p>
-                    <div class="title-divider"></div>
-                    <h2 class="report-main-subject">വിദ്യാർത്ഥികളുടെ എണ്ണം & പരീക്ഷാ ഫലം (2025 - 2026)</h2>
-                </div>
-
-                <table class="styled-report-table">
-                    <thead>
-                        <tr class="head-row-1">
-                            <th rowspan="2">ക്ലാസ്</th>
-                            <th colspan="2">രജിസ്റ്റർ ചെയ്തവർ</th>
-                            <th rowspan="2">ആകെ കുട്ടികൾ</th>
-                            <th rowspan="2">പരീക്ഷ എഴുതിയവർ</th>
-                            <th colspan="3">വിജയിച്ചവർ</th>
-                            <th rowspan="2">വിജയ ശതമാനം</th>
-                        </tr>
-                        <tr class="head-row-2">
-                            <th>ആൺ</th><th>പെൺ</th>
-                            <th>ആൺ</th><th>പെൺ</th><th>ആകെ</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${tableRows}
-                    </tbody>
-                    <tfoot class="total-footer">
-                        <tr>
-                            <td>TOTAL</td>
-                            <td>${grandTotal.boys}</td>
-                            <td>${grandTotal.girls}</td>
-                            <td>${grandTotal.total}</td>
-                            <td>${grandTotal.attended}</td>
-                            <td>${grandTotal.pBoys}</td>
-                            <td>${grandTotal.pGirls}</td>
-                            <td>${grandTotal.pTotal}</td>
-                            <td>${overallPassPercent}%</td>
-                        </tr>
-                    </tfoot>
-                </table>
-
-                <div class="signature-section">
-                    <div class="sig-box">
-                        <p>Place: AR Nagar</p>
-                        <p>Date: ${new Date().toLocaleDateString('en-GB')}</p>
-                    </div>
-                    <div class="sig-box" style="text-align:center;">
-                        <div class="sig-line"></div>
-                        <p>Head Master / Sadar</p>
-                    </div>
-                    <div class="sig-box" style="text-align:center;">
-                        <div class="sig-line"></div>
-                        <p>Office Seal</p>
-                    </div>
-                </div>
-            </div>
-
-            <style>
-                .main-report-card {
-                    background: white;
-                    padding: 40px;
-                    border: 1px solid #ddd;
-                    min-height: 800px;
-                    position: relative;
-                }
-                .report-header-box {
-                    text-align: center;
-                    margin-bottom: 30px;
-                    border: 3px double #333;
-                    padding: 15px;
-                }
-                .m-title { font-size: 28px; margin: 0; color: #1a237e; font-weight: 900; }
-                .m-sub { font-size: 16px; margin: 5px 0; font-weight: bold; }
-                .title-divider { height: 2px; background: #333; margin: 10px auto; width: 80%; }
-                .report-main-subject { 
-                    font-size: 18px; 
-                    background: #f0f0f0; 
-                    display: inline-block; 
-                    padding: 5px 20px; 
-                    border-radius: 5px;
-                    text-transform: uppercase;
-                }
-
-                .styled-report-table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    margin-bottom: 40px;
-                }
-                .styled-report-table th, .styled-report-table td {
-                    border: 1px solid #000;
-                    padding: 12px 8px;
-                    text-align: center;
-                    font-size: 15px;
-                }
-                .head-row-1 { background: #ffd600 !important; font-weight: bold; }
-                .head-row-2 { background: #fffde7 !important; }
-                .total-col { background: #f5f5f5; font-weight: bold; }
-                .percent-col { background: #e8f5e9; font-weight: bold; color: #2e7d32; }
-                .cls-cell { font-weight: bold; background: #fafafa; font-size: 16px; }
-
-                .total-footer { background: #333; color: white; font-weight: bold; }
-                .total-footer td { border-color: #444; padding: 15px 8px; }
-
-                .signature-section {
-                    margin-top: 60px;
-                    display: flex;
-                    justify-content: space-between;
-                }
-                .sig-line { width: 150px; border-top: 1px solid #000; margin: 50px auto 5px auto; }
-                
-                @media print {
-                    .no-print { display: none !important; }
-                    .main-report-card { border: none; padding: 0; }
-                    body { background: white; }
-                }
-            </style>
-        `;
-    } catch (e) {
-        reportArea.innerHTML = "Error loading report.";
-    }
+        reportArea.innerHTML = `<h3>Consolidated Report</h3><table border="1" style="width:100%; border-collapse:collapse; text-align:center;">
+            <thead><tr><th>Class</th><th>Boys</th><th>Girls</th><th>Total</th><th>Attended</th><th>Passed</th><th>%</th></tr></thead>
+            <tbody>${tableRows}</tbody>
+        </table>`;
+    } catch (e) { alert("Report Error"); }
 }
-
 
 // മാർക്ക് അപ്‌ഡേറ്റ്
 async function updateMark(id, field, val) {
-    const v = parseInt(val) || 0;
     try {
-        await db.collection("exam_students").doc(id).update({ [field]: v });
+        await db.collection("exam_students").doc(id).update({ [field]: parseInt(val) || 0 });
         loadStudentTable('marks');
     } catch (e) { alert("Error saving mark!"); }
 }
 
 async function saveExamStudent() {
-    const user = JSON.parse(localStorage.getItem("activeUser"));
     const data = {
         admNo: document.getElementById('ex-adm').value,
         rollNo: document.getElementById('ex-roll').value,
@@ -2371,12 +2241,13 @@ async function saveExamStudent() {
         phone: document.getElementById('ex-phone').value,
         m1:0, m2:0, m3:0, m4:0, m5:0, quran:0
     };
-    await db.collection("exam_students").add(data);
-    alert("വിവരങ്ങൾ സേവ് ചെയ്തു!");
-    switchExamTab('view-list');
+    try {
+        await db.collection("exam_students").add(data);
+        alert("വിവരങ്ങൾ സേവ് ചെയ്തു!");
+        switchExamTab('view-list');
+    } catch(e) { alert("Error!"); }
 }
 
-// എഡിറ്റിംഗ്
 async function editExamStudent(id) {
     const doc = await db.collection("exam_students").doc(id).get();
     const s = doc.data();
@@ -2425,35 +2296,23 @@ function showMonthlyAssessmentUI(container) {
     
     container.innerHTML = `
         <div class="sam-card border-purple">
-            <div class="flex-between" style="flex-wrap: wrap; gap: 10px;">
-                <h4><i class="fas fa-calendar-check"></i> പ്രതിമാസ മാർക്ക് രജിസ്റ്റർ</h4>
-                <div style="display: flex; gap: 10px;">
+            <div class="flex-between">
+                <h4>Monthly Assessment</h4>
+                <div style="display: flex; gap: 5px;">
                     <select id="assess-month" class="sam-input" onchange="loadMonthlyTable()">
                         <option value="dul-qa">ദുൽഖഅദ്</option>
                         <option value="dul-hajj">ദുൽഹിജ്ജ</option>
                         <option value="muharram">മുഹറം</option>
-                        <option value="safar">സഫർ</option>
-                        <option value="rabi-1">റബീഉൽ അവ്വൽ</option>
-                        <option value="rabi-2">റബീഉൽ ആഖിർ</option>
-                        <option value="jumad-1">ജുമാദൽ ഊലാ</option>
-                        <option value="jumad-2">ജുമാദൽ ആഖിറ:</option>
-                        <option value="rajab">റജബ്</option>
                     </select>
-                    ${isSadhar ? `
-                    <select id="assess-class" onchange="loadMonthlyTable()" class="sam-input">
+                    ${isSadhar ? `<select id="assess-class" onchange="loadMonthlyTable()" class="sam-input">
                         ${[1,2,3,4,5,6,7,8,9,10,11,12].map(c => `<option value="${c}">Class ${c}</option>`).join('')}
                     </select>` : `<span>Class: ${user.assignedClass}</span>`}
                 </div>
             </div>
-            <div class="table-scroll" style="margin-top:15px;">
-                <table class="sam-main-table assessment-table">
+            <div class="table-scroll">
+                <table class="sam-main-table">
                     <thead>
-                        <tr>
-                            <th>പേര്</th>
-                            <th>വായന (20)</th><th>എഴുത്ത് (20)</th><th>കർമ്മം (20)</th>
-                            <th>ശീലം (15)</th><th>വേഷം (15)</th><th>ഹാജർ (10)</th>
-                            <th>അസൈൻമെന്റ് (10)</th><th>ഖുർആൻ ഹിഫ്ള് (100)</th>
-                        </tr>
+                        <tr><th>Name</th><th>Reading</th><th>Writing</th><th>Karma</th><th>Habit</th><th>Dress</th><th>Atten.</th><th>Hifz</th></tr>
                     </thead>
                     <tbody id="monthly-body"></tbody>
                 </table>
@@ -2468,28 +2327,24 @@ async function loadMonthlyTable() {
     const user = JSON.parse(localStorage.getItem("activeUser"));
     const selectedClass = document.getElementById('assess-class')?.value || user.assignedClass;
 
-    tbody.innerHTML = "<tr><td colspan='9'>Loading...</td></tr>";
+    if(!tbody) return;
+    tbody.innerHTML = "Loading...";
 
     try {
-        const snap = await db.collection("exam_students")
-                       .where("class", "==", String(selectedClass))
-                       .get();
-        
+        const snap = await db.collection("exam_students").where("class", "==", String(selectedClass)).get();
         tbody.innerHTML = "";
         snap.forEach(doc => {
             const s = doc.data();
             const mData = s.monthlyData && s.monthlyData[month] ? s.monthlyData[month] : {};
-
             tbody.innerHTML += `
                 <tr>
-                    <td class="text-left"><b>${s.name}</b></td>
+                    <td>${s.name}</td>
                     <td><input type="number" value="${mData.reading || 0}" onchange="saveMonthlyMark('${doc.id}', '${month}', 'reading', this.value)"></td>
                     <td><input type="number" value="${mData.writing || 0}" onchange="saveMonthlyMark('${doc.id}', '${month}', 'writing', this.value)"></td>
                     <td><input type="number" value="${mData.karma || 0}" onchange="saveMonthlyMark('${doc.id}', '${month}', 'karma', this.value)"></td>
                     <td><input type="number" value="${mData.habit || 0}" onchange="saveMonthlyMark('${doc.id}', '${month}', 'habit', this.value)"></td>
                     <td><input type="number" value="${mData.dress || 0}" onchange="saveMonthlyMark('${doc.id}', '${month}', 'dress', this.value)"></td>
                     <td><input type="number" value="${mData.attendance || 0}" onchange="saveMonthlyMark('${doc.id}', '${month}', 'attendance', this.value)"></td>
-                    <td><input type="number" value="${mData.assignment || 0}" onchange="saveMonthlyMark('${doc.id}', '${month}', 'assignment', this.value)"></td>
                     <td><input type="number" value="${mData.hifz || 0}" onchange="saveMonthlyMark('${doc.id}', '${month}', 'hifz', this.value)"></td>
                 </tr>`;
         });
@@ -2502,6 +2357,7 @@ async function saveMonthlyMark(studentId, month, field, value) {
         [updatePath]: parseInt(value) || 0
     });
 }
+
 
 // 3. സദർ - ഉസ്താദ് പണമിടപാട് ടേബിൾ (പുതിയത്)
 // 1. ലോഡ് ചെയ്യുന്ന ടേബിൾ (മാറ്റമില്ലാതെ - ഇതിൽ ID ഉം സമയവും ഡിസ്‌പ്ലേ ചെയ്യാനുണ്ട്)
